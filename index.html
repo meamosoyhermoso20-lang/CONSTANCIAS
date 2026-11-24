@@ -124,10 +124,10 @@
                     <button type="button" data-header-btn="btn_periods" onclick="openPeriodsModal()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition">
                         Periodos
                     </button>
-                    <button type="button" data-header-btn="btn_save_html" onclick="downloadSelfContainedPageWithData()" class="px-2.5 py-1.5 rounded-lg bg-indigo-900/80 hover:bg-indigo-800 border border-indigo-700 text-indigo-100 text-xs font-semibold transition">
+                    <button type="button" id="btnHeaderExportIndex" data-admin-only="true" data-header-btn="btn_save_html" onclick="downloadSelfContainedPageWithData()" class="hidden px-2.5 py-1.5 rounded-lg bg-indigo-900/80 hover:bg-indigo-800 border border-indigo-700 text-indigo-100 text-xs font-semibold transition">
                         Exportar index.html
                     </button>
-                    <button type="button" id="btnRealtimeSaveAndRefresh" data-header-btn="btn_realtime_sync" onclick="realtimeSaveAndRefreshSystem()" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow transition">
+                    <button type="button" id="btnRealtimeSaveAndRefresh" data-admin-only="true" data-header-btn="btn_realtime_sync" onclick="realtimeSaveAndRefreshSystem()" class="hidden px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow transition">
                         Guardar y Actualizar en Tiempo Real
                     </button>
                     <button type="button" onclick="lockProfileQuickAccess()" class="px-2.5 py-1.5 rounded-lg bg-rose-900/80 hover:bg-rose-800 border border-rose-700 text-rose-100 text-xs font-bold transition">
@@ -443,57 +443,66 @@
                         <p class="text-xs text-slate-500">Asigna códigos de acceso, permisos de modificación o solo selección por campo y botones del panel superior.</p>
                     </div>
                 <!-- VINCULACIÓN Y DESPLIEGUE AUTOMÁTICO EN GITHUB (SOLO ADMINISTRADOR) -->
-                <div id="adminOnlyGithubSection" class="bg-slate-900 text-white rounded-2xl p-4 space-y-3 border border-slate-800 shadow-md">
-                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+                <div id="adminOnlyGithubSection" class="bg-slate-900 text-white rounded-2xl p-4 sm:p-5 space-y-4 border border-slate-800 shadow-md">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="px-2 py-0.5 rounded bg-amber-400 text-slate-950 text-[10px] font-black uppercase">Solo Administrador</span>
-                                <h3 class="text-xs font-black uppercase tracking-wider text-amber-400">Vinculación GitHub y Despliegue Automático (index.html)</h3>
+                                <h3 class="text-xs sm:text-sm font-black uppercase tracking-wider text-amber-400">Vinculación Fácil a GitHub y Publicación en Código Fuente (index.html)</h3>
                             </div>
-                            <p class="text-[11px] text-slate-300 mt-1">Sigue los pasos numerados: al guardar cambios se sincroniza y sube el despliegue en tiempo real.</p>
+                            <p class="text-[11px] text-slate-300 mt-1">Todos tus cambios (usuarios, códigos de acceso, permisos, licenciaturas, firma y formatos) se incrustan en el código fuente sin exponer tu token para evitar bloqueos de seguridad de GitHub.</p>
                         </div>
                         <span id="githubSyncStatusBadge" class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">Listo para vincular</span>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-400 mb-1">Repositorio (usuario/repositorio)</label>
-                            <input type="text" id="inpGithubRepo" oninput="saveGithubIntegrationSettings()" placeholder="ej. miusuario/constancias-uap" class="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white font-mono text-xs outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-400 mb-1">Personal Access Token (Actualizable en cada envío)</label>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                        <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-1.5">
+                            <div class="text-[10px] font-black uppercase text-amber-400">Paso 1 · Repositorio y Rama</div>
+                            <input type="text" id="inpGithubRepo" oninput="saveGithubIntegrationSettings()" placeholder="usuario/repositorio" class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono text-xs outline-none">
                             <div class="flex gap-1.5">
-                                <input type="password" id="inpGithubToken" oninput="saveGithubIntegrationSettings()" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" class="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white font-mono text-xs outline-none">
-                                <button type="button" onclick="updateSystemGithubToken()" class="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[10px] whitespace-nowrap transition" title="Actualizar y guardar el token del sistema">
-                                    Actualizar Token
-                                </button>
+                                <input type="text" id="inpGithubBranch" value="main" oninput="saveGithubIntegrationSettings()" placeholder="main" class="w-1/2 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 font-mono text-[11px] outline-none">
+                                <input type="text" id="inpGithubFilePath" value="index.html" readonly class="w-1/2 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-emerald-400 font-mono text-[11px] font-bold outline-none">
                             </div>
                         </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-400 mb-1">URL Pública GitHub Pages</label>
-                            <input type="text" id="inpCustomDomainUrl" oninput="saveGithubIntegrationSettings()" placeholder="https://usuario.github.io/repo/" class="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs outline-none">
+
+                        <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-1.5">
+                            <div class="text-[10px] font-black uppercase text-amber-400">Paso 2 · Token Privado (Solo Local)</div>
+                            <div class="flex gap-1.5">
+                                <input type="password" id="inpGithubToken" oninput="saveGithubIntegrationSettings()" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono text-xs outline-none">
+                                <button type="button" onclick="updateSystemGithubToken()" class="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[10px] whitespace-nowrap transition">
+                                    Guardar Token
+                                </button>
+                            </div>
+                            <p class="text-[10px] text-slate-400">Se guarda solo en tu navegador y nunca se incrusta en <code>index.html</code> (evita error 409 Secret Detected).</p>
+                        </div>
+
+                        <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-1.5">
+                            <div class="text-[10px] font-black uppercase text-amber-400">Paso 3 · Enlace Público (Visitantes)</div>
+                            <input type="text" id="inpCustomDomainUrl" oninput="saveGithubIntegrationSettings()" placeholder="https://usuario.github.io/repo/" class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs outline-none">
+                            <button type="button" onclick="checkRemoteDeploymentVersion(true)" class="w-full py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100 text-[11px] font-bold transition">
+                                Verificar Versión Publicada
+                            </button>
                         </div>
                     </div>
 
                     <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
                         <div class="flex flex-wrap items-center gap-2">
-                            <button type="button" id="btnExtractAndAutoLoad" data-header-btn="btn_extract_data" onclick="extractAndAutoLoadSystemData()" class="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-extrabold shadow transition flex items-center gap-1.5">
+                            <button type="button" id="btnExtractAndAutoLoad" data-header-btn="btn_extract_data" onclick="extractAndAutoLoadSystemData()" class="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-extrabold shadow transition">
                                 Extraer Datos
                             </button>
-                            <button type="button" onclick="saveAllDataAndAutoUploadIndex()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow transition flex items-center gap-1.5">
-                                <span class="px-1.5 py-0.5 rounded bg-slate-950 text-amber-400 text-[10px]">1 CLICK</span>
-                                Guardar Datos y Subir Base index.html
+                            <button type="button" onclick="syncUpdatesInRealTimeNow(true)" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow transition">
+                                Actualizar en Tiempo Real
                             </button>
-                            <button type="button" onclick="downloadSelfContainedPageWithData()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1.5">
-                                Descargar Respaldo index.html
+                            <button type="button" onclick="saveAllDataAndAutoUploadIndex()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-extrabold shadow transition">
+                                Guardar Cambios en Código Fuente y Subir index.html
                             </button>
-                            <button type="button" onclick="deployUpdateToGithub(true, false, true)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow transition flex items-center gap-1.5">
-                                Subir Despliegue a GitHub y Actualizar Página
+                            <button type="button" onclick="downloadSelfContainedPageWithData()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition">
+                                Descargar index.html
+                            </button>
+                            <button type="button" onclick="deployUpdateToGithub(true, false, true)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow transition">
+                                Publicar en GitHub y Recargar
                             </button>
                         </div>
-                        <button type="button" onclick="checkRemoteDeploymentVersion(true)" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-[11px] font-bold transition">
-                            Verificar Nueva Versión Online
-                        </button>
                     </div>
                 </div>
 
@@ -548,7 +557,22 @@
     </div>
 
     <!-- NOTIFICACIÓN FLOTANTE (TOAST) -->
-    <div id="toastNotification" class="hidden fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-2xl border border-slate-700"></div>
+    <div id="toastNotification" class="hidden fixed bottom-20 right-4 z-50 bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-2xl border border-slate-700"></div>
+
+    <!-- MONITOR FLOTANTE EN ESQUINA DE ACTUALIZACIONES EN TIEMPO REAL -->
+    <div id="realtimeCornerMonitor" class="hidden no-print fixed bottom-4 right-4 z-40 bg-slate-950/95 text-white border border-slate-700/90 rounded-2xl px-3.5 py-2.5 shadow-2xl backdrop-blur-xs max-w-xs">
+        <div class="flex items-center gap-2">
+            <span id="realtimeCornerDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+            <span class="text-[11px] font-black tracking-wide uppercase text-emerald-300">Tiempo Real Activo</span>
+            <span id="realtimeCornerVersion" class="ml-auto text-[10px] font-mono text-slate-400">v1</span>
+        </div>
+        <div id="realtimeCornerMessage" class="text-[11px] text-slate-200 font-medium mt-1 leading-snug">
+            Sincronizado · Esperando cambios...
+        </div>
+        <div id="realtimeCornerTime" class="text-[9px] text-slate-400 mt-0.5 font-mono">
+            Última verificación: --:--:--
+        </div>
+    </div>
 
     <!-- ALMACÉN EMBEBIDO EN EL CÓDIGO BASE -->
     <script type="application/json" id="embeddedInternalVaultData">{}</script>
@@ -556,6 +580,7 @@
     <script>
         const ADMIN_MASTER_CODE = 'bubu03';
         const STORAGE_KEY = 'SISTEMA_BUBU_1_0_UAMP_STATE_V3';
+        const ADMIN_TOKEN_STORAGE_KEY = 'SISTEMA_BUBU_1_0_ADMIN_GH_TOKEN';
 
         const HEADER_BUTTON_DEFINITIONS = [
             { id: 'tab_generador', label: 'Pestaña Generador' },
@@ -722,20 +747,58 @@
                 if (ev.data && ev.data.type === 'STATE_UPDATED') {
                     loadPersistedState(true);
                     refreshAllUI();
+                    updateRealtimeCornerStatus('Cambio recibido de otra pestaña en vivo', 'sync');
                 }
             };
         }
 
-        function showToast(msg) {
-            const el = document.getElementById('toastNotification');
-            if (!el) return;
-            el.textContent = msg;
-            el.classList.remove('hidden');
-            clearTimeout(window.__toastTimer);
-            window.__toastTimer = setTimeout(() => el.classList.add('hidden'), 3400);
+        function updateRealtimeCornerStatus(message, stateType = 'ok') {
+            const monitor = document.getElementById('realtimeCornerMonitor');
+            const dot = document.getElementById('realtimeCornerDot');
+            const msgEl = document.getElementById('realtimeCornerMessage');
+            const timeEl = document.getElementById('realtimeCornerTime');
+            const verEl = document.getElementById('realtimeCornerVersion');
+            if (!monitor) return;
+
+            if (appState.activeSession) {
+                monitor.classList.remove('hidden');
+            }
+            if (msgEl && message) msgEl.textContent = message;
+            if (timeEl) timeEl.textContent = `Actualizado: ${new Date().toLocaleTimeString('es-MX')}`;
+            if (verEl) verEl.textContent = `v${String(appState.deploymentVersion || 1).slice(-5)}`;
+            if (dot) {
+                dot.className = stateType === 'busy'
+                    ? 'w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0'
+                    : stateType === 'error'
+                        ? 'w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0'
+                        : 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0';
+            }
         }
 
-        function buildSerializableVaultPayload() {
+        let toastTimeout = null;
+        function showToast(message) {
+            const toast = document.getElementById('toastNotification');
+            if (!toast) return;
+            toast.textContent = message;
+            toast.classList.remove('hidden');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3500);
+        }
+
+        function buildSerializableVaultPayload(includeSecretToken = false) {
+            const safeGithubConfig = {
+                repo: appState.githubConfig?.repo || '',
+                branch: appState.githubConfig?.branch || 'main',
+                filePath: 'index.html',
+                publicUrl: appState.githubConfig?.publicUrl || '',
+                tokenUpdatedAt: appState.githubConfig?.tokenUpdatedAt || ''
+            };
+            // Solo incluir el token en el respaldo privado de localStorage del Administrador, NUNCA en el código fuente index.html
+            if (includeSecretToken) {
+                safeGithubConfig.token = appState.githubConfig?.token || '';
+            }
             return {
                 deploymentVersion: appState.deploymentVersion,
                 currentDocType: appState.currentDocType,
@@ -750,7 +813,7 @@
                 kardex: appState.kardex,
                 resguardo: appState.resguardo,
                 signer: appState.signer,
-                githubConfig: appState.githubConfig,
+                githubConfig: safeGithubConfig,
                 history: appState.history,
                 studentsVault: appState.studentsVault
             };
@@ -844,7 +907,6 @@
                 if (bumpVersion) {
                     appState.deploymentVersion = Date.now();
                 }
-                // Sincronizar siempre el token y configuración más reciente desde los inputs si existen
                 const repoInp = document.getElementById('inpGithubRepo');
                 const tokenInp = document.getElementById('inpGithubToken');
                 const branchInp = document.getElementById('inpGithubBranch');
@@ -856,18 +918,20 @@
                 appState.githubConfig.filePath = 'index.html';
                 appState.githubConfig.tokenUpdatedAt = new Date().toLocaleString('es-MX');
 
-                // Capturar siempre los campos y desplegables actuales en la base index.html
                 appState.extractedFormState = extractCurrentSystemFields();
 
-                const payload = buildSerializableVaultPayload();
-                const json = JSON.stringify(payload);
-                localStorage.setItem(STORAGE_KEY, json);
+                // En localStorage guardamos la sesión completa (con token); en el código fuente embebido excluimos el token para cumplir GitHub Push Protection
+                if (appState.githubConfig.token) {
+                    localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, appState.githubConfig.token);
+                }
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(buildSerializableVaultPayload(true)));
                 const vaultTag = document.getElementById('embeddedInternalVaultData');
-                if (vaultTag) vaultTag.textContent = json;
+                if (vaultTag) vaultTag.textContent = JSON.stringify(buildSerializableVaultPayload(false));
+
                 if (broadcast && syncChannel) {
                     syncChannel.postMessage({ type: 'STATE_UPDATED', version: appState.deploymentVersion });
                 }
-                // Sincronización automática en tiempo real hacia index.html cuando el Administrador modifica datos o desplegables
+                updateRealtimeCornerStatus('Modificación guardada en tiempo real', 'ok');
                 if (autoPushGithub && appState.activeSession?.role === 'admin' && appState.githubConfig?.repo && appState.githubConfig?.token) {
                     clearTimeout(autoDeployDebounceTimer);
                     autoDeployDebounceTimer = setTimeout(() => {
@@ -944,19 +1008,38 @@
                         applyParsedStateObject(embeddedObj);
                     }
                 }
+
+                // Cargar automáticamente el token guardado del Administrador en memoria y en el campo visual
+                const savedAdminToken = (localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || localObj?.githubConfig?.token || appState.githubConfig?.token || '').trim();
+                if (savedAdminToken) {
+                    appState.githubConfig.token = savedAdminToken;
+                    const tokenInput = document.getElementById('inpGithubToken');
+                    if (tokenInput) tokenInput.value = savedAdminToken;
+                }
             } catch (err) {
                 console.warn('Error al cargar estado persistente:', err);
             }
         }
 
         function buildSelfContainedIndexHtml() {
-            const payload = buildSerializableVaultPayload();
-            const jsonStr = JSON.stringify(payload);
+            // Excluir el token secreto del HTML fuente para evitar el error 409 Secret Detected de GitHub
+            const sanitizedPayload = buildSerializableVaultPayload(false);
+            const sanitizedJson = JSON.stringify(sanitizedPayload);
+
             const vaultTag = document.getElementById('embeddedInternalVaultData');
-            if (vaultTag) vaultTag.textContent = jsonStr;
+            if (vaultTag) vaultTag.textContent = sanitizedJson;
+
             const docClone = document.documentElement.cloneNode(true);
             const cloneVault = docClone.querySelector('#embeddedInternalVaultData');
-            if (cloneVault) cloneVault.textContent = jsonStr;
+            if (cloneVault) cloneVault.textContent = sanitizedJson;
+
+            // Limpiar el campo visual del token en el clon exportado para que ningún secreto viaje en el código fuente
+            const cloneTokenInput = docClone.querySelector('#inpGithubToken');
+            if (cloneTokenInput) {
+                cloneTokenInput.value = '';
+                cloneTokenInput.removeAttribute('value');
+            }
+
             const loginScreen = docClone.querySelector('#frontLoginScreen');
             const mainWorkspace = docClone.querySelector('#mainAppWorkspace');
             if (loginScreen) loginScreen.classList.remove('hidden');
@@ -999,6 +1082,7 @@
 
             const badge = document.getElementById('githubSyncStatusBadge');
             if (badge) badge.textContent = 'Actualizando token y subiendo index.html...';
+            updateRealtimeCornerStatus('Subiendo index.html en tiempo real a GitHub...', 'busy');
 
             try {
                 const apiUrl = `https://api.github.com/repos/${repo}/contents/${filePath}`;
@@ -1018,7 +1102,7 @@
                 appState.deploymentVersion = Date.now();
                 appState.githubConfig.tokenUpdatedAt = new Date().toLocaleString('es-MX');
                 const htmlContent = buildSelfContainedIndexHtml();
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(buildSerializableVaultPayload()));
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(buildSerializableVaultPayload(true)));
 
                 const utf8Bytes = new TextEncoder().encode(htmlContent);
                 let binary = '';
@@ -1047,6 +1131,7 @@
                 if (!putRes.ok) {
                     const errData = await putRes.json().catch(() => ({}));
                     if (badge) badge.textContent = 'Error de Token/Repo en GitHub';
+                    updateRealtimeCornerStatus(`Error al sincronizar (${putRes.status})`, 'error');
                     if (!silentBackground) {
                         showToast(`Error GitHub (${putRes.status}): ${errData.message || 'Verifica el token actualizado'}`);
                     }
@@ -1054,6 +1139,7 @@
                 }
 
                 if (badge) badge.textContent = `Token y index.html actualizados (${new Date().toLocaleTimeString('es-MX')}) ✓`;
+                updateRealtimeCornerStatus('Desplegado en GitHub (index.html) ✓', 'ok');
                 if (notifySuccess) {
                     showToast('Base index.html y token actualizados y desplegados en tiempo real.');
                 }
@@ -1063,6 +1149,7 @@
                 return true;
             } catch (err) {
                 if (badge) badge.textContent = 'Error de conexión GitHub';
+                updateRealtimeCornerStatus('Sin conexión al servidor GitHub', 'error');
                 if (!silentBackground) showToast('Error de red al conectar con GitHub.');
                 return false;
             }
@@ -1103,20 +1190,26 @@
                     const remoteVer = remoteVault?.deploymentVersion || 0;
                     if (remoteVer > (appState.deploymentVersion || 0)) {
                         // Preservar token local del administrador si el remoto viene vacío
-                        const preservedToken = appState.githubConfig?.token || '';
+                        const preservedToken = (appState.githubConfig?.token || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '').trim();
                         applyParsedStateObject(remoteVault);
-                        if (!appState.githubConfig.token && preservedToken) {
+                        if (preservedToken) {
                             appState.githubConfig.token = preservedToken;
+                            const tokenInput = document.getElementById('inpGithubToken');
+                            if (tokenInput) tokenInput.value = preservedToken;
                         }
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(buildSerializableVaultPayload()));
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(buildSerializableVaultPayload(true)));
                         const vaultTag = document.getElementById('embeddedInternalVaultData');
-                        if (vaultTag) vaultTag.textContent = JSON.stringify(buildSerializableVaultPayload());
+                        if (vaultTag) vaultTag.textContent = JSON.stringify(buildSerializableVaultPayload(false));
                         if (appState.activeSession) {
                             refreshAllUI();
                         }
+                        updateRealtimeCornerStatus('Nueva versión remota aplicada en vivo ✓', 'ok');
                         showToast('Versión más reciente cargada automáticamente (caché limpiada).');
-                    } else if (manualNotify) {
-                        showToast('Ya tienes la versión más reciente desplegada.');
+                    } else {
+                        updateRealtimeCornerStatus('Conectado · Versión al día', 'ok');
+                        if (manualNotify) {
+                            showToast('Ya tienes la versión más reciente desplegada.');
+                        }
                     }
                 }
             } catch (e) {
@@ -1138,12 +1231,34 @@
             if (!tokenVal) {
                 return showToast('Escribe el nuevo Personal Access Token antes de actualizar.');
             }
+            localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, tokenVal);
             saveGithubIntegrationSettings();
             const badge = document.getElementById('githubSyncStatusBadge');
             if (badge) {
-                badge.textContent = `Token actualizado (${new Date().toLocaleTimeString('es-MX')}) ✓`;
+                badge.textContent = `Token cargado y actualizado (${new Date().toLocaleTimeString('es-MX')}) ✓`;
             }
-            showToast('Token del sistema actualizado y guardado correctamente.');
+            showToast('Token del sistema cargado y guardado correctamente.');
+        }
+
+        async function syncUpdatesInRealTimeNow(manualClick = false) {
+            const isAdmin = appState.activeSession?.role === 'admin';
+            if (isAdmin) {
+                saveGithubIntegrationSettings();
+                appState.extractedFormState = extractCurrentSystemFields();
+                persistBaseState(true, true, false);
+                const { repo, token } = appState.githubConfig || {};
+                if (repo && repo.includes('/') && token) {
+                    const ok = await deployUpdateToGithub(manualClick, !manualClick, false);
+                    if (ok && manualClick) {
+                        showToast('Actualización en tiempo real completada en el sistema y en GitHub.');
+                    }
+                } else if (manualClick) {
+                    showToast('Cambios guardados en tiempo real localmente. Vincula Repo y Token para publicar en línea.');
+                }
+            } else {
+                await checkRemoteDeploymentVersion(manualClick);
+            }
+            refreshAllUI();
         }
 
         async function unlockProfileByFrontLogin(e) {
@@ -1181,14 +1296,17 @@
             if (input) input.value = '';
             document.getElementById('frontLoginScreen').classList.add('hidden');
             document.getElementById('mainAppWorkspace').classList.remove('hidden');
+            document.getElementById('realtimeCornerMonitor')?.classList.remove('hidden');
             switchMainWorkspaceTab('generador');
             refreshAllUI();
+            updateRealtimeCornerStatus(`Sesión activa (${appState.activeSession.name})`, 'ok');
             showToast(`Bienvenido(a), ${appState.activeSession.name}`);
         }
 
         function lockProfileQuickAccess() {
             appState.activeSession = null;
             document.getElementById('mainAppWorkspace').classList.add('hidden');
+            document.getElementById('realtimeCornerMonitor')?.classList.add('hidden');
             document.getElementById('frontLoginScreen').classList.remove('hidden');
             showToast('Sesión cerrada correctamente.');
         }
@@ -1214,6 +1332,11 @@
                 githubSection.classList.toggle('hidden', !isAdmin);
             }
 
+            // Botones exclusivos del Administrador (Exportar index.html y Guardar y Actualizar en Tiempo Real)
+            document.querySelectorAll('[data-admin-only="true"]').forEach(el => {
+                el.classList.toggle('hidden', !isAdmin);
+            });
+
             // Permisos sobre modalidades de constancias
             document.querySelectorAll('[data-doc-btn]').forEach(btn => {
                 const docKey = btn.getAttribute('data-doc-btn');
@@ -1233,6 +1356,10 @@
             }
 
             document.querySelectorAll('[data-header-btn]').forEach(btn => {
+                if (btn.getAttribute('data-admin-only') === 'true') {
+                    btn.classList.toggle('hidden', !isAdmin);
+                    return;
+                }
                 const key = btn.getAttribute('data-header-btn');
                 if (isAdmin) {
                     btn.classList.remove('hidden', 'opacity-60', 'pointer-events-none');
@@ -2127,11 +2254,19 @@
         function loadGithubConfigToInputs() {
             autoDetectGithubFromHost();
             const cfg = appState.githubConfig || {};
+            const savedToken = (cfg.token || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '').trim();
+            if (savedToken) {
+                appState.githubConfig.token = savedToken;
+            }
             if (document.getElementById('inpGithubRepo')) document.getElementById('inpGithubRepo').value = cfg.repo || '';
-            if (document.getElementById('inpGithubToken')) document.getElementById('inpGithubToken').value = cfg.token || '';
+            if (document.getElementById('inpGithubToken')) document.getElementById('inpGithubToken').value = savedToken;
             if (document.getElementById('inpGithubBranch')) document.getElementById('inpGithubBranch').value = cfg.branch || 'main';
             if (document.getElementById('inpGithubFilePath')) document.getElementById('inpGithubFilePath').value = 'index.html';
             if (document.getElementById('inpCustomDomainUrl')) document.getElementById('inpCustomDomainUrl').value = cfg.publicUrl || '';
+            const badge = document.getElementById('githubSyncStatusBadge');
+            if (badge && savedToken && cfg.repo) {
+                badge.textContent = `Vinculado: ${cfg.repo} · Token cargado ✓`;
+            }
         }
 
         function saveGithubIntegrationSettings() {
@@ -2141,10 +2276,18 @@
             const branchVal = document.getElementById('inpGithubBranch')?.value;
             const urlVal = document.getElementById('inpCustomDomainUrl')?.value;
 
+            const resolvedToken = (tokenVal !== undefined && tokenVal.trim() !== '')
+                ? tokenVal.trim()
+                : (appState.githubConfig.token || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '');
+
+            if (resolvedToken) {
+                localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, resolvedToken);
+            }
+
             appState.githubConfig = {
                 ...appState.githubConfig,
                 repo: repoVal !== undefined ? repoVal.trim() : (appState.githubConfig.repo || ''),
-                token: tokenVal !== undefined ? tokenVal.trim() : (appState.githubConfig.token || ''),
+                token: resolvedToken,
                 branch: branchVal !== undefined ? (branchVal.trim() || 'main') : (appState.githubConfig.branch || 'main'),
                 filePath: 'index.html',
                 publicUrl: urlVal !== undefined ? urlVal.trim() : (appState.githubConfig.publicUrl || ''),
@@ -2153,11 +2296,9 @@
             if (document.getElementById('inpGithubFilePath')) {
                 document.getElementById('inpGithubFilePath').value = 'index.html';
             }
-            const payload = buildSerializableVaultPayload();
-            const json = JSON.stringify(payload);
-            localStorage.setItem(STORAGE_KEY, json);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(buildSerializableVaultPayload(true)));
             const vaultTag = document.getElementById('embeddedInternalVaultData');
-            if (vaultTag) vaultTag.textContent = json;
+            if (vaultTag) vaultTag.textContent = JSON.stringify(buildSerializableVaultPayload(false));
         }
 
         async function saveAllDataAndAutoUploadIndex() {
@@ -2374,6 +2515,9 @@
             renderMontosEditor();
             renderKardexEditor();
             renderResguardoEditor();
+            if (appState.activeSession?.role === 'admin') {
+                loadGithubConfigToInputs();
+            }
             if (document.getElementById('inpFirmanteNombre')) document.getElementById('inpFirmanteNombre').value = appState.signer.name;
             if (document.getElementById('inpFirmanteCargo')) document.getElementById('inpFirmanteCargo').value = appState.signer.title;
             if (appState.extractedFormState) applyExtractedSystemFields(appState.extractedFormState);
@@ -2398,7 +2542,7 @@
             setTodayExpeditionDate(true);
             setInterval(() => {
                 checkRemoteDeploymentVersion(false);
-            }, 10000);
+            }, 5000);
         });
     </script>
 </div>
