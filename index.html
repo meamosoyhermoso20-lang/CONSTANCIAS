@@ -401,7 +401,7 @@
                         </div>
                     </div>
 
-                    <button type="button" id="topBtnPeriods" onclick="openPeriodsModal()" class="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 text-slate-100 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold transition border border-white/15">
+                    <button type="button" id="topBtnPeriods" onclick="openPeriodsModal()" class="hidden flex items-center gap-1.5 bg-white/10 hover:bg-white/15 text-slate-100 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold transition border border-white/15">
                         <span>Periodos</span>
                     </button>
 
@@ -1098,11 +1098,11 @@
         // ==========================================
         const ADMIN_MASTER_CODE = 'BUBU03';
         const PERMANENT_STORAGE_KEY = 'UAP_PERMANENT_VAULT_V1';
-        const SOURCE_BUILD_VERSION = '2026.11.24.02';
+        const SOURCE_BUILD_VERSION = '2026.11.24.03';
 
         const DEFAULT_SIGNATURE_INFO = {
-            firmante: 'LIC. ALEJANDRA MENDOZA RUIZ',
-            cargoFirmante: 'JEFA DEL DEPARTAMENTO DE SERVICIOS ESCOLARES'
+            firmante: 'Lic. Alejandra Mendoza Ruiz',
+            cargoFirmante: 'Jefa del Departamento de Servicios Escolares'
         };
 
         const DEFAULT_TEMPLATES = {
@@ -1392,15 +1392,15 @@
         function formatSpanishLongDateUpper(isoDate) {
             if (!isoDate) return '';
             const months = [
-                'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
-                'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
+                'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+                'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
             ];
             const parts = isoDate.split('-');
-            if (parts.length !== 3) return isoDate.toUpperCase();
+            if (parts.length !== 3) return isoDate;
             const year = parts[0];
             const monthIdx = parseInt(parts[1], 10) - 1;
             const day = String(parseInt(parts[2], 10)).padStart(2, '0');
-            return `${day} DE ${months[monthIdx] || ''} DE ${year}`;
+            return `${day} de ${months[monthIdx] || ''} de ${year}`;
         }
 
         function setTodayExpeditionDate(onlyIfEmpty = false) {
@@ -1490,6 +1490,7 @@
             const licTab = document.getElementById('mainTabBtn-licenciaturas');
             const rolesTab = document.getElementById('mainTabBtn-roles');
             const toolsContainer = document.getElementById('headerToolsContainer');
+            const periodsBtn = document.getElementById('topBtnPeriods');
 
             if (!currentSession.unlocked) {
                 lockedNotice?.classList.remove('hidden');
@@ -1510,11 +1511,102 @@
                 licTab?.classList.remove('hidden');
                 rolesTab?.classList.remove('hidden');
                 toolsContainer?.classList.remove('hidden');
+                periodsBtn?.classList.remove('hidden');
             } else {
                 licTab?.classList.add('hidden');
                 rolesTab?.classList.add('hidden');
                 toolsContainer?.classList.add('hidden');
+                periodsBtn?.classList.add('hidden');
                 switchMainWorkspaceTab('constancias');
+            }
+
+            applyGranularUserDocPermissions();
+        }
+
+        function getUserDocAccessLevel(docType) {
+            if (currentSession.isAdmin) return 'edit';
+            const perms = currentSession.permissions || {};
+            const level = perms[docType];
+            if (level === 'none' || level === 'select' || level === 'edit') return level;
+            return 'select';
+        }
+
+        function getUserFieldEditable(docType, fieldKey) {
+            if (currentSession.isAdmin) return true;
+            const level = getUserDocAccessLevel(docType);
+            if (level === 'none') return false;
+            const perms = currentSession.permissions || {};
+            const fieldMap = perms[`${docType}_fields`];
+            if (fieldMap && typeof fieldMap[fieldKey] === 'boolean') {
+                return fieldMap[fieldKey];
+            }
+            return level === 'edit';
+        }
+
+        function applyGranularUserDocPermissions() {
+            const readOnlyAlert = document.getElementById('readOnlyRoleAlert');
+            const readOnlyAlertText = document.getElementById('readOnlyRoleAlertText');
+
+            Object.keys(DOC_TYPE_META).forEach(typeKey => {
+                const btn = document.getElementById(`btn-type-${typeKey}`);
+                if (!btn) return;
+                const access = getUserDocAccessLevel(typeKey);
+                btn.classList.toggle('hidden', access === 'none');
+            });
+
+            if (!currentSession.isAdmin && getUserDocAccessLevel(currentDocType) === 'none') {
+                const firstAllowed = Object.keys(DOC_TYPE_META).find(t => getUserDocAccessLevel(t) !== 'none');
+                if (firstAllowed) {
+                    currentDocType = firstAllowed;
+                    selectDocType(firstAllowed);
+                    return;
+                }
+            }
+
+            const fieldControls = [
+                { key: 'folio', ids: ['inputFolio'] },
+                { key: 'fechaCiudad', ids: ['inputCiudad', 'inputFecha'] },
+                { key: 'destinatario', ids: ['inputDestinatario'] },
+                { key: 'writeName', ids: ['inputAlumno', 'selectGenero'] },
+                { key: 'matricula', ids: ['inputMatricula'] },
+                { key: 'grado', ids: ['selectTipoPeriodoGrado', 'inputGrado'] },
+                { key: 'licenciaturaRvoe', ids: ['selectLicenciatura', 'inputRvoe'] },
+                { key: 'periodoActivo', ids: ['selectPeriodo', 'inputInicioPeriodo', 'inputFinPeriodo'] },
+                { key: 'estructuraTexto', ids: ['customDocFormatText', 'btnSaveFormat', 'btnResetFormat', 'documentRenderedBody'] },
+                { key: 'periodosAnteriores', ids: ['selectEstatusPeriodosAnteriores', 'inputPeriodosAnteriores'] },
+                { key: 'vacacionesFechas', ids: ['inputVacInicio', 'inputVacFin'] },
+                { key: 'tablaMaterias', ids: ['bulkCalificacionesInput'] },
+                { key: 'montosCuotas', ids: ['fields-montos'] },
+                { key: 'docsResguardo', ids: ['inputDocumentosResguardo'] },
+                { key: 'firmante', ids: ['inputFirmante', 'inputCargoFirmante', 'btnSaveSignatureDefaults', 'btnResetSignatureDefaults'] }
+            ];
+
+            let hasRestrictedField = false;
+            fieldControls.forEach(group => {
+                const canEdit = getUserFieldEditable(currentDocType, group.key);
+                if (!canEdit) hasRestrictedField = true;
+                group.ids.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    if (id === 'documentRenderedBody') {
+                        el.setAttribute('contenteditable', canEdit ? 'true' : 'false');
+                    } else if (id === 'fields-montos') {
+                        el.querySelectorAll('input, button').forEach(sub => { sub.disabled = !canEdit; });
+                    } else {
+                        el.disabled = !canEdit;
+                        el.classList.toggle('opacity-65', !canEdit);
+                        el.classList.toggle('cursor-not-allowed', !canEdit);
+                    }
+                });
+            });
+
+            if (!currentSession.isAdmin && hasRestrictedField) {
+                readOnlyAlert?.classList.remove('hidden');
+                if (readOnlyAlertText) {
+                    readOnlyAlertText.innerHTML = `Perfil <strong>${escapeHtml(currentSession.name)}</strong>: los campos bloqueados están restringidos por el Administrador.`;
+                }
+            } else {
+                readOnlyAlert?.classList.add('hidden');
             }
         }
 
@@ -1588,7 +1680,7 @@
             if (!sel || !rvoeInput) return;
             const found = (vaultState.majors || []).find(m => m.id === sel.value);
             if (found) {
-                rvoeInput.value = found.rvoeDate ? `${found.rvoe} DE FECHA ${found.rvoeDate.toUpperCase()}` : found.rvoe;
+                rvoeInput.value = found.rvoeDate ? `${found.rvoe} de fecha ${found.rvoeDate}` : found.rvoe;
             }
             if (shouldUpdate) updateDocument();
         }
@@ -1666,6 +1758,10 @@
         // ==========================================
         function selectDocType(type) {
             if (!DOC_TYPE_META[type]) type = 'simple';
+            if (!currentSession.isAdmin && getUserDocAccessLevel(type) === 'none') {
+                showToast('Tu perfil no tiene acceso a esta modalidad de constancia.');
+                return;
+            }
             currentDocType = type;
 
             Object.keys(DOC_TYPE_META).forEach(key => {
@@ -1694,6 +1790,7 @@
             if (type === 'montos') renderMontosEditorRows();
             if (type === 'calificaciones') renderGradesEditorRows();
 
+            applyGranularUserDocPermissions();
             updateDocument();
         }
 
@@ -1863,35 +1960,35 @@
             const gender = document.getElementById('selectGenero')?.value || 'F';
             const isFem = gender === 'F';
             const licSel = document.getElementById('selectLicenciatura');
-            const licName = licSel?.options[licSel.selectedIndex]?.text || 'LICENCIATURA EN DERECHO';
+            const licName = licSel?.options[licSel.selectedIndex]?.text || 'Licenciatura en Derecho';
             const perSel = document.getElementById('selectPeriodo');
-            const perName = perSel?.options[perSel.selectedIndex]?.text || 'OTOÑO 2026';
+            const perName = perSel?.options[perSel.selectedIndex]?.text || 'Otoño 2026';
 
             return {
-                FOLIO: (document.getElementById('inputFolio')?.value || '').trim().toUpperCase(),
+                FOLIO: (document.getElementById('inputFolio')?.value || '').trim(),
                 ASUNTO: DOC_TYPE_META[currentDocType]?.asunto || 'CONSTANCIA DE ESTUDIOS',
-                CIUDAD_MAYUS: (document.getElementById('inputCiudad')?.value || '').trim().toUpperCase(),
+                CIUDAD_MAYUS: (document.getElementById('inputCiudad')?.value || '').trim(),
                 FECHA_MAYUS: formatSpanishLongDateUpper(document.getElementById('inputFecha')?.value || ''),
-                DESTINATARIO: (document.getElementById('inputDestinatario')?.value || '').trim().toUpperCase(),
+                DESTINATARIO: (document.getElementById('inputDestinatario')?.value || '').trim(),
                 TRATAMIENTO: isFem ? 'la alumna' : 'el alumno',
-                ALUMNO: (document.getElementById('inputAlumno')?.value || '').trim().toUpperCase(),
-                MATRICULA: (document.getElementById('inputMatricula')?.value || '').trim().toUpperCase(),
+                ALUMNO: (document.getElementById('inputAlumno')?.value || '').trim(),
+                MATRICULA: (document.getElementById('inputMatricula')?.value || '').trim(),
                 INSCRITO: isFem ? 'inscrita' : 'inscrito',
                 GRADO: (document.getElementById('inputGrado')?.value || '').trim(),
-                LICENCIATURA: licName.toUpperCase(),
-                RVOE: (document.getElementById('inputRvoe')?.value || '').trim().toUpperCase(),
-                PERIODO: perName.toUpperCase(),
-                INICIO_PERIODO: (document.getElementById('inputInicioPeriodo')?.value || '').trim().toUpperCase(),
-                FIN_PERIODO: (document.getElementById('inputFinPeriodo')?.value || '').trim().toUpperCase(),
-                VAC_INICIO: (document.getElementById('inputVacInicio')?.value || '').trim().toUpperCase(),
-                VAC_FIN: (document.getElementById('inputVacFin')?.value || '').trim().toUpperCase(),
+                LICENCIATURA: licName.trim(),
+                RVOE: (document.getElementById('inputRvoe')?.value || '').trim(),
+                PERIODO: perName.trim(),
+                INICIO_PERIODO: (document.getElementById('inputInicioPeriodo')?.value || '').trim(),
+                FIN_PERIODO: (document.getElementById('inputFinPeriodo')?.value || '').trim(),
+                VAC_INICIO: (document.getElementById('inputVacInicio')?.value || '').trim(),
+                VAC_FIN: (document.getElementById('inputVacFin')?.value || '').trim(),
                 ESTATUS_CURSAMIENTO: document.getElementById('selectEstatusPeriodosAnteriores')?.value || 'cursó',
                 PERIODOS_ANTERIORES: (document.getElementById('inputPeriodosAnteriores')?.value || '').trim(),
                 DOCUMENTOS_RESGUARDO: (document.getElementById('inputDocumentosResguardo')?.value || '').trim(),
-                PROMEDIO_GENERAL: (document.getElementById('inputPromedioGeneral')?.value || '').trim().toUpperCase(),
-                PERIODOS_PROMEDIO: (document.getElementById('inputPeriodosPromedio')?.value || '').trim().toUpperCase(),
-                FIRMANTE: (document.getElementById('inputFirmante')?.value || '').trim().toUpperCase(),
-                CARGO_FIRMANTE: (document.getElementById('inputCargoFirmante')?.value || '').trim().toUpperCase()
+                PROMEDIO_GENERAL: (document.getElementById('inputPromedioGeneral')?.value || '').trim(),
+                PERIODOS_PROMEDIO: (document.getElementById('inputPeriodosPromedio')?.value || '').trim(),
+                FIRMANTE: (document.getElementById('inputFirmante')?.value || '').trim(),
+                CARGO_FIRMANTE: (document.getElementById('inputCargoFirmante')?.value || '').trim()
             };
         }
 
@@ -2292,9 +2389,10 @@
 
         function saveMajorRvoeForm(e) {
             e.preventDefault();
+            if (!currentSession.isAdmin) return;
             const id = document.getElementById('editMajorIdInput').value;
-            const name = document.getElementById('newMajorNameInput').value.trim().toUpperCase();
-            const rvoe = document.getElementById('newMajorRvoeInput').value.trim().toUpperCase();
+            const name = document.getElementById('newMajorNameInput').value.trim();
+            const rvoe = document.getElementById('newMajorRvoeInput').value.trim();
             const rvoeDate = document.getElementById('newMajorRvoeDateInput').value.trim();
 
             if (id) {
@@ -2370,14 +2468,15 @@
 
         function saveCustomAcademicPeriod(e) {
             e.preventDefault();
+            if (!currentSession.isAdmin) return;
             const id = document.getElementById('editPeriodIdInput').value;
             const obj = {
                 id: id || ('per_' + Date.now()),
-                name: document.getElementById('periodNameInput').value.trim().toUpperCase(),
-                start: document.getElementById('periodStartInput').value.trim().toUpperCase(),
-                end: document.getElementById('periodEndInput').value.trim().toUpperCase(),
-                vacStart: document.getElementById('periodVacStartInput').value.trim().toUpperCase(),
-                vacEnd: document.getElementById('periodVacEndInput').value.trim().toUpperCase()
+                name: document.getElementById('periodNameInput').value.trim(),
+                start: document.getElementById('periodStartInput').value.trim(),
+                end: document.getElementById('periodEndInput').value.trim(),
+                vacStart: document.getElementById('periodVacStartInput').value.trim(),
+                vacEnd: document.getElementById('periodVacEndInput').value.trim()
             };
             if (id) {
                 const idx = vaultState.periods.findIndex(p => p.id === id);
@@ -2495,18 +2594,111 @@
             grid.innerHTML = '';
 
             profiles.forEach(p => {
+                const allowedCount = Object.keys(DOC_TYPE_META).filter(t => (p.permissions?.[t] || 'select') !== 'none').length;
                 const card = document.createElement('div');
-                card.className = 'p-4 rounded-2xl border border-slate-200 bg-slate-50 space-y-2.5';
+                card.className = 'p-4 rounded-2xl border border-slate-200 bg-slate-50 space-y-3 shadow-xs';
                 card.innerHTML = `
                     <div class="flex items-center justify-between gap-2">
                         <input type="text" value="${escapeHtml(p.name)}" onchange="updateProfileField('${p.id}', 'name', this.value)" class="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-extrabold text-blue-950">
-                        <input type="text" value="${escapeHtml(p.code)}" onchange="updateProfileField('${p.id}', 'code', this.value)" class="w-24 rounded-xl border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs font-extrabold text-center text-amber-950">
+                        <input type="text" value="${escapeHtml(p.code)}" onchange="updateProfileField('${p.id}', 'code', this.value)" title="Código de acceso" class="w-24 rounded-xl border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs font-extrabold text-center text-amber-950">
                     </div>
-                    <div class="flex justify-end gap-2">
-                        <button type="button" onclick="deleteUserProfile('${p.id}')" class="px-3 py-1 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-[11px]">Eliminar Definitivamente</button>
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-200/80">
+                        <span class="text-[11px] font-bold text-slate-600">Constancias habilitadas: <strong class="text-blue-950">${allowedCount} de 8</strong></span>
+                        <div class="flex items-center gap-1.5">
+                            <button type="button" onclick="openUserPermissionsModal('${p.id}')" class="px-3 py-1.5 rounded-xl bg-blue-950 hover:bg-blue-900 text-amber-300 font-extrabold text-[11px] shadow-xs transition">
+                                Permisos por Constancia
+                            </button>
+                            <button type="button" onclick="deleteUserProfile('${p.id}')" class="px-2.5 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-[11px]">
+                                Eliminar
+                            </button>
+                        </div>
                     </div>
                 `;
                 grid.appendChild(card);
+            });
+        }
+
+        const FIELD_PERMISSION_CATALOG = [
+            { key: 'folio', label: 'Oficio / Folio' },
+            { key: 'fechaCiudad', label: 'Ciudad y Fecha' },
+            { key: 'destinatario', label: 'Destinatario' },
+            { key: 'writeName', label: 'Nombre del Alumno y Género' },
+            { key: 'matricula', label: 'Matrícula' },
+            { key: 'grado', label: 'Grado y Modalidad' },
+            { key: 'licenciaturaRvoe', label: 'Licenciatura y RVOE' },
+            { key: 'periodoActivo', label: 'Periodo Escolar Activo' },
+            { key: 'estructuraTexto', label: 'Redactar / Modificar Texto de Constancia' },
+            { key: 'firmante', label: 'Nombre y Cargo del Firmante' }
+        ];
+
+        const MODALITY_EXTRA_FIELDS = {
+            anteriores: [{ key: 'periodosAnteriores', label: 'Estatus y Periodos Anteriores' }],
+            vacaciones: [{ key: 'vacacionesFechas', label: 'Fechas de Vacaciones' }],
+            calificaciones: [{ key: 'tablaMaterias', label: 'Tabla de Calificaciones' }],
+            montos: [{ key: 'montosCuotas', label: 'Conceptos y Montos' }],
+            resguardo: [{ key: 'docsResguardo', label: 'Documentos en Resguardo' }]
+        };
+
+        function openUserPermissionsModal(profileId) {
+            const profile = (vaultState.profiles || []).find(p => p.id === profileId);
+            if (!profile) return;
+            editingPermissionsProfileId = profileId;
+            document.getElementById('permModalUserName').textContent = `Usuario: ${profile.name} (Código: ${profile.code})`;
+
+            const body = document.getElementById('permChecklistBody');
+            const perms = profile.permissions || {};
+
+            body.innerHTML = Object.entries(DOC_TYPE_META).map(([typeKey, meta]) => {
+                const accessLevel = perms[typeKey] || 'select';
+                const fieldMap = perms[`${typeKey}_fields`] || {};
+                const allFields = [...FIELD_PERMISSION_CATALOG, ...(MODALITY_EXTRA_FIELDS[typeKey] || [])];
+
+                const fieldsHtml = allFields.map(f => {
+                    const canModify = typeof fieldMap[f.key] === 'boolean' ? fieldMap[f.key] : (accessLevel === 'edit');
+                    return `
+                        <div class="flex items-center justify-between gap-2 bg-white px-2.5 py-1.5 rounded-xl border border-slate-200">
+                            <span class="text-[11px] font-semibold text-slate-700">${escapeHtml(f.label)}</span>
+                            <select data-perm-doc="${typeKey}" data-perm-field="${f.key}" class="rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-[11px] font-bold text-slate-800 outline-none">
+                                <option value="true" ${canModify ? 'selected' : ''}>Sí puede modificar</option>
+                                <option value="false" ${!canModify ? 'selected' : ''}>No puede modificar</option>
+                            </select>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50/90 space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
+                            <div>
+                                <span class="text-xs font-extrabold text-blue-950">Constancia: ${escapeHtml(meta.label)}</span>
+                                <span class="block text-[10px] text-slate-500">${escapeHtml(meta.asunto)}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label class="text-[11px] font-bold text-slate-700">Acceso al módulo:</label>
+                                <select data-perm-access="${typeKey}" onchange="onChangeModalityAccessDropdown('${typeKey}', this.value)" class="rounded-xl border border-blue-300 bg-white px-3 py-1.5 text-xs font-extrabold text-blue-950 outline-none">
+                                    <option value="edit" ${accessLevel === 'edit' ? 'selected' : ''}>Sí • Acceso y Edición</option>
+                                    <option value="select" ${accessLevel === 'select' ? 'selected' : ''}>Sí • Solo Selección / Lectura</option>
+                                    <option value="none" ${accessLevel === 'none' ? 'selected' : ''}>No • Sin Acceso</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="perm-fields-grid-${typeKey}" class="grid grid-cols-1 sm:grid-cols-2 gap-2 ${accessLevel === 'none' ? 'opacity-40 pointer-events-none' : ''}">
+                            ${fieldsHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('userPermissionsChecklistModal')?.classList.remove('hidden');
+        }
+
+        function onChangeModalityAccessDropdown(typeKey, level) {
+            const grid = document.getElementById(`perm-fields-grid-${typeKey}`);
+            if (!grid) return;
+            grid.classList.toggle('opacity-40', level === 'none');
+            grid.classList.toggle('pointer-events-none', level === 'none');
+            grid.querySelectorAll(`select[data-perm-doc="${typeKey}"]`).forEach(sel => {
+                sel.value = level === 'edit' ? 'true' : 'false';
             });
         }
 
@@ -2564,8 +2756,8 @@
         function applyImportedStudent(idx) {
             const row = importedStudentsList[parseInt(idx, 10)];
             if (!row) return;
-            if (row.ALUMNO || row.Nombre) document.getElementById('inputAlumno').value = String(row.ALUMNO || row.Nombre).toUpperCase();
-            if (row.MATRICULA || row.Matricula) document.getElementById('inputMatricula').value = String(row.MATRICULA || row.Matricula).toUpperCase();
+            if (row.ALUMNO || row.Nombre) document.getElementById('inputAlumno').value = String(row.ALUMNO || row.Nombre).trim();
+            if (row.MATRICULA || row.Matricula) document.getElementById('inputMatricula').value = String(row.MATRICULA || row.Matricula).trim();
             detectGenderFromName();
             updateDocument();
         }
@@ -2609,8 +2801,29 @@
         }
 
         function saveUserPermissionsChecklist() {
+            const profile = (vaultState.profiles || []).find(p => p.id === editingPermissionsProfileId);
+            if (!profile) return;
+            const newPerms = { ...(profile.permissions || {}) };
+
+            Object.keys(DOC_TYPE_META).forEach(typeKey => {
+                const accessSel = document.querySelector(`select[data-perm-access="${typeKey}"]`);
+                const accessVal = accessSel ? accessSel.value : 'select';
+                newPerms[typeKey] = accessVal;
+
+                const fieldMap = {};
+                document.querySelectorAll(`select[data-perm-doc="${typeKey}"]`).forEach(sel => {
+                    const fKey = sel.getAttribute('data-perm-field');
+                    fieldMap[fKey] = sel.value === 'true';
+                });
+                newPerms[`${typeKey}_fields`] = fieldMap;
+                newPerms[`${typeKey}_writeName`] = Boolean(fieldMap.writeName);
+            });
+
+            profile.permissions = newPerms;
             persistVaultData(false);
+            renderProfilesManagerGrid();
             closeUserPermissionsModal();
+            showToast(`Permisos guardados permanentemente para ${profile.name}.`);
         }
 
         function handleSheetSelectionToolbar() {
