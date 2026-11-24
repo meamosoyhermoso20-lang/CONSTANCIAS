@@ -795,13 +795,17 @@
 
             <form id="majorsAdminForm" onsubmit="saveMajorRvoeForm(event)" class="grid grid-cols-1 md:grid-cols-12 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 <input type="hidden" id="editMajorIdInput">
-                <div class="md:col-span-5">
-                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Nombre de la Licenciatura / Oferta</label>
+                <div class="md:col-span-4">
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Nombre de la Licenciatura / Carrera</label>
                     <input type="text" id="newMajorNameInput" required placeholder="Ej. LICENCIATURA EN DERECHO" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold uppercase">
                 </div>
-                <div class="md:col-span-4">
+                <div class="md:col-span-3">
                     <label class="block text-[11px] font-bold text-slate-600 mb-1">Acuerdo RVOE</label>
-                    <input type="text" id="newMajorRvoeInput" required placeholder="Ej. RVOE SEP-SES/21/114/01/1234/2020" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold">
+                    <input type="text" id="newMajorRvoeInput" required placeholder="Ej. RVOE SEP-SES/21/114/01/1234" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold uppercase">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Fecha del RVOE</label>
+                    <input type="text" id="newMajorRvoeDateInput" required placeholder="Ej. 15 DE OCTUBRE DE 2020" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold uppercase">
                 </div>
                 <div class="md:col-span-3 flex items-end gap-2">
                     <button type="submit" id="btnSubmitMajorForm" class="flex-1 bg-blue-950 hover:bg-blue-900 text-white font-extrabold py-2 px-4 rounded-xl text-xs transition">
@@ -2133,7 +2137,12 @@
             const id = document.getElementById('selectLicenciatura')?.value;
             const major = vaultState.majors.find(m => m.id === id);
             const rvoeInput = document.getElementById('inputRvoe');
-            if (major && rvoeInput) rvoeInput.value = major.rvoe || '';
+            if (major && rvoeInput) {
+                const fullRvoe = major.rvoeDate
+                    ? `${major.rvoe || ''} DE FECHA ${major.rvoeDate}`.trim()
+                    : (major.rvoe || '');
+                rvoeInput.value = fullRvoe;
+            }
             updateDocument();
         }
 
@@ -2150,8 +2159,10 @@
             const id = document.getElementById('selectPeriodo')?.value;
             const period = vaultState.periods.find(p => p.id === id);
             if (period) {
-                document.getElementById('inputInicioPeriodo').value = period.start || '';
-                document.getElementById('inputFinPeriodo').value = period.end || '';
+                const startEl = document.getElementById('inputInicioPeriodo');
+                const endEl = document.getElementById('inputFinPeriodo');
+                if (startEl) startEl.value = period.start || '';
+                if (endEl) endEl.value = period.end || '';
                 syncVacationDatesFromActivePeriod(false);
             }
             updateDocument();
@@ -2248,9 +2259,10 @@
             if (!list) return;
             list.innerHTML = vaultState.majors.map(m => `
                 <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 flex items-center justify-between gap-3">
-                    <div>
+                    <div class="space-y-0.5">
                         <div class="text-xs font-extrabold text-blue-950">${escapeHtml(m.name)}</div>
-                        <div class="text-[11px] font-mono text-slate-600 mt-0.5">${escapeHtml(m.rvoe)}</div>
+                        <div class="text-[11px] font-mono text-slate-600">${escapeHtml(m.rvoe)}</div>
+                        ${m.rvoeDate ? `<div class="text-[11px] font-semibold text-amber-800">Fecha RVOE: ${escapeHtml(m.rvoeDate)}</div>` : ''}
                     </div>
                     <div class="flex items-center gap-1.5 shrink-0">
                         <button type="button" onclick="editMajorRvoe('${m.id}')" class="px-2.5 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-[11px]">Modificar</button>
@@ -2265,15 +2277,16 @@
             const editId = document.getElementById('editMajorIdInput')?.value || '';
             const name = (document.getElementById('newMajorNameInput')?.value || '').trim().toUpperCase();
             const rvoe = (document.getElementById('newMajorRvoeInput')?.value || '').trim().toUpperCase();
-            if (!name || !rvoe) return;
+            const rvoeDate = (document.getElementById('newMajorRvoeDateInput')?.value || '').trim().toUpperCase();
+            if (!name || !rvoe || !rvoeDate) return;
 
             if (editId) {
                 const idx = vaultState.majors.findIndex(m => m.id === editId);
-                if (idx >= 0) vaultState.majors[idx] = { ...vaultState.majors[idx], name, rvoe };
-                showToast('Licenciatura modificada.');
+                if (idx >= 0) vaultState.majors[idx] = { ...vaultState.majors[idx], name, rvoe, rvoeDate };
+                showToast('Oferta educativa modificada.');
             } else {
-                vaultState.majors.push({ id: 'maj_' + Date.now(), name, rvoe });
-                showToast('Licenciatura agregada.');
+                vaultState.majors.push({ id: 'maj_' + Date.now(), name, rvoe, rvoeDate });
+                showToast('Oferta educativa agregada.');
             }
 
             cancelEditMajorRvoe();
@@ -2286,8 +2299,9 @@
             const major = vaultState.majors.find(m => m.id === id);
             if (!major) return;
             document.getElementById('editMajorIdInput').value = major.id;
-            document.getElementById('newMajorNameInput').value = major.name;
-            document.getElementById('newMajorRvoeInput').value = major.rvoe;
+            document.getElementById('newMajorNameInput').value = major.name || '';
+            document.getElementById('newMajorRvoeInput').value = major.rvoe || '';
+            document.getElementById('newMajorRvoeDateInput').value = major.rvoeDate || '';
             document.getElementById('btnSubmitMajorForm').textContent = 'Actualizar Oferta';
             document.getElementById('btnCancelEditMajor')?.classList.remove('hidden');
         }
@@ -2296,6 +2310,7 @@
             document.getElementById('editMajorIdInput').value = '';
             document.getElementById('newMajorNameInput').value = '';
             document.getElementById('newMajorRvoeInput').value = '';
+            document.getElementById('newMajorRvoeDateInput').value = '';
             document.getElementById('btnSubmitMajorForm').textContent = 'Guardar Oferta';
             document.getElementById('btnCancelEditMajor')?.classList.add('hidden');
         }
