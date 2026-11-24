@@ -1559,6 +1559,7 @@
                 const parameterizedHtml = convertVisualSheetToTemplateHtml(bodyEl);
                 vaultState.savedVisualLayouts[currentDocType] = {
                     templateHtml: parameterizedHtml,
+                    lastValuesSnapshot: getCurrentDocumentTokenValues().map,
                     typography: JSON.parse(JSON.stringify(vaultState.typography))
                 };
             }
@@ -1636,9 +1637,9 @@
             };
         }
 
-        function convertVisualSheetToTemplateHtml(bodyEl) {
+        function convertVisualSheetToTemplateHtml(bodyEl, overrideValuesMap = null) {
             const clone = bodyEl.cloneNode(true);
-            const data = getCurrentDocumentTokenValues();
+            const currentMap = overrideValuesMap || getCurrentDocumentTokenValues().map;
 
             // Vincular tabla dinámica si existe
             const tableEl = clone.querySelector('.doc-grades-table');
@@ -1655,7 +1656,7 @@
             let n;
             while ((n = walker.nextNode())) textNodes.push(n);
 
-            const entries = Object.entries(data.map)
+            const entries = Object.entries(currentMap)
                 .filter(([token, val]) => val && val.length >= 2 && token !== '{TRATAMIENTO}' && token !== '{INSCRITO}')
                 .sort((a, b) => b[1].length - a[1].length);
 
@@ -1674,9 +1675,36 @@
             return clone.innerHTML;
         }
 
-        function renderBoundVisualLayoutHtml(templateHtml) {
+        function renderBoundVisualLayoutHtml(templateHtml, previousSnapshotMap = null) {
             const data = getCurrentDocumentTokenValues();
             let bound = templateHtml;
+
+            // Si había valores previos grabados literalmente en el HTML guardado, migrarlos primero a sus tokens
+            if (previousSnapshotMap) {
+                const prevEntries = Object.entries(previousSnapshotMap)
+                    .filter(([token, val]) => val && val.length >= 2 && token !== '{TRATAMIENTO}' && token !== '{INSCRITO}')
+                    .sort((a, b) => b[1].length - a[1].length);
+
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = bound;
+                const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT, null);
+                const textNodes = [];
+                let n;
+                while ((n = walker.nextNode())) textNodes.push(n);
+
+                textNodes.forEach(node => {
+                    let txt = node.nodeValue;
+                    txt = txt.replace(/\b(el alumno|la alumna)\b/gi, '{TRATAMIENTO}');
+                    txt = txt.replace(/\b(inscrito|inscrita)\b/gi, '{INSCRITO}');
+                    prevEntries.forEach(([token, val]) => {
+                        if (txt.includes(val)) {
+                            txt = txt.split(val).join(token);
+                        }
+                    });
+                    node.nodeValue = txt;
+                });
+                bound = tempDiv.innerHTML;
+            }
 
             Object.entries(data.map).forEach(([token, val]) => {
                 bound = bound.split(token).join(escapeHtml(val));
@@ -1721,9 +1749,11 @@
             const bodyEl = document.getElementById('documentRenderedBody');
             if (bodyEl) {
                 if (!vaultState.savedVisualLayouts) vaultState.savedVisualLayouts = {};
-                const parameterizedHtml = convertVisualSheetToTemplateHtml(bodyEl);
+                const currentSnapshot = getCurrentDocumentTokenValues().map;
+                const parameterizedHtml = convertVisualSheetToTemplateHtml(bodyEl, currentSnapshot);
                 vaultState.savedVisualLayouts[currentDocType] = {
                     templateHtml: parameterizedHtml,
+                    lastValuesSnapshot: currentSnapshot,
                     typography: JSON.parse(JSON.stringify(vaultState.typography))
                 };
             }
@@ -1882,7 +1912,8 @@
             const savedLayout = !forceTemplateRender && vaultState.savedVisualLayouts?.[currentDocType];
             if (savedLayout && (savedLayout.templateHtml || savedLayout.html)) {
                 const tplHtml = savedLayout.templateHtml || savedLayout.html;
-                bodyEl.innerHTML = renderBoundVisualLayoutHtml(tplHtml);
+                const boundHtml = renderBoundVisualLayoutHtml(tplHtml, savedLayout.lastValuesSnapshot || null);
+                bodyEl.innerHTML = boundHtml;
                 if (savedLayout.typography) {
                     vaultState.typography = JSON.parse(JSON.stringify(savedLayout.typography));
                 }
@@ -3219,6 +3250,20 @@
             updateHistoryBadge();
             selectDocType('simple');
             syncSessionUI();
+
+            // Vincular automáticamente cualquier cambio o selección en todos los controles del formulario
+            const editorCol = document.getElementById('editorFormColumn');
+            if (editorCol) {
+                ['input', 'change'].forEach(evtName => {
+                    editorCol.addEventListener(evtName, (e) => {
+                        const target = e.target;
+                        if (!target || target.id === 'customDocFormatText' || target.id === 'bulkCalificacionesInput') return;
+                        if (target.matches('input, select, textarea')) {
+                            updateDocument();
+                        }
+                    });
+                });
+            }
 
             document.addEventListener('mouseup', () => setTimeout(handlePreviewTextSelectionToolbar, 10));
             document.addEventListener('keyup', () => setTimeout(handlePreviewTextSelectionToolbar, 10));
