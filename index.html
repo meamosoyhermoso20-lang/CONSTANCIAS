@@ -154,7 +154,7 @@
         .doc-signature-line {
             width: 260pt;
             border-top: 1px solid #000000;
-            margin: var(--doc-sig-rule-mt, 36pt) auto 4pt auto;
+            margin: var(--doc-sig-rule-mt, 50pt) auto 4pt auto;
         }
 
         .doc-grades-table {
@@ -752,7 +752,7 @@
                     </div>
                     <div class="sm:col-span-6">
                         <label class="block text-[10px] font-bold text-slate-500 mb-1">Interlineado (<span id="typoLineHeightVal">1.15</span>)</label>
-                        <input type="range" id="typoLineHeight" min="1.05" max="1.60" step="0.05" value="1.15" oninput="updateSectionOrGlobalTypography(true)" class="w-full accent-blue-900">
+                        <input type="range" id="typoLineHeight" min="0" max="2" step="0.05" value="1.15" oninput="updateSectionOrGlobalTypography(true)" class="w-full accent-blue-900">
                     </div>
                 </div>
             </div>
@@ -1045,6 +1045,9 @@
             <option value="16pt">16 pt</option>
         </select>
         <select id="floatingLineHeightSelect" onchange="applyFloatingLineHeight(this.value)" title="Interlineado para el texto seleccionado" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] font-bold text-cyan-300 outline-none focus:border-amber-400">
+            <option value="0">Int. 0</option>
+            <option value="0.5">Int. 0.5</option>
+            <option value="0.8">Int. 0.8</option>
             <option value="1.0">Int. 1.0</option>
             <option value="1.15" selected>Int. 1.15</option>
             <option value="1.3">Int. 1.3</option>
@@ -1595,37 +1598,6 @@
             showToast('Formato, espacios y diseño guardados permanentemente.');
         }
 
-        function resetCurrentDocTypeFormat() {
-            const isAdmin = activeSession.unlocked && activeSession.role === 'admin';
-            const hb = getActiveUserProfile()?.permissions?.headerButtons || {};
-            if (!isAdmin && hb.resetFormat !== true) {
-                showToast('No tienes permiso para restaurar la plantilla base.');
-                return;
-            }
-            const baseTpl = DEFAULT_TEMPLATES[currentDocType] || '';
-            vaultState.customTemplates[currentDocType] = baseTpl;
-            const customTa = document.getElementById('customDocFormatText');
-            if (customTa) customTa.value = baseTpl;
-            persistVaultData(true);
-            updateDocument();
-            showToast('Plantilla restaurada al formato oficial base.');
-        }
-
-        function saveCurrentDocTypeFormat() {
-            const isAdmin = activeSession.unlocked && activeSession.role === 'admin';
-            const hb = getActiveUserProfile()?.permissions?.headerButtons || {};
-            if (!isAdmin && hb.saveFormat !== true) {
-                showToast('No tienes permiso para guardar formatos de plantilla.');
-                return;
-            }
-            const customTa = document.getElementById('customDocFormatText');
-            if (customTa) {
-                vaultState.customTemplates[currentDocType] = customTa.value;
-            }
-            persistVaultData(false);
-            updateDocument();
-        }
-
         function insertFormatToken(token) {
             const ta = document.getElementById('customDocFormatText');
             if (!ta || ta.disabled) {
@@ -1908,6 +1880,7 @@
                 const rest = sigLines.slice(1).map(l => `<div>${formatInlineRichText(l)}</div>`).join('');
                 htmlOut += `<div class="doc-signature-block" data-doc-section="signature"${buildInlineStyle('signature')}>
                     <div style="font-weight:700;">${formatInlineRichText(atentamente)}</div>
+                    <div class="doc-blank"><br></div>
                     <div class="doc-signature-line"></div>
                     ${rest}
                 </div>`;
@@ -1933,13 +1906,13 @@
             sheet.style.paddingBottom = '22mm';
 
             const baseFont = Number(vaultState.typography.fontSize) || 12;
-            const baseLine = Number(vaultState.typography.lineHeight) || 1.15;
+            const baseLine = vaultState.typography.lineHeight !== undefined && vaultState.typography.lineHeight !== null ? Number(vaultState.typography.lineHeight) : 1.15;
 
             body.style.setProperty('--doc-font-size', `${baseFont}pt`);
             body.style.setProperty('--doc-line-height', `${baseLine}`);
             body.style.setProperty('--doc-para-mb', '10pt');
             body.style.setProperty('--doc-blank-h', '10pt');
-            body.style.setProperty('--doc-sig-rule-mt', '36pt');
+            body.style.setProperty('--doc-sig-rule-mt', '50pt');
             body.style.setProperty('--doc-sig-mt', '16pt');
 
             const maxAllowedH = sheet.clientHeight - 170;
@@ -1948,7 +1921,7 @@
             if (contentH > maxAllowedH) {
                 body.style.setProperty('--doc-para-mb', '5pt');
                 body.style.setProperty('--doc-blank-h', '5pt');
-                body.style.setProperty('--doc-sig-rule-mt', '22pt');
+                body.style.setProperty('--doc-sig-rule-mt', '34pt');
                 body.style.setProperty('--doc-sig-mt', '8pt');
                 sheet.style.paddingTop = '16mm';
                 sheet.style.paddingBottom = '14mm';
@@ -1972,7 +1945,8 @@
             const t = vaultState.typography;
             body.style.setProperty('--doc-font-family', t.fontFamily || 'Arial, Helvetica, sans-serif');
             body.style.setProperty('--doc-font-size', `${t.fontSize || 12}pt`);
-            body.style.setProperty('--doc-line-height', `${t.lineHeight || 1.15}`);
+            const lh = t.lineHeight !== undefined && t.lineHeight !== null ? t.lineHeight : 1.15;
+            body.style.setProperty('--doc-line-height', `${lh}`);
         }
 
         function onChangeTypoTargetSection() {
