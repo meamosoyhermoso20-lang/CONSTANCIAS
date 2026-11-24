@@ -2989,54 +2989,6 @@
                 pushHtmlToRepositoryNow(false);
             }, 1200);
         }
-        }
-
-        async function extractAndPublishAutomatically() {
-            if (!currentSession.isAdmin) {
-                showToast('Función exclusiva para Administrador.');
-                return;
-            }
-            const pastedVal = document.getElementById('repoPageUrlDetectInput')?.value || '';
-            const detected = parseGitHubInfoFromUrlString(pastedVal) || parseGitHubInfoFromUrlString(window.location.href || '');
-            if (detected) {
-                applyExtractedRepoInfo(detected, false);
-            }
-
-            let savedCfg = {};
-            try {
-                savedCfg = JSON.parse(localStorage.getItem(REPO_SYNC_CONFIG_KEY) || '{}');
-            } catch (e) {}
-
-            const owner = (document.getElementById('repoOwnerInput')?.value || savedCfg.owner || '').trim();
-            const repo = (document.getElementById('repoNameInput')?.value || savedCfg.repo || '').trim();
-            const branch = (document.getElementById('repoBranchInput')?.value || savedCfg.branch || 'main').trim() || 'main';
-            const path = (document.getElementById('repoFilePathInput')?.value || savedCfg.path || 'index.html').trim() || 'index.html';
-            const rawToken = (document.getElementById('repoTokenInput')?.value || savedCfg.token || '').replace(/[\s\r\n"']+/g, '').trim();
-
-            const updatedCfg = {
-                owner,
-                repo,
-                branch,
-                path,
-                token: rawToken,
-                autoSync: document.getElementById('repoAutoSyncCheckbox')?.checked ?? !!savedCfg.autoSync
-            };
-            localStorage.setItem(REPO_SYNC_CONFIG_KEY, JSON.stringify(updatedCfg));
-            await pushHtmlToRepositoryNow(true);
-        }
-
-        function scheduleAutoRepoPush() {
-            if (!currentSession.isAdmin) return;
-            let cfg = {};
-            try {
-                cfg = JSON.parse(localStorage.getItem(REPO_SYNC_CONFIG_KEY) || '{}');
-            } catch (e) {}
-            if (!cfg.autoSync || !cfg.owner || !cfg.repo || !cfg.token) return;
-            clearTimeout(autoRepoPushDebounceTimer);
-            autoRepoPushDebounceTimer = setTimeout(() => {
-                pushHtmlToRepositoryNow(false);
-            }, 1500);
-        }
 
         async function pushHtmlToRepositoryNow(manualTrigger = true) {
             if (!currentSession.isAdmin || isPushingToRepository) return;
