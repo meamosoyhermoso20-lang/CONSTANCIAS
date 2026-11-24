@@ -546,33 +546,33 @@
                         <label class="block text-[11px] font-bold text-slate-600 mb-1">Modalidad y Grado (Desplegable)</label>
                         <div class="grid grid-cols-12 gap-1.5">
                             <select id="selectTipoPeriodoGrado" onchange="onChangeTipoPeriodoGrado()" class="uap-input col-span-5 rounded-xl border border-slate-300 px-2.5 py-2 text-xs font-bold text-blue-950 bg-blue-50/50 outline-none">
-                                <option value="CUATRIMESTRE" selected>Cuatrimestre</option>
-                                <option value="SEMESTRE">Semestre</option>
+                                <option value="Cuatrimestre" selected>Cuatrimestre</option>
+                                <option value="Semestre">Semestre</option>
                             </select>
                             <select id="inputGrado" onchange="syncTipoPeriodoFromGrado(); updateDocument();" class="uap-input col-span-7 rounded-xl border border-slate-300 px-2.5 py-2 text-xs font-bold text-slate-800 bg-white outline-none">
                                 <optgroup label="Modalidad Cuatrimestral">
-                                    <option value="1° CUATRIMESTRE">1° CUATRIMESTRE</option>
-                                    <option value="2° CUATRIMESTRE">2° CUATRIMESTRE</option>
-                                    <option value="3° CUATRIMESTRE">3° CUATRIMESTRE</option>
-                                    <option value="4° CUATRIMESTRE">4° CUATRIMESTRE</option>
-                                    <option value="5° CUATRIMESTRE" selected>5° CUATRIMESTRE</option>
-                                    <option value="6° CUATRIMESTRE">6° CUATRIMESTRE</option>
-                                    <option value="7° CUATRIMESTRE">7° CUATRIMESTRE</option>
-                                    <option value="8° CUATRIMESTRE">8° CUATRIMESTRE</option>
-                                    <option value="9° CUATRIMESTRE">9° CUATRIMESTRE</option>
-                                    <option value="10° CUATRIMESTRE">10° CUATRIMESTRE</option>
+                                    <option value="1° Cuatrimestre">1° Cuatrimestre</option>
+                                    <option value="2° Cuatrimestre">2° Cuatrimestre</option>
+                                    <option value="3° Cuatrimestre">3° Cuatrimestre</option>
+                                    <option value="4° Cuatrimestre">4° Cuatrimestre</option>
+                                    <option value="5° Cuatrimestre" selected>5° Cuatrimestre</option>
+                                    <option value="6° Cuatrimestre">6° Cuatrimestre</option>
+                                    <option value="7° Cuatrimestre">7° Cuatrimestre</option>
+                                    <option value="8° Cuatrimestre">8° Cuatrimestre</option>
+                                    <option value="9° Cuatrimestre">9° Cuatrimestre</option>
+                                    <option value="10° Cuatrimestre">10° Cuatrimestre</option>
                                 </optgroup>
                                 <optgroup label="Modalidad Semestral">
-                                    <option value="1° SEMESTRE">1° SEMESTRE</option>
-                                    <option value="2° SEMESTRE">2° SEMESTRE</option>
-                                    <option value="3° SEMESTRE">3° SEMESTRE</option>
-                                    <option value="4° SEMESTRE">4° SEMESTRE</option>
-                                    <option value="5° SEMESTRE">5° SEMESTRE</option>
-                                    <option value="6° SEMESTRE">6° SEMESTRE</option>
-                                    <option value="7° SEMESTRE">7° SEMESTRE</option>
-                                    <option value="8° SEMESTRE">8° SEMESTRE</option>
-                                    <option value="9° SEMESTRE">9° SEMESTRE</option>
-                                    <option value="10° SEMESTRE">10° SEMESTRE</option>
+                                    <option value="1° Semestre">1° Semestre</option>
+                                    <option value="2° Semestre">2° Semestre</option>
+                                    <option value="3° Semestre">3° Semestre</option>
+                                    <option value="4° Semestre">4° Semestre</option>
+                                    <option value="5° Semestre">5° Semestre</option>
+                                    <option value="6° Semestre">6° Semestre</option>
+                                    <option value="7° Semestre">7° Semestre</option>
+                                    <option value="8° Semestre">8° Semestre</option>
+                                    <option value="9° Semestre">9° Semestre</option>
+                                    <option value="10° Semestre">10° Semestre</option>
                                 </optgroup>
                             </select>
                         </div>
@@ -1645,7 +1645,7 @@
         }
 
         function onChangeTipoPeriodoGrado() {
-            const tipo = document.getElementById('selectTipoPeriodoGrado')?.value || 'CUATRIMESTRE';
+            const tipo = document.getElementById('selectTipoPeriodoGrado')?.value || 'Cuatrimestre';
             const gradoSel = document.getElementById('inputGrado');
             if (!gradoSel) return;
             const numMatch = (gradoSel.value || '1°').match(/^(\d+°)/);
@@ -1658,11 +1658,11 @@
         }
 
         function syncTipoPeriodoFromGrado() {
-            const val = document.getElementById('inputGrado')?.value || '';
+            const val = (document.getElementById('inputGrado')?.value || '').toLowerCase();
             const tipoSel = document.getElementById('selectTipoPeriodoGrado');
             if (!tipoSel) return;
-            if (val.includes('SEMESTRE')) tipoSel.value = 'SEMESTRE';
-            else if (val.includes('CUATRIMESTRE')) tipoSel.value = 'CUATRIMESTRE';
+            if (val.includes('semestre')) tipoSel.value = 'Semestre';
+            else if (val.includes('cuatrimestre')) tipoSel.value = 'Cuatrimestre';
         }
 
         function formatExpeditionDateSpanish(isoDate) {
