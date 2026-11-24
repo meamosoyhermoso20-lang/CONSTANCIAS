@@ -1336,7 +1336,7 @@
                 closeHeaderToolsDropdown();
                 if (headerName) headerName.textContent = 'Sin Acceso';
                 if (headerRole) headerRole.textContent = 'BLOQUEADO';
-                ['topBtnSaveAndDownloadPdf', 'topBtnPrintConstancia', 'topBtnHistory', 'topBtnPeriods'].forEach(id => {
+                ['topBtnSaveAndDownloadPdf', 'topBtnPrintConstancia', 'topBtnHistory', 'topBtnPeriods', 'btnResetFormat', 'btnSaveFormat'].forEach(id => {
                     document.getElementById(id)?.classList.add('hidden');
                 });
                 return;
@@ -1375,107 +1375,40 @@
 
             Object.entries(btnMap).forEach(([id, allowed]) => {
                 const el = document.getElementById(id);
-                if (el) el.classList.toggle('hidden', !allowed);
+                if (el) {
+                    el.classList.toggle('hidden', !allowed);
+                    if ('disabled' in el) el.disabled = !allowed;
+                }
             });
-
-            if (!isAdmin) {
-                const inAdminOnlyTab =
-                    !document.getElementById('rolesAdminTabContainer')?.classList.contains('hidden') ||
-                    !document.getElementById('majorsRvoeTabContainer')?.classList.contains('hidden');
-                if (inAdminOnlyTab) switchMainWorkspaceTab('constancias', true);
-            }
 
             applyModalityAndFieldPermissions();
         }
 
-        function applyModalityAndFieldPermissions() {
-            const isUnlocked = activeSession.unlocked;
-            const isAdmin = isUnlocked && activeSession.role === 'admin';
-            const profile = getActiveUserProfile();
-            const perms = profile?.permissions || {};
-            const alertBox = document.getElementById('readOnlyRoleAlert');
-
-            // Modalidades permitidas
-            Object.keys(DOC_TYPE_META).forEach(type => {
-                const btn = document.getElementById(`btn-type-${type}`);
-                if (!btn) return;
-                const mode = !isUnlocked ? 'none' : (isAdmin ? 'edit' : (perms[type] || 'select'));
-                btn.classList.toggle('hidden', mode === 'none');
-            });
-
-            const curMode = !isUnlocked ? 'none' : (isAdmin ? 'edit' : (perms[currentDocType] || 'select'));
-            const fieldsPerm = isAdmin ? null : (perms[`${currentDocType}_fields`] || {});
-
-            if (alertBox) {
-                alertBox.classList.toggle('hidden', isAdmin || curMode === 'edit');
-            }
-
-            const setDisabled = (id, enabled) => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.disabled = !enabled;
-                    el.classList.toggle('opacity-60', !enabled);
-                }
-            };
-
-            setDisabled('inputFolio', isAdmin || (isUnlocked && !!fieldsPerm.folio));
-            setDisabled('inputCiudad', isAdmin || (isUnlocked && !!fieldsPerm.fechaCiudad));
-            setDisabled('inputFecha', isAdmin || (isUnlocked && !!fieldsPerm.fechaCiudad));
-            setDisabled('inputDestinatario', isAdmin || (isUnlocked && !!fieldsPerm.destinatario));
-            setDisabled('inputAlumno', isAdmin || (isUnlocked && (!!fieldsPerm.writeName || !!perms[`${currentDocType}_writeName`])));
-            setDisabled('selectGenero', isAdmin || (isUnlocked && (!!fieldsPerm.writeName || !!perms[`${currentDocType}_writeName`])));
-            setDisabled('inputMatricula', isAdmin || (isUnlocked && !!fieldsPerm.matricula));
-            setDisabled('selectTipoPeriodoGrado', isAdmin || (isUnlocked && !!fieldsPerm.grado));
-            setDisabled('inputGrado', isAdmin || (isUnlocked && !!fieldsPerm.grado));
-            setDisabled('selectLicenciatura', isAdmin || (isUnlocked && !!fieldsPerm.licenciaturaRvoe));
-            setDisabled('inputRvoe', isAdmin || (isUnlocked && !!fieldsPerm.licenciaturaRvoe));
-            setDisabled('selectPeriodo', isAdmin || (isUnlocked && !!fieldsPerm.periodoActivo));
-            setDisabled('inputInicioPeriodo', isAdmin || (isUnlocked && !!fieldsPerm.periodoActivo));
-            setDisabled('inputFinPeriodo', isAdmin || (isUnlocked && !!fieldsPerm.periodoActivo));
-            setDisabled('inputFirmante', isAdmin || (isUnlocked && !!fieldsPerm.firmante));
-            setDisabled('inputCargoFirmante', isAdmin || (isUnlocked && !!fieldsPerm.firmante));
-            setDisabled('customDocFormatText', isAdmin || (isUnlocked && !!fieldsPerm.estructuraTexto));
-            setDisabled('inputPeriodosAnteriores', isAdmin || (isUnlocked && !!fieldsPerm.periodosAnteriores));
-            setDisabled('inputVacInicio', isAdmin || (isUnlocked && !!fieldsPerm.vacacionesFechas));
-            setDisabled('inputVacFin', isAdmin || (isUnlocked && !!fieldsPerm.vacacionesFechas));
-            setDisabled('inputMontoInscripcion', isAdmin || (isUnlocked && !!fieldsPerm.montosCuotas));
-            setDisabled('inputMontoColegiatura', isAdmin || (isUnlocked && !!fieldsPerm.montosCuotas));
-            setDisabled('inputDocumentosResguardo', isAdmin || (isUnlocked && !!fieldsPerm.docsResguardo));
-            setDisabled('inputPromedioGeneral', isAdmin || (isUnlocked && (!!fieldsPerm.promedioGeneral || curMode === 'edit')));
-            setDisabled('inputPeriodosPromedio', isAdmin || (isUnlocked && (!!fieldsPerm.promedioGeneral || curMode === 'edit')));
-        }
-
-        // ==========================================
-        // NAVEGACIÓN ENTRE PESTAÑAS PRINCIPALES
-        // ==========================================
         function switchMainWorkspaceTab(tabName, silent = false) {
-            if (!activeSession.unlocked && tabName !== 'constancias') {
-                if (!silent) showToast('Ingresa tu código de acceso primero.');
-                return;
-            }
-            if ((tabName === 'roles' || tabName === 'licenciaturas') && activeSession.role !== 'admin') {
+            const isAdmin = activeSession.unlocked && activeSession.role === 'admin';
+            if ((tabName === 'licenciaturas' || tabName === 'roles') && !isAdmin) {
+                tabName = 'constancias';
                 if (!silent) showToast('Acceso exclusivo para el Administrador.');
-                return;
             }
 
             const editorCol = document.getElementById('editorFormColumn');
-            const previewCol = document.getElementById('previewSection');
-            const majorsTab = document.getElementById('majorsRvoeTabContainer');
-            const rolesTab = document.getElementById('rolesAdminTabContainer');
+            const previewSec = document.getElementById('previewSection');
+            const licSec = document.getElementById('majorsRvoeTabContainer');
+            const rolesSec = document.getElementById('rolesAdminTabContainer');
 
-            editorCol?.classList.toggle('hidden', tabName !== 'constancias');
-            previewCol?.classList.toggle('hidden', tabName !== 'constancias');
-            majorsTab?.classList.toggle('hidden', tabName !== 'licenciaturas');
-            rolesTab?.classList.toggle('hidden', tabName !== 'roles');
+            const isConst = tabName === 'constancias';
+            editorCol?.classList.toggle('hidden', !isConst);
+            previewSec?.classList.toggle('hidden', !isConst);
+            licSec?.classList.toggle('hidden', tabName !== 'licenciaturas');
+            rolesSec?.classList.toggle('hidden', tabName !== 'roles');
 
             ['constancias', 'licenciaturas', 'roles'].forEach(t => {
                 const btn = document.getElementById(`mainTabBtn-${t}`);
                 if (!btn) return;
                 if (t === tabName) {
-                    btn.className = 'px-3.5 py-1.5 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5 bg-white text-blue-950 shadow-sm transition shrink-0';
+                    btn.className = 'px-3.5 py-1.5 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5 bg-white text-blue-950 shadow-sm transition shrink-0' + (btn.classList.contains('hidden') ? ' hidden' : '');
                 } else {
-                    const isHidden = btn.classList.contains('hidden') ? ' hidden' : '';
-                    btn.className = `px-3.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 bg-white/5 hover:bg-white/15 text-slate-200 transition shrink-0${isHidden}`;
+                    btn.className = 'px-3.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 bg-white/5 hover:bg-white/15 text-slate-200 transition shrink-0' + (btn.classList.contains('hidden') ? ' hidden' : '');
                 }
             });
 
@@ -1483,23 +1416,184 @@
             if (tabName === 'roles') renderProfilesManagerGrid();
         }
 
-        // ==========================================
-        // MENÚ HERRAMIENTAS Y ZOOM / PANTALLA COMPLETA
-        // ==========================================
-        function toggleHeaderToolsDropdown() {
-            if (!activeSession.unlocked || activeSession.role !== 'admin') return;
-            document.getElementById('headerSystemToolsDropdown')?.classList.toggle('hidden');
+        function applyModalityAndFieldPermissions() {
+            const isAdmin = activeSession.unlocked && activeSession.role === 'admin';
+            const profile = getActiveUserProfile();
+            const perms = profile?.permissions || {};
+            const readOnlyAlert = document.getElementById('readOnlyRoleAlert');
+
+            // Control de visibilidad de modalidades por perfil
+            let firstAllowedType = null;
+            Object.keys(DOC_TYPE_META).forEach(type => {
+                const btn = document.getElementById(`btn-type-${type}`);
+                const mode = isAdmin ? 'edit' : (perms[type] || 'select');
+                const hidden = mode === 'none';
+                if (btn) btn.classList.toggle('hidden', hidden);
+                if (!hidden && !firstAllowedType) firstAllowedType = type;
+            });
+
+            if (!isAdmin && perms[currentDocType] === 'none' && firstAllowedType && firstAllowedType !== currentDocType) {
+                selectDocType(firstAllowedType);
+                return;
+            }
+
+            const mode = isAdmin ? 'edit' : (perms[currentDocType] || 'select');
+            const fMap = perms[`${currentDocType}_fields`] || {};
+            const canEditField = (key) => isAdmin || (mode === 'edit' && fMap[key] !== false) || (key === 'writeName' && perms[`${currentDocType}_writeName`] === true);
+
+            const fieldControls = [
+                { id: 'inputFolio', allowed: canEditField('folio') },
+                { id: 'inputCiudad', allowed: canEditField('fechaCiudad') },
+                { id: 'inputFecha', allowed: canEditField('fechaCiudad') },
+                { id: 'inputDestinatario', allowed: canEditField('destinatario') },
+                { id: 'inputAlumno', allowed: canEditField('writeName') },
+                { id: 'selectGenero', allowed: canEditField('writeName') },
+                { id: 'inputMatricula', allowed: canEditField('matricula') },
+                { id: 'selectTipoPeriodoGrado', allowed: canEditField('grado') },
+                { id: 'inputGrado', allowed: canEditField('grado') },
+                { id: 'selectLicenciatura', allowed: canEditField('licenciaturaRvoe') },
+                { id: 'inputRvoe', allowed: canEditField('licenciaturaRvoe') },
+                { id: 'selectPeriodo', allowed: canEditField('periodoActivo') },
+                { id: 'inputInicioPeriodo', allowed: canEditField('periodoActivo') },
+                { id: 'inputFinPeriodo', allowed: canEditField('periodoActivo') },
+                { id: 'inputFirmante', allowed: canEditField('firmante') },
+                { id: 'inputCargoFirmante', allowed: canEditField('firmante') },
+                { id: 'customDocFormatText', allowed: isAdmin || (mode === 'edit' && fMap.estructuraTexto === true) }
+            ];
+
+            fieldControls.forEach(({ id, allowed }) => {
+                const el = document.getElementById(id);
+                if (el) el.disabled = !allowed;
+            });
+
+            if (readOnlyAlert) {
+                readOnlyAlert.classList.toggle('hidden', isAdmin || mode === 'edit');
+            }
         }
 
-        function closeHeaderToolsDropdown() {
-            document.getElementById('headerSystemToolsDropdown')?.classList.add('hidden');
+        function selectDocType(type) {
+            if (!DOC_TYPE_META[type]) type = 'simple';
+            currentDocType = type;
+
+            Object.keys(DOC_TYPE_META).forEach(key => {
+                const btn = document.getElementById(`btn-type-${key}`);
+                const palette = DOC_TYPE_BTN_COLORS[key] || DOC_TYPE_BTN_COLORS.simple;
+                if (!btn) return;
+                const isHidden = btn.classList.contains('hidden');
+                btn.className = (key === type ? palette.active : palette.inactive) + (isHidden ? ' hidden' : '');
+            });
+
+            const badge = document.getElementById('currentFormatLabelBadge');
+            if (badge) badge.textContent = DOC_TYPE_META[type]?.label || type;
+
+            const customTa = document.getElementById('customDocFormatText');
+            if (customTa) {
+                customTa.value = vaultState.customTemplates[type] || DEFAULT_TEMPLATES[type] || '';
+            }
+
+            const specificMap = {
+                vacaciones: 'fields-vacaciones',
+                anteriores: 'fields-anteriores',
+                montos: 'fields-montos',
+                resguardo: 'fields-resguardo',
+                promedio: 'fields-promedio'
+            };
+
+            Object.entries(specificMap).forEach(([k, elId]) => {
+                document.getElementById(elId)?.classList.toggle('hidden', type !== k);
+            });
+
+            const showGradesTable = type === 'calificaciones' || type === 'kardex';
+            document.getElementById('fields-tabla-materias')?.classList.toggle('hidden', !showGradesTable);
+            if (showGradesTable) renderGradesEditorRows();
+
+            if (activeSession.unlocked) {
+                applyModalityAndFieldPermissions();
+            }
+            updateDocument();
+        }
+
+        function onCustomFormatTextareaInput() {
+            const customTa = document.getElementById('customDocFormatText');
+            if (!customTa) return;
+            vaultState.customTemplates[currentDocType] = customTa.value;
+            updateDocument();
+        }
+
+        function resetCurrentDocTypeFormat() {
+            const isAdmin = activeSession.unlocked && activeSession.role === 'admin';
+            const hb = getActiveUserProfile()?.permissions?.headerButtons || {};
+            if (!isAdmin && hb.resetFormat !== true) {
+                showToast('No tienes permiso para restaurar la plantilla base.');
+                return;
+            }
+            const baseTpl = DEFAULT_TEMPLATES[currentDocType] || '';
+            vaultState.customTemplates[currentDocType] = baseTpl;
+            const customTa = document.getElementById('customDocFormatText');
+            if (customTa) customTa.value = baseTpl;
+            persistVaultData(true);
+            updateDocument();
+            showToast('Plantilla restaurada al formato oficial base.');
+        }
+
+        function saveCurrentDocTypeFormat() {
+            const isAdmin = activeSession.unlocked && activeSession.role === 'admin';
+            const hb = getActiveUserProfile()?.permissions?.headerButtons || {};
+            if (!isAdmin && hb.saveFormat !== true) {
+                showToast('No tienes permiso para guardar formatos de plantilla.');
+                return;
+            }
+            const customTa = document.getElementById('customDocFormatText');
+            if (customTa) {
+                vaultState.customTemplates[currentDocType] = customTa.value;
+            }
+            persistVaultData(false);
+            updateDocument();
+        }
+
+        function insertFormatToken(token) {
+            const ta = document.getElementById('customDocFormatText');
+            if (!ta || ta.disabled) {
+                showToast('La edición de plantilla está bloqueada para tu perfil.');
+                return;
+            }
+            const start = ta.selectionStart ?? ta.value.length;
+            const end = ta.selectionEnd ?? ta.value.length;
+            ta.value = ta.value.slice(0, start) + token + ta.value.slice(end);
+            ta.focus();
+            ta.setSelectionRange(start + token.length, start + token.length);
+            onCustomFormatTextareaInput();
+        }
+
+        function detectGenderFromName() {
+            const rawName = (document.getElementById('inputAlumno')?.value || '').trim().toUpperCase();
+            const genSel = document.getElementById('selectGenero');
+            if (!rawName || !genSel) return;
+
+            const firstWord = rawName.split(/\s+/)[0] || '';
+            const maleExceptions = ['JOSE', 'JOSÉ', 'JUAN', 'LUIS', 'CARLOS', 'JESUS', 'JESÚS', 'ANGEL', 'ÁNGEL', 'MIGUEL', 'DAVID', 'DANIEL', 'ALEJANDRO', 'FERNANDO', 'EDUARDO', 'JORGE', 'RICARDO', 'ROBERTO', 'FRANCISCO', 'ANTONIO', 'MANUEL', 'PEDRO', 'PABLO', 'DIEGO', 'ANDRES', 'ANDRÉS', 'RAFAEL', 'OSCAR', 'ÓSCAR', 'SERGIO', 'HECTOR', 'HÉCTOR', 'VICTOR', 'VÍCTOR', 'RAUL', 'RAÚL', 'ARTURO', 'ENRIQUE', 'ALBERTO', 'MARIO', 'CESAR', 'CÉSAR', 'RUBEN', 'RUBÉN', 'IVAN', 'IVÁN', 'OMAR', 'ERICK', 'KEVIN', 'BRAYAN', 'ALAN', 'CHRISTIAN', 'CRISTIAN', 'ABRAHAM', 'ISAAC', 'SAMUEL', 'EMMANUEL', 'JONATHAN', 'EDGAR', 'SAUL', 'SAÚL', 'URIEL', 'AXEL', 'GAEL', 'MATEO', 'SANTIAGO', 'SEBASTIAN', 'SEBASTIÁN', 'LEONARDO', 'EMILIANO', 'RODRIGO', 'GUSTAVO', 'GUILLERMO', 'ALFREDO', 'ARMANDO', 'ERNESTO', 'GERARDO', 'GILBERTO', 'HUMBERTO', 'IGNACIO', 'JAIME', 'JAVIER', 'JOEL', 'JULIO', 'LORENZO', 'MARCOS', 'MARTIN', 'MARTÍN', 'MAURICIO', 'MOISES', 'MOISÉS', 'NICOLAS', 'NICOLÁS', 'NOE', 'NOÉ', 'OCTAVIO', 'ORLANDO', 'PATRICIO', 'RAMIRO', 'RAMON', 'RAMÓN', 'RENE', 'RENÉ', 'RODOLFO', 'ROGELO', 'ROGELIO', 'SALVADOR', 'ULISES'];
+            const femaleExceptions = ['MARIA', 'MARÍA', 'GUADALUPE', 'FERNANDA', 'SOFIA', 'SOFÍA', 'VALERIA', 'CAMILA', 'DANIELA', 'ANDREA', 'PAOLA', 'ALEJANDRA', 'GABRIELA', 'KARLA', 'DIANA', 'LAURA', 'ANA', 'PATRICIA', 'ELIZABETH', 'MONICA', 'MÓNICA', 'VERONICA', 'VERÓNICA', 'LETICIA', 'SILVIA', 'ROSA', 'CLAUDIA', 'MARTHA', 'TERESA', 'GLORIA', 'ALICIA', 'BEATRIZ', 'ADRIANA', 'NATALY', 'GISELLE', 'KAREN', 'JESSICA', 'YESENIA', 'LIZBETH', 'ARACELI', 'ROCIO', 'ROCÍO', 'LUCERO', 'ABIGAIL', 'ABIGAÍL', 'ESTEFANIA', 'ESTEFANÍA', 'FABIOLA', 'ITZEL', 'CITLALLI', 'NAYELI', 'XOCHITL', 'XÓCHITL', 'MICHELLE', 'NICOLE', 'MELISSA', 'VANESSA', 'BRENDA', 'CINTIA', 'CINTHIA', 'YAZMIN', 'YAZMÍN', 'JAZMIN', 'JAZMÍN', 'MIRIAM', 'ESTHER', 'RUTH', 'RAQUEL', 'REBECA', 'SARAI', 'SARAÍ', 'BELEN', 'BELÉN', 'NOEMI', 'NOEMÍ', 'IVONNE', 'DENISSE', 'BERENICE', 'EUNICE', 'DULCE', 'PERLA', 'ESMERALDA', 'RUBI', 'RUBÍ', 'CRISTAL', 'VIRIDIANA', 'MARISOL', 'SOLEDAD', 'CONCEPCION', 'CONCEPCIÓN', 'ASUNCION', 'ASUNCIÓN', 'INMACULADA', 'CARMEN', 'MERCEDES', 'LOURDES', 'PILAR', 'DOLORES', 'CONSUELO', 'AMPARO', 'REFUGIO'];
+
+            if (maleExceptions.includes(firstWord)) {
+                genSel.value = 'M';
+            } else if (femaleExceptions.includes(firstWord)) {
+                genSel.value = 'F';
+            } else if (firstWord.endsWith('A')) {
+                genSel.value = 'F';
+            } else if (firstWord.endsWith('O')) {
+                genSel.value = 'M';
+            }
         }
 
         function adjustPreviewZoom(delta, reset = false) {
-            previewZoom = reset ? 0.78 : Math.min(1.4, Math.max(0.45, +(previewZoom + delta).toFixed(2)));
-            const box = document.getElementById('previewScaleBox');
+            if (reset) {
+                previewZoom = 0.78;
+            } else {
+                previewZoom = Math.min(1.4, Math.max(0.45, +(previewZoom + delta).toFixed(2)));
+            }
+            const scaleBox = document.getElementById('previewScaleBox');
             const label = document.getElementById('previewZoomLabel');
-            if (box) box.style.transform = `scale(${previewZoom})`;
+            if (scaleBox) scaleBox.style.transform = `scale(${previewZoom})`;
             if (label) label.textContent = `${Math.round(previewZoom * 100)}%`;
         }
 
@@ -1512,91 +1606,14 @@
             if (lbl) lbl.textContent = isPreviewFullscreen ? 'Salir Pantalla Completa' : 'Pantalla Completa';
         }
 
-        // ==========================================
-        // MODALIDADES, PLANTILLAS Y RENDERIZADO DE CONSTANCIA
-        // ==========================================
-        function selectDocType(type) {
-            if (!DOC_TYPE_META[type]) return;
-            currentDocType = type;
-
-            Object.keys(DOC_TYPE_META).forEach(t => {
-                const btn = document.getElementById(`btn-type-${t}`);
-                const palette = DOC_TYPE_BTN_COLORS[t];
-                if (btn && palette) {
-                    const isHidden = btn.classList.contains('hidden') ? ' hidden' : '';
-                    btn.className = (t === type ? palette.active : palette.inactive) + isHidden;
-                }
-            });
-
-            const badge = document.getElementById('currentFormatLabelBadge');
-            if (badge) badge.textContent = DOC_TYPE_META[type].label;
-
-            const textarea = document.getElementById('customDocFormatText');
-            if (textarea) {
-                textarea.value = vaultState.customTemplates[type] || DEFAULT_TEMPLATES[type] || '';
-            }
-
-            document.getElementById('fields-vacaciones')?.classList.toggle('hidden', type !== 'vacaciones');
-            document.getElementById('fields-anteriores')?.classList.toggle('hidden', type !== 'anteriores');
-            document.getElementById('fields-montos')?.classList.toggle('hidden', type !== 'montos');
-            document.getElementById('fields-resguardo')?.classList.toggle('hidden', type !== 'resguardo');
-            document.getElementById('fields-promedio')?.classList.toggle('hidden', type !== 'promedio');
-            document.getElementById('fields-tabla-materias')?.classList.toggle('hidden', type !== 'calificaciones' && type !== 'kardex');
-
-            if (type === 'calificaciones' || type === 'kardex') renderGradesEditorRows();
-            if (type === 'vacaciones') syncVacationDatesFromActivePeriod(false);
-
-            applyModalityAndFieldPermissions();
-            updateDocument();
+        function toggleHeaderToolsDropdown() {
+            const isAdmin = activeSession.unlocked && activeSession.role === 'admin';
+            if (!isAdmin) return;
+            document.getElementById('headerSystemToolsDropdown')?.classList.toggle('hidden');
         }
 
-        function onCustomFormatTextareaInput() {
-            const val = document.getElementById('customDocFormatText')?.value || '';
-            vaultState.customTemplates[currentDocType] = val;
-            updateDocument();
-        }
-
-        function saveCurrentDocTypeFormat() {
-            const val = document.getElementById('customDocFormatText')?.value || '';
-            vaultState.customTemplates[currentDocType] = val;
-            persistVaultData(false);
-        }
-
-        function resetCurrentDocTypeFormat() {
-            vaultState.customTemplates[currentDocType] = DEFAULT_TEMPLATES[currentDocType];
-            const textarea = document.getElementById('customDocFormatText');
-            if (textarea) textarea.value = DEFAULT_TEMPLATES[currentDocType];
-            persistVaultData(true);
-            updateDocument();
-            showToast('Plantilla restaurada al texto oficial base.');
-        }
-
-        function insertFormatToken(token) {
-            const ta = document.getElementById('customDocFormatText');
-            if (!ta || ta.disabled) return;
-            const start = ta.selectionStart || 0;
-            const end = ta.selectionEnd || 0;
-            ta.value = ta.value.substring(0, start) + token + ta.value.substring(end);
-            ta.focus();
-            ta.selectionStart = ta.selectionEnd = start + token.length;
-            onCustomFormatTextareaInput();
-        }
-
-        function detectGenderFromName() {
-            const name = (document.getElementById('inputAlumno')?.value || '').trim().toUpperCase();
-            const sel = document.getElementById('selectGenero');
-            if (!name || !sel) return;
-            const firstWord = name.split(/\s+/)[0] || '';
-            const maleExceptions = ['JOSE', 'JOSÉ', 'JESUS', 'JESÚS', 'LUIS', 'CARLOS', 'JUAN', 'PEDRO', 'MIGUEL', 'ANGEL', 'ÁNGEL', 'DANIEL', 'DAVID', 'ALEJANDRO', 'FERNANDO', 'JORGE', 'RICARDO', 'EDUARDO', 'ROBERTO', 'MANUEL', 'FRANCISCO', 'ANTONIO', 'JAVIER', 'RAFAEL', 'DIEGO', 'ANDRES', 'ANDRÉS', 'OSCAR', 'ÓSCAR', 'HECTOR', 'HÉCTOR', 'VICTOR', 'VÍCTOR', 'RAUL', 'RAÚL', 'OMAR', 'IVAN', 'IVÁN', 'ALAN', 'KEVIN', 'BRAYAN', 'CRISTIAN', 'CHRISTIAN', 'MARCO', 'MARIO', 'SERGIO', 'ARTURO', 'ENRIQUE', 'ALBERTO', 'RUBEN', 'RUBÉN', 'EDGAR', 'SAUL', 'SAÚL', 'ERICK', 'ERIK', 'JONATHAN', 'ABRAHAM', 'ISAAC', 'URIEL', 'EMMANUEL', 'LEONARDO', 'SANTIAGO', 'MATEO', 'SEBASTIAN', 'SEBASTIÁN', 'EMILIANO', 'RODRIGO', 'PABLO', 'CESAR', 'CÉSAR', 'GUILLERMO', 'GUSTAVO', 'HUGO', 'ALFREDO', 'ARMANDO', 'GERARDO', 'GILBERTO', 'ERNESTO', 'ESTEBAN', 'FELIPE', 'GABRIEL', 'IGNACIO', 'ISRAEL', 'JAIME', 'JOAQUIN', 'JOAQUÍN', 'JULIO', 'LORENZO', 'MARTIN', 'MARTÍN', 'MAURICIO', 'MOISES', 'MOISÉS', 'NICOLAS', 'NICOLÁS', 'NOE', 'NOÉ', 'OCTAVIO', 'ORLANDO', 'RAMON', 'RAMÓN', 'RENE', 'RENÉ', 'RODOLFO', 'ROLANDO', 'SALVADOR', 'SAMUEL', 'SIMON', 'SIMÓN', 'TOMAS', 'TOMÁS', 'ULISES', 'VICENTE'];
-            const femaleExceptions = ['MARIA', 'MARÍA', 'GUADALUPE', 'CARMEN', 'ROCIO', 'ROCÍO', 'ROSARIO', 'CONSUELO', 'SOCORRO', 'PILAR', 'LUZ', 'FLOR', 'SOL', 'MAR', 'BELEN', 'BELÉN', 'ESTHER', 'RUTH', 'JUDITH', 'EDITH', 'LIZBETH', 'YAZMIN', 'YAZMÍN', 'JAZMIN', 'JAZMÍN', 'ABIGAIL', 'RAQUEL', 'ISABEL', 'BEATRIZ', 'INES', 'INÉS', 'IRENE', 'NOEMI', 'NOEMÍ', 'NAYELI', 'CITLALI', 'ITZEL', 'ARACELI', 'ANAHI', 'ANAHÍ', 'MIRIAM', 'MYRIAM', 'KAREN', 'SHARON', 'EVELYN', 'INGRID', 'ASTRID'];
-
-            if (maleExceptions.includes(firstWord)) {
-                sel.value = 'M';
-            } else if (femaleExceptions.includes(firstWord) || firstWord.endsWith('A')) {
-                sel.value = 'F';
-            } else {
-                sel.value = 'M';
-            }
+        function closeHeaderToolsDropdown() {
+            document.getElementById('headerSystemToolsDropdown')?.classList.add('hidden');
         }
 
         function onChangeTipoPeriodoGrado() {
@@ -2386,7 +2403,18 @@
                 permissions: {
                     simple: 'select',
                     simple_writeName: true,
-                    headerButtons: { downloadPdf: true, print: true, history: true, periods: false, quickFolio: true, quickClear: true, quickCopy: true, quickToday: true }
+                    headerButtons: {
+                        downloadPdf: true,
+                        print: true,
+                        history: true,
+                        periods: false,
+                        resetFormat: false,
+                        saveFormat: false,
+                        quickFolio: true,
+                        quickClear: true,
+                        quickCopy: true,
+                        quickToday: true
+                    }
                 }
             };
             vaultState.profiles.push(newProf);
@@ -2461,7 +2489,7 @@
 
             let html = `
                 <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2.5">
-                    <h4 class="font-extrabold text-blue-950 uppercase text-[11px]">1. Botones de la Barra Superior</h4>
+                    <h4 class="font-extrabold text-blue-950 uppercase text-[11px]">1. Botones de Barra Superior y Edición de Plantillas</h4>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         ${headerButtonsList.map(item => `
                             <label class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200 cursor-pointer">
@@ -2533,6 +2561,9 @@
             });
 
             persistVaultData(false);
+            if (activeSession.unlocked && activeSession.profileId === prof.id) {
+                syncSessionUI();
+            }
             closeUserPermissionsModal();
         }
 
