@@ -473,7 +473,7 @@
                     </div>
                     <textarea id="customDocFormatText" rows="7" oninput="onCustomFormatTextareaInput()" placeholder="Edita aquí toda la constancia desde el Oficio/Folio hasta la Firma..." class="uap-input w-full rounded-xl border border-blue-200 bg-blue-50/30 focus:bg-white p-3.5 text-xs font-medium leading-relaxed text-slate-800 outline-none"></textarea>
                     <p class="text-[11px] text-slate-500">
-                        Tip: Puedes dar <strong>Enter</strong> y agregar <strong>espacios</strong> tanto en este cuadro como directamente sobre la hoja de la constancia; al presionar <strong>Guardar Formato</strong> se conservará exactamente como la dejaste.
+                        Tip: Selecciona el texto o renglones en este cuadro (o en la hoja de constancia) y elige el valor en <strong>Interlineado</strong> para aplicarlo únicamente a esa selección.
                     </p>
                     <details class="group bg-slate-50/80 border border-slate-200/80 rounded-xl px-3.5 py-2.5">
                         <summary class="cursor-pointer text-[11px] font-bold text-slate-700 flex items-center justify-between select-none">
@@ -1896,6 +1896,7 @@
 
         function formatInlineRichText(raw) {
             const withMarkers = escapeHtml(raw)
+                .replace(/\[lh=([0-9.]+)\]([\s\S]*?)\[\/lh\]/g, '<span style="display:inline-block;line-height:$1;">$2</span>')
                 .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                 .replace(/__(.+?)__/g, '<u>$1</u>');
             return withMarkers.replace(/ {2,}/g, (spaces) => '&nbsp;'.repeat(spaces.length));
@@ -2001,12 +2002,25 @@
                     continue;
                 }
 
+                const fullLineLhMatch = trimmed.match(/^\[lh=([0-9.]+)\]([\s\S]+)\[\/lh\]$/);
+                const lineToRender = fullLineLhMatch ? fullLineLhMatch[2] : rawLine;
+                const explicitLineHeight = fullLineLhMatch ? fullLineLhMatch[1] : null;
+
+                const mergeLineHeightStyle = (secKey) => {
+                    const base = buildInlineStyle(secKey);
+                    if (!explicitLineHeight) return base;
+                    if (base) {
+                        return base.replace(/"$/, `line-height:${explicitLineHeight};"`);
+                    }
+                    return ` style="line-height:${explicitLineHeight};"`;
+                };
+
                 if (i <= 2) {
-                    htmlOut += `<div class="doc-para-right" data-doc-section="header"${buildInlineStyle('header')}>${formatInlineRichText(rawLine)}</div>`;
+                    htmlOut += `<div class="doc-para-right" data-doc-section="header"${mergeLineHeightStyle('header')}>${formatInlineRichText(lineToRender)}</div>`;
                 } else if (i <= 5 && (trimmed.includes(destinatario) || /^PRESENTE$/i.test(trimmed))) {
-                    htmlOut += `<div class="doc-para-left-bold" data-doc-section="recipient"${buildInlineStyle('recipient')}>${formatInlineRichText(rawLine)}</div>`;
+                    htmlOut += `<div class="doc-para-left-bold" data-doc-section="recipient"${mergeLineHeightStyle('recipient')}>${formatInlineRichText(lineToRender)}</div>`;
                 } else {
-                    htmlOut += `<div class="doc-para" data-doc-section="body"${buildInlineStyle('body')}>${formatInlineRichText(rawLine)}</div>`;
+                    htmlOut += `<div class="doc-para" data-doc-section="body"${mergeLineHeightStyle('body')}>${formatInlineRichText(lineToRender)}</div>`;
                 }
             }
 
@@ -2115,10 +2129,34 @@
         function onChangeDocTypeLineHeight(val) {
             const num = parseFloat(val);
             if (isNaN(num)) return;
-            if (!vaultState.docTypeLineHeights) vaultState.docTypeLineHeights = {};
-            vaultState.docTypeLineHeights[currentDocType] = num;
-            persistVaultData(true);
-            updateDocument();
+            const formattedVal = num.toFixed(1);
+
+            // 1. Verificar si hay texto seleccionado dentro del cuadro de Estructura Completa
+            const ta = document.getElementById('customDocFormatText');
+            if (ta && !ta.disabled && ta.selectionStart !== ta.selectionEnd) {
+                const start = ta.selectionStart;
+                const end = ta.selectionEnd;
+                const selected = ta.value.slice(start, end);
+                const cleanSelected = selected.replace(/\[lh=[0-9.]+\]|\[\/lh\]/g, '');
+                const wrapped = `[lh=${formattedVal}]${cleanSelected}[/lh]`;
+                ta.value = ta.value.slice(0, start) + wrapped + ta.value.slice(end);
+                ta.focus();
+                ta.setSelectionRange(start, start + wrapped.length);
+                onCustomFormatTextareaInput();
+                showToast(`Interlineado ${formattedVal} aplicado al texto seleccionado.`);
+                return;
+            }
+
+            // 2. Verificar si hay texto seleccionado directamente en la vista previa de la constancia
+            const sel = window.getSelection();
+            const body = document.getElementById('documentRenderedBody');
+            if (sel && sel.rangeCount > 0 && !sel.isCollapsed && body && body.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+                applyFloatingLineHeight(formattedVal, true);
+                showToast(`Interlineado ${formattedVal} aplicado a la selección en la constancia.`);
+                return;
+            }
+
+            showToast('Selecciona primero el texto o renglones a los que deseas aplicar el interlineado.');
         }
 
         function onChangeTypoTargetSection() {
