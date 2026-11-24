@@ -1556,6 +1556,127 @@
             fitDocumentToSingleLetterSheet();
         }
 
+        function getCurrentDocumentTokenValues() {
+            const folio = (document.getElementById('inputFolio')?.value || '').trim();
+            const ciudad = (document.getElementById('inputCiudad')?.value || '').trim();
+            const fechaIso = document.getElementById('inputFecha')?.value || '';
+            const fechaMayus = formatExpeditionDateSpanish(fechaIso);
+            const destinatario = (document.getElementById('inputDestinatario')?.value || '').trim();
+            const alumno = (document.getElementById('inputAlumno')?.value || '').trim();
+            const genero = document.getElementById('selectGenero')?.value || 'F';
+            const matricula = (document.getElementById('inputMatricula')?.value || '').trim();
+            const grado = (document.getElementById('inputGrado')?.value || '').trim();
+
+            const licSel = document.getElementById('selectLicenciatura');
+            const licText = licSel && licSel.selectedIndex >= 0 ? licSel.options[licSel.selectedIndex].text : '';
+            const rvoe = (document.getElementById('inputRvoe')?.value || '').trim();
+
+            const perSel = document.getElementById('selectPeriodo');
+            const perText = perSel && perSel.selectedIndex >= 0 ? perSel.options[perSel.selectedIndex].text : '';
+            const inicioPeriodo = (document.getElementById('inputInicioPeriodo')?.value || '').trim();
+            const finPeriodo = (document.getElementById('inputFinPeriodo')?.value || '').trim();
+
+            const firmante = (document.getElementById('inputFirmante')?.value || '').trim();
+            const cargoFirmante = (document.getElementById('inputCargoFirmante')?.value || '').trim();
+
+            const vacInicio = (document.getElementById('inputVacInicio')?.value || '').trim();
+            const vacFin = (document.getElementById('inputVacFin')?.value || '').trim();
+            const periodosAnteriores = (document.getElementById('inputPeriodosAnteriores')?.value || '').trim();
+            const montoInscripcion = (document.getElementById('inputMontoInscripcion')?.value || '').trim();
+            const montoColegiatura = (document.getElementById('inputMontoColegiatura')?.value || '').trim();
+            const documentosResguardo = (document.getElementById('inputDocumentosResguardo')?.value || '').trim();
+            const promedioGeneral = (document.getElementById('inputPromedioGeneral')?.value || '').trim();
+            const periodosPromedio = (document.getElementById('inputPeriodosPromedio')?.value || '').trim();
+
+            const tratamiento = genero === 'M' ? 'el alumno' : 'la alumna';
+            const inscrito = genero === 'M' ? 'inscrito' : 'inscrita';
+            const asunto = DOC_TYPE_META[currentDocType]?.asunto || 'CONSTANCIA DE ESTUDIOS';
+
+            return {
+                folio, ciudad, fechaMayus, destinatario, alumno, genero, matricula, grado,
+                licText, rvoe, perText, inicioPeriodo, finPeriodo, firmante, cargoFirmante,
+                vacInicio, vacFin, periodosAnteriores, montoInscripcion, montoColegiatura,
+                documentosResguardo, promedioGeneral, periodosPromedio, tratamiento, inscrito, asunto,
+                map: {
+                    '{FOLIO}': folio,
+                    '{ASUNTO}': asunto,
+                    '{CIUDAD_MAYUS}': ciudad,
+                    '{FECHA_MAYUS}': fechaMayus,
+                    '{DESTINATARIO}': destinatario,
+                    '{TRATAMIENTO}': tratamiento,
+                    '{ALUMNO}': alumno,
+                    '{MATRICULA}': matricula,
+                    '{INSCRITO}': inscrito,
+                    '{GRADO}': grado,
+                    '{LICENCIATURA}': licText,
+                    '{RVOE}': rvoe,
+                    '{PERIODO}': perText,
+                    '{INICIO_PERIODO}': inicioPeriodo,
+                    '{FIN_PERIODO}': finPeriodo,
+                    '{VAC_INICIO}': vacInicio,
+                    '{VAC_FIN}': vacFin,
+                    '{PERIODOS_ANTERIORES}': periodosAnteriores,
+                    '{MONTO_INSCRIPCION}': montoInscripcion,
+                    '{MONTO_COLEGIATURA}': montoColegiatura,
+                    '{DOCUMENTOS_RESGUARDO}': documentosResguardo,
+                    '{PROMEDIO_GENERAL}': promedioGeneral,
+                    '{PERIODOS_PROMEDIO}': periodosPromedio,
+                    '{FIRMANTE}': firmante,
+                    '{CARGO_FIRMANTE}': cargoFirmante
+                }
+            };
+        }
+
+        function convertVisualSheetToTemplateHtml(bodyEl) {
+            const clone = bodyEl.cloneNode(true);
+            const data = getCurrentDocumentTokenValues();
+
+            // Vincular tabla dinámica si existe
+            const tableEl = clone.querySelector('.doc-grades-table');
+            if (tableEl) {
+                const tableMarker = document.createElement('span');
+                tableMarker.setAttribute('data-token', '{TABLA}');
+                tableMarker.textContent = '{TABLA}';
+                tableEl.replaceWith(tableMarker);
+            }
+
+            // Ordenar tokens de mayor a menor longitud para evitar reemplazos parciales
+            const entries = Object.entries(data.map)
+                .filter(([, val]) => val && val.length >= 2)
+                .sort((a, b) => b[1].length - a[1].length);
+
+            const walker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT, null);
+            const textNodes = [];
+            let n;
+            while ((n = walker.nextNode())) textNodes.push(n);
+
+            textNodes.forEach(node => {
+                let txt = node.nodeValue;
+                entries.forEach(([token, val]) => {
+                    if (txt.includes(val)) {
+                        txt = txt.split(val).join(token);
+                    }
+                });
+                node.nodeValue = txt;
+            });
+
+            return clone.innerHTML;
+        }
+
+        function renderBoundVisualLayoutHtml(templateHtml) {
+            const data = getCurrentDocumentTokenValues();
+            let bound = templateHtml;
+
+            Object.entries(data.map).forEach(([token, val]) => {
+                bound = bound.split(token).join(escapeHtml(val));
+            });
+
+            const tableHtml = buildGradesTableHtml(currentDocType === 'kardex');
+            bound = bound.replace(/<span[^>]*data-token="\{TABLA\}"[^>]*>\{TABLA\}<\/span>/gi, tableHtml);
+            bound = bound.split('{TABLA}').join(tableHtml);
+            return bound;
+        }
+
         function resetCurrentDocTypeFormat() {
             const isAdmin = activeSession.unlocked && activeSession.role === 'admin';
             const hb = getActiveUserProfile()?.permissions?.headerButtons || {};
@@ -1589,13 +1710,14 @@
             const bodyEl = document.getElementById('documentRenderedBody');
             if (bodyEl) {
                 if (!vaultState.savedVisualLayouts) vaultState.savedVisualLayouts = {};
+                const parameterizedHtml = convertVisualSheetToTemplateHtml(bodyEl);
                 vaultState.savedVisualLayouts[currentDocType] = {
-                    html: bodyEl.innerHTML,
+                    templateHtml: parameterizedHtml,
                     typography: JSON.parse(JSON.stringify(vaultState.typography))
                 };
             }
             persistVaultData(false);
-            showToast('Formato, espacios y diseño guardados permanentemente.');
+            showToast('Formato guardado y vinculado con todos los campos del formulario.');
         }
 
         function insertFormatToken(token) {
@@ -1747,8 +1869,9 @@
             if (!bodyEl) return;
 
             const savedLayout = !forceTemplateRender && vaultState.savedVisualLayouts?.[currentDocType];
-            if (savedLayout && savedLayout.html) {
-                bodyEl.innerHTML = savedLayout.html;
+            if (savedLayout && (savedLayout.templateHtml || savedLayout.html)) {
+                const tplHtml = savedLayout.templateHtml || savedLayout.html;
+                bodyEl.innerHTML = renderBoundVisualLayoutHtml(tplHtml);
                 if (savedLayout.typography) {
                     vaultState.typography = JSON.parse(JSON.stringify(savedLayout.typography));
                 }
@@ -1757,40 +1880,13 @@
                 return;
             }
 
-            const folio = (document.getElementById('inputFolio')?.value || '').trim();
-            const ciudad = (document.getElementById('inputCiudad')?.value || '').trim();
-            const fechaIso = document.getElementById('inputFecha')?.value || '';
-            const fechaMayus = formatExpeditionDateSpanish(fechaIso);
-            const destinatario = (document.getElementById('inputDestinatario')?.value || '').trim();
-            const alumno = (document.getElementById('inputAlumno')?.value || '').trim();
-            const genero = document.getElementById('selectGenero')?.value || 'F';
-            const matricula = (document.getElementById('inputMatricula')?.value || '').trim();
-            const grado = (document.getElementById('inputGrado')?.value || '').trim();
-
-            const licSel = document.getElementById('selectLicenciatura');
-            const licText = licSel && licSel.selectedIndex >= 0 ? licSel.options[licSel.selectedIndex].text : '';
-            const rvoe = (document.getElementById('inputRvoe')?.value || '').trim();
-
-            const perSel = document.getElementById('selectPeriodo');
-            const perText = perSel && perSel.selectedIndex >= 0 ? perSel.options[perSel.selectedIndex].text : '';
-            const inicioPeriodo = (document.getElementById('inputInicioPeriodo')?.value || '').trim();
-            const finPeriodo = (document.getElementById('inputFinPeriodo')?.value || '').trim();
-
-            const firmante = (document.getElementById('inputFirmante')?.value || '').trim();
-            const cargoFirmante = (document.getElementById('inputCargoFirmante')?.value || '').trim();
-
-            const vacInicio = (document.getElementById('inputVacInicio')?.value || '').trim();
-            const vacFin = (document.getElementById('inputVacFin')?.value || '').trim();
-            const periodosAnteriores = (document.getElementById('inputPeriodosAnteriores')?.value || '').trim();
-            const montoInscripcion = (document.getElementById('inputMontoInscripcion')?.value || '').trim();
-            const montoColegiatura = (document.getElementById('inputMontoColegiatura')?.value || '').trim();
-            const documentosResguardo = (document.getElementById('inputDocumentosResguardo')?.value || '').trim();
-            const promedioGeneral = (document.getElementById('inputPromedioGeneral')?.value || '').trim();
-            const periodosPromedio = (document.getElementById('inputPeriodosPromedio')?.value || '').trim();
-
-            const tratamiento = genero === 'M' ? 'el alumno' : 'la alumna';
-            const inscrito = genero === 'M' ? 'inscrito' : 'inscrita';
-            const asunto = DOC_TYPE_META[currentDocType]?.asunto || 'CONSTANCIA DE ESTUDIOS';
+            const data = getCurrentDocumentTokenValues();
+            const {
+                folio, ciudad, fechaMayus, destinatario, alumno, matricula, grado,
+                licText, rvoe, perText, inicioPeriodo, finPeriodo, firmante, cargoFirmante,
+                vacInicio, vacFin, periodosAnteriores, montoInscripcion, montoColegiatura,
+                documentosResguardo, promedioGeneral, periodosPromedio, tratamiento, inscrito, asunto
+            } = data;
 
             let tpl = document.getElementById('customDocFormatText')?.value || vaultState.customTemplates[currentDocType] || DEFAULT_TEMPLATES[currentDocType];
 
