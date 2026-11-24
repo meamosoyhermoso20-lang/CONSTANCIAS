@@ -1170,6 +1170,7 @@
             customTemplates: { ...DEFAULT_TEMPLATES },
             savedVisualLayouts: {},
             globalDefaults: {},
+            workspaceFormData: {},
             typography: {
                 fontFamily: 'Arial, Helvetica, sans-serif',
                 fontSize: 12,
@@ -1183,6 +1184,86 @@
         // CARGA Y PERSISTENCIA PERMANENTE Y ELIMINACIÓN DEFINITIVA
         // ==========================================
         const PERMANENT_STORAGE_KEY = 'UAP_PERMANENT_VAULT_V1';
+
+        function captureWorkspaceFormSnapshot() {
+            const safeVal = (id) => {
+                const el = document.getElementById(id);
+                return el ? el.value : undefined;
+            };
+            return {
+                currentDocType: typeof currentDocType !== 'undefined' ? currentDocType : 'simple',
+                folio: safeVal('inputFolio'),
+                ciudad: safeVal('inputCiudad'),
+                fecha: safeVal('inputFecha'),
+                destinatario: safeVal('inputDestinatario'),
+                alumno: safeVal('inputAlumno'),
+                genero: safeVal('selectGenero'),
+                matricula: safeVal('inputMatricula'),
+                tipoPeriodoGrado: safeVal('selectTipoPeriodoGrado'),
+                grado: safeVal('inputGrado'),
+                licenciaturaId: safeVal('selectLicenciatura'),
+                rvoe: safeVal('inputRvoe'),
+                periodoId: safeVal('selectPeriodo'),
+                inicioPeriodo: safeVal('inputInicioPeriodo'),
+                finPeriodo: safeVal('inputFinPeriodo'),
+                vacInicio: safeVal('inputVacInicio'),
+                vacFin: safeVal('inputVacFin'),
+                estatusPeriodosAnteriores: safeVal('selectEstatusPeriodosAnteriores'),
+                periodosAnteriores: safeVal('inputPeriodosAnteriores'),
+                documentosResguardo: safeVal('inputDocumentosResguardo'),
+                promedioGeneral: safeVal('inputPromedioGeneral'),
+                periodosPromedio: safeVal('inputPeriodosPromedio'),
+                firmante: safeVal('inputFirmante'),
+                cargoFirmante: safeVal('inputCargoFirmante'),
+                montoItems: typeof montoItems !== 'undefined' ? JSON.parse(JSON.stringify(montoItems)) : undefined,
+                gradeItems: typeof gradeItems !== 'undefined' ? JSON.parse(JSON.stringify(gradeItems)) : undefined
+            };
+        }
+
+        function restoreWorkspaceFormSnapshot(snapshot) {
+            if (!snapshot || typeof snapshot !== 'object') return;
+            const setVal = (id, val) => {
+                if (val === undefined || val === null) return;
+                const el = document.getElementById(id);
+                if (el) el.value = val;
+            };
+            setVal('inputFolio', snapshot.folio);
+            setVal('inputCiudad', snapshot.ciudad);
+            setVal('inputFecha', snapshot.fecha);
+            setVal('inputDestinatario', snapshot.destinatario);
+            setVal('inputAlumno', snapshot.alumno);
+            setVal('selectGenero', snapshot.genero);
+            setVal('inputMatricula', snapshot.matricula);
+            setVal('selectTipoPeriodoGrado', snapshot.tipoPeriodoGrado);
+            setVal('inputGrado', snapshot.grado);
+            if (snapshot.licenciaturaId && document.getElementById('selectLicenciatura')?.querySelector(`option[value="${snapshot.licenciaturaId}"]`)) {
+                setVal('selectLicenciatura', snapshot.licenciaturaId);
+            }
+            setVal('inputRvoe', snapshot.rvoe);
+            if (snapshot.periodoId && document.getElementById('selectPeriodo')?.querySelector(`option[value="${snapshot.periodoId}"]`)) {
+                setVal('selectPeriodo', snapshot.periodoId);
+            }
+            setVal('inputInicioPeriodo', snapshot.inicioPeriodo);
+            setVal('inputFinPeriodo', snapshot.finPeriodo);
+            setVal('inputVacInicio', snapshot.vacInicio);
+            setVal('inputVacFin', snapshot.vacFin);
+            setVal('selectEstatusPeriodosAnteriores', snapshot.estatusPeriodosAnteriores);
+            setVal('inputPeriodosAnteriores', snapshot.periodosAnteriores);
+            setVal('inputDocumentosResguardo', snapshot.documentosResguardo);
+            setVal('inputPromedioGeneral', snapshot.promedioGeneral);
+            setVal('inputPeriodosPromedio', snapshot.periodosPromedio);
+            setVal('inputFirmante', snapshot.firmante);
+            setVal('inputCargoFirmante', snapshot.cargoFirmante);
+
+            if (Array.isArray(snapshot.montoItems) && typeof montoItems !== 'undefined') {
+                montoItems.splice(0, montoItems.length, ...snapshot.montoItems);
+                if (typeof renderMontosEditorRows === 'function') renderMontosEditorRows();
+            }
+            if (Array.isArray(snapshot.gradeItems) && typeof gradeItems !== 'undefined') {
+                gradeItems.splice(0, gradeItems.length, ...snapshot.gradeItems);
+                if (typeof renderGradesEditorRows === 'function') renderGradesEditorRows();
+            }
+        }
 
         function loadEmbeddedVaultData() {
             let baseData = {};
@@ -1291,6 +1372,7 @@
                     ...(savedMem.globalDefaults || {}),
                     ...(permanentSaved.globalDefaults || {})
                 },
+                workspaceFormData: activeStore.workspaceFormData || baseData.workspaceFormData || {},
                 typography: {
                     fontFamily: 'Arial, Helvetica, sans-serif',
                     fontSize: 12,
@@ -1303,15 +1385,26 @@
                 deletedHistoryIds
             };
 
-            // Sincronizar inmediatamente el bloque embebido en el DOM con el estado limpio
             const embeddedEl = document.getElementById('embeddedInternalVaultData');
             if (embeddedEl) {
                 embeddedEl.textContent = JSON.stringify(vaultState);
             }
         }
 
+        let autoSaveWorkspaceTimer = null;
+        function scheduleWorkspaceAutoSave() {
+            clearTimeout(autoSaveWorkspaceTimer);
+            autoSaveWorkspaceTimer = setTimeout(() => {
+                persistVaultData(true);
+            }, 350);
+        }
+
         function persistVaultData(silent = false) {
             vaultState.updatedAt = new Date().toISOString();
+            const formSnapshot = captureWorkspaceFormSnapshot();
+            if (formSnapshot && formSnapshot.folio !== undefined) {
+                vaultState.workspaceFormData = formSnapshot;
+            }
             const serialized = JSON.stringify(vaultState);
             try {
                 localStorage.setItem(PERMANENT_STORAGE_KEY, serialized);
@@ -1329,13 +1422,13 @@
             }
             updateSyncStatusBadge('Guardado permanente • ' + new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }));
             if (!silent) {
-                showToast('Guardado permanentemente en el código.');
+                showToast('Guardado permanentemente en la página.');
             }
         }
 
         function saveCurrentWorkspaceCheckpoint(notify = true) {
             persistVaultData(true);
-            if (notify) showToast('Todo lo modificado quedó guardado permanentemente.');
+            if (notify) showToast('Toda la página y sus cambios quedaron guardados permanentemente.');
         }
 
         function recoverPageEmergencyState() {
@@ -1343,101 +1436,1597 @@
             applySavedSignatureDefaultsToInputs();
             populateMajorsSelect();
             populatePeriodsSelect();
+            restoreWorkspaceFormSnapshot(vaultState.workspaceFormData);
             updateHistoryBadge();
-            selectDocType(currentDocType);
+            selectDocType(vaultState.workspaceFormData?.currentDocType || currentDocType);
             showToast('Página sincronizada con el último guardado permanente.');
         }
 
-        function restoreFullDatabaseCatalogs(confirmFirst = true) {
-            const doRestore = () => {
-                vaultState.customTemplates = { ...DEFAULT_TEMPLATES };
-                vaultState.savedVisualLayouts = {};
-                vaultState.globalDefaults = { ...DEFAULT_SIGNATURE_INFO };
-                vaultState.typography = { fontFamily: 'Arial, Helvetica, sans-serif', fontSize: 12, lineHeight: 1.48 };
-                applySavedSignatureDefaultsToInputs();
-                persistVaultData(true);
-                selectDocType(currentDocType);
-                showToast('Plantillas y firma restablecidas y guardadas.');
-            };
-            if (confirmFirst) {
-                openCustomConfirmModal('Restaurar Plantillas Base', '¿Deseas restablecer las plantillas y firma a sus valores iniciales? Los elementos eliminados definitivamente permanecerán borrados.', doRestore);
+        // ==========================================
+        // VARIABLES DE ESTADO INTERACTIVO Y SESIÓN
+        // ==========================================
+        let currentDocType = 'simple';
+        let currentSessionRole = 'LOCKED'; // 'LOCKED' | 'ADMIN' | 'PROFILE'
+        let currentActiveProfile = null;
+        let currentPreviewZoom = 0.78;
+        let activeMainTab = 'constancias';
+        let confirmModalResolver = null;
+        let editingPermissionsProfileId = null;
+        let importedStudentsList = [];
+
+        let gradeItems = [
+            { grupo: '5A', codigo: 'DER-501', materia: 'DERECHO PROCESAL CIVIL', calificacion: '9.5' },
+            { grupo: '5A', codigo: 'DER-502', materia: 'DERECHO MERCANTIL II', calificacion: '9.0' },
+            { grupo: '5A', codigo: 'DER-503', materia: 'DERECHO ADMINISTRATIVO', calificacion: '9.8' },
+            { grupo: '5A', codigo: 'DER-504', materia: 'DERECHO LABORAL INDIVIDUAL', calificacion: '9.2' }
+        ];
+
+        let montoItems = [
+            { concepto: 'INSCRIPCIÓN CUATRIMESTRAL', monto: 2450.00 },
+            { concepto: 'COLEGIATURA MENSUAL (4 MENSUALIDADES DE $2,890.00)', monto: 11560.00 }
+        ];
+
+        // ==========================================
+        // CONTROL DE ACCESO, BLOQUEO Y PERFILES
+        // ==========================================
+        function unlockProfileByQuickAccessCode(event) {
+            if (event) event.preventDefault();
+            const input = document.getElementById('quickAccessCodeInput');
+            const code = (input ? input.value : '').trim().toUpperCase();
+            if (!code) {
+                showToast('Ingresa un código de acceso válido.');
+                return;
+            }
+
+            if (code === ADMIN_MASTER_CODE) {
+                currentSessionRole = 'ADMIN';
+                currentActiveProfile = null;
+                if (input) input.value = '';
+                applySessionPermissionsUI();
+                showToast('Acceso concedido: Administrador Maestro.');
+                return;
+            }
+
+            const foundProfile = (vaultState.profiles || []).find(
+                p => String(p.code || '').trim().toUpperCase() === code
+            );
+
+            if (foundProfile) {
+                currentSessionRole = 'PROFILE';
+                currentActiveProfile = foundProfile;
+                if (input) input.value = '';
+                applySessionPermissionsUI();
+                showToast(`Sesión iniciada: ${foundProfile.name}`);
             } else {
-                doRestore();
+                showToast('Código de acceso incorrecto.');
             }
         }
-// ... existing code ... -->
-            listEl.innerHTML = filtered.map(h => `
-                <div class="border border-slate-200 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2 bg-slate-50/70">
-                    <div>
-                        <div class="text-xs font-extrabold text-blue-950">${escapeHtml(h.alumno || 'SIN NOMBRE')} <span class="text-slate-500 font-semibold">(${escapeHtml(h.matricula || '')})</span></div>
-                        <div class="text-[11px] text-slate-600">${escapeHtml(h.docLabel)} • Folio: <strong>${escapeHtml(h.folio)}</strong> • ${escapeHtml(h.licenciatura || '')}</div>
+
+        function lockProfileQuickAccess() {
+            currentSessionRole = 'LOCKED';
+            currentActiveProfile = null;
+            const input = document.getElementById('quickAccessCodeInput');
+            if (input) input.value = '';
+            closeHeaderToolsDropdown();
+            applySessionPermissionsUI();
+            showToast('Pantalla bloqueada por seguridad.');
+        }
+
+        function applySessionPermissionsUI() {
+            const lockedNotice = document.getElementById('lockedHeaderNotice');
+            const mainContainer = document.getElementById('appMainContainer');
+            const tabsBar = document.getElementById('headerWorkspaceTabsBar');
+            const toolsContainer = document.getElementById('headerToolsContainer');
+            const statusDot = document.getElementById('sessionStatusDot');
+            const userLabel = document.getElementById('headerActiveUsername');
+            const roleBadge = document.getElementById('headerActiveRoleName');
+            const licTabBtn = document.getElementById('mainTabBtn-licenciaturas');
+            const rolesTabBtn = document.getElementById('mainTabBtn-roles');
+            const readOnlyAlert = document.getElementById('readOnlyRoleAlert');
+
+            if (currentSessionRole === 'LOCKED') {
+                if (lockedNotice) lockedNotice.classList.remove('hidden');
+                if (mainContainer) mainContainer.classList.add('hidden');
+                if (tabsBar) tabsBar.classList.add('hidden');
+                if (toolsContainer) toolsContainer.classList.add('hidden');
+                if (statusDot) statusDot.className = 'w-2 h-2 rounded-full bg-rose-500 ring-2 ring-rose-400/30';
+                if (userLabel) userLabel.textContent = 'Sesión Bloqueada';
+                if (roleBadge) roleBadge.textContent = 'BLOQUEADO';
+                return;
+            }
+
+            if (lockedNotice) lockedNotice.classList.add('hidden');
+            if (mainContainer) mainContainer.classList.remove('hidden');
+            if (tabsBar) tabsBar.classList.remove('hidden');
+            if (statusDot) statusDot.className = 'w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-emerald-400/30';
+
+            const isAdmin = currentSessionRole === 'ADMIN';
+            const perms = isAdmin ? null : (currentActiveProfile?.permissions || {});
+            const hdrBtns = perms?.headerButtons || {};
+
+            if (userLabel) userLabel.textContent = isAdmin ? 'Administrador' : (currentActiveProfile?.name || 'Usuario');
+            if (roleBadge) roleBadge.textContent = isAdmin ? 'ADMIN' : (currentActiveProfile?.code || 'PERFIL');
+
+            if (toolsContainer) toolsContainer.classList.toggle('hidden', !isAdmin);
+            if (licTabBtn) licTabBtn.classList.toggle('hidden', !(isAdmin || hdrBtns.licenciaturasTab));
+            if (rolesTabBtn) rolesTabBtn.classList.toggle('hidden', !(isAdmin || hdrBtns.rolesTab));
+
+            const topPeriodsBtn = document.getElementById('topBtnPeriods');
+            const topHistoryBtn = document.getElementById('topBtnHistory');
+            const topPdfBtn = document.getElementById('topBtnSaveAndDownloadPdf');
+            const topPrintBtn = document.getElementById('topBtnPrintConstancia');
+            if (topPeriodsBtn) topPeriodsBtn.classList.toggle('hidden', !(isAdmin || hdrBtns.periods));
+            if (topHistoryBtn) topHistoryBtn.classList.toggle('hidden', !(isAdmin || hdrBtns.history !== false));
+            if (topPdfBtn) topPdfBtn.classList.toggle('hidden', !(isAdmin || hdrBtns.downloadPdf !== false));
+            if (topPrintBtn) topPrintBtn.classList.toggle('hidden', !(isAdmin || hdrBtns.print !== false));
+
+            const docTypes = Object.keys(DOC_TYPE_META);
+            docTypes.forEach(type => {
+                const btn = document.getElementById('btn-type-' + type);
+                if (!btn) return;
+                const accessLevel = isAdmin ? 'edit' : (perms[type] || 'select');
+                btn.classList.toggle('hidden', accessLevel === 'none');
+            });
+
+            if (!isAdmin && perms[currentDocType] === 'none') {
+                const firstAllowed = docTypes.find(t => (perms[t] || 'select') !== 'none') || 'simple';
+                currentDocType = firstAllowed;
+            }
+
+            const currentAccess = isAdmin ? 'edit' : (perms[currentDocType] || 'select');
+            const fieldPerms = isAdmin ? null : (perms[currentDocType + '_fields'] || {});
+
+            if (readOnlyAlert) {
+                readOnlyAlert.classList.toggle('hidden', isAdmin || currentAccess === 'edit');
+            }
+
+            const setInputLock = (id, allowed) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.disabled = !allowed;
+                el.classList.toggle('opacity-60', !allowed);
+                el.classList.toggle('cursor-not-allowed', !allowed);
+            };
+
+            setInputLock('inputFolio', isAdmin || fieldPerms.folio !== false);
+            setInputLock('inputCiudad', isAdmin || fieldPerms.fechaCiudad !== false);
+            setInputLock('inputFecha', isAdmin || fieldPerms.fechaCiudad !== false);
+            setInputLock('inputDestinatario', isAdmin || fieldPerms.destinatario !== false);
+            setInputLock('inputAlumno', isAdmin || perms[currentDocType + '_writeName'] !== false);
+            setInputLock('selectGenero', isAdmin || perms[currentDocType + '_writeName'] !== false);
+            setInputLock('inputMatricula', isAdmin || fieldPerms.matricula !== false);
+            setInputLock('selectTipoPeriodoGrado', isAdmin || fieldPerms.grado !== false);
+            setInputLock('inputGrado', isAdmin || fieldPerms.grado !== false);
+            setInputLock('selectLicenciatura', isAdmin || fieldPerms.licenciaturaRvoe !== false);
+            setInputLock('inputRvoe', isAdmin || fieldPerms.licenciaturaRvoe !== false);
+            setInputLock('selectPeriodo', isAdmin || fieldPerms.periodoActivo !== false);
+            setInputLock('inputInicioPeriodo', isAdmin || fieldPerms.periodoActivo !== false);
+            setInputLock('inputFinPeriodo', isAdmin || fieldPerms.periodoActivo !== false);
+            setInputLock('inputFirmante', isAdmin || fieldPerms.firmante !== false);
+            setInputLock('inputCargoFirmante', isAdmin || fieldPerms.firmante !== false);
+            setInputLock('customDocFormatText', isAdmin || (currentAccess === 'edit' && fieldPerms.estructuraTexto !== false));
+
+            const sheetBody = document.getElementById('documentRenderedBody');
+            if (sheetBody) {
+                sheetBody.contentEditable = (isAdmin || currentAccess === 'edit') ? 'true' : 'false';
+            }
+
+            if (!isAdmin && activeMainTab !== 'constancias') {
+                if ((activeMainTab === 'licenciaturas' && !hdrBtns.licenciaturasTab) ||
+                    (activeMainTab === 'roles' && !hdrBtns.rolesTab)) {
+                    switchMainWorkspaceTab('constancias');
+                }
+            }
+
+            selectDocType(currentDocType, true);
+        }
+
+        // ==========================================
+        // MENÚ DESPLEGABLE Y PESTAÑAS DE TRABAJO
+        // ==========================================
+        function toggleHeaderToolsDropdown() {
+            const menu = document.getElementById('headerSystemToolsDropdown');
+            if (menu) menu.classList.toggle('hidden');
+        }
+
+        function closeHeaderToolsDropdown() {
+            const menu = document.getElementById('headerSystemToolsDropdown');
+            if (menu) menu.classList.add('hidden');
+        }
+
+        document.addEventListener('click', (e) => {
+            const container = document.getElementById('headerToolsContainer');
+            if (container && !container.contains(e.target)) {
+                closeHeaderToolsDropdown();
+            }
+        });
+
+        function switchMainWorkspaceTab(tabName) {
+            activeMainTab = tabName;
+            const editorCol = document.getElementById('editorFormColumn');
+            const previewSec = document.getElementById('previewSection');
+            const licTab = document.getElementById('majorsRvoeTabContainer');
+            const rolesTab = document.getElementById('rolesAdminTabContainer');
+
+            ['constancias', 'licenciaturas', 'roles'].forEach(t => {
+                const btn = document.getElementById('mainTabBtn-' + t);
+                if (!btn) return;
+                if (t === tabName) {
+                    btn.className = 'px-3.5 py-1.5 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5 bg-white text-blue-950 shadow-sm transition shrink-0';
+                } else {
+                    const wasHidden = btn.classList.contains('hidden') ? 'hidden ' : '';
+                    btn.className = wasHidden + 'px-3.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 bg-white/5 hover:bg-white/15 text-slate-200 transition shrink-0';
+                }
+            });
+
+            if (tabName === 'constancias') {
+                if (editorCol) editorCol.classList.remove('hidden');
+                if (previewSec) previewSec.classList.remove('hidden');
+                if (licTab) licTab.classList.add('hidden');
+                if (rolesTab) rolesTab.classList.add('hidden');
+                fitDocumentToSingleLetterSheet();
+            } else if (tabName === 'licenciaturas') {
+                if (editorCol) editorCol.classList.add('hidden');
+                if (previewSec) previewSec.classList.add('hidden');
+                if (licTab) licTab.classList.remove('hidden');
+                if (rolesTab) rolesTab.classList.add('hidden');
+                renderMajorsCatalogList();
+            } else if (tabName === 'roles') {
+                if (editorCol) editorCol.classList.add('hidden');
+                if (previewSec) previewSec.classList.add('hidden');
+                if (licTab) licTab.classList.add('hidden');
+                if (rolesTab) rolesTab.classList.remove('hidden');
+                renderProfilesManagerGrid();
+            }
+        }
+
+        // ==========================================
+        // SELECTORES, GRADOS, LICENCIATURAS Y PERIODOS
+        // ==========================================
+        function populateMajorsSelect() {
+            const sel = document.getElementById('selectLicenciatura');
+            if (!sel) return;
+            const prevVal = sel.value;
+            sel.innerHTML = '';
+            (vaultState.majors || []).forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = m.name;
+                sel.appendChild(opt);
+            });
+            if (prevVal && sel.querySelector(`option[value="${prevVal}"]`)) {
+                sel.value = prevVal;
+            }
+            onSelectMajor(true);
+        }
+
+        function onSelectMajor(skipRender = false) {
+            const sel = document.getElementById('selectLicenciatura');
+            const rvoeInput = document.getElementById('inputRvoe');
+            if (!sel || !rvoeInput) return;
+            const major = (vaultState.majors || []).find(m => m.id === sel.value);
+            if (major) {
+                const datePart = major.rvoeDate ? ` DE FECHA ${major.rvoeDate.toUpperCase()}` : '';
+                rvoeInput.value = major.rvoe.toUpperCase().includes('FECHA') ? major.rvoe : (major.rvoe + datePart);
+            }
+            if (!skipRender) updateDocument();
+        }
+
+        function populatePeriodsSelect() {
+            const sel = document.getElementById('selectPeriodo');
+            if (!sel) return;
+            const prevVal = sel.value;
+            sel.innerHTML = '';
+            (vaultState.periods || []).forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.name;
+                sel.appendChild(opt);
+            });
+            if (prevVal && sel.querySelector(`option[value="${prevVal}"]`)) {
+                sel.value = prevVal;
+            }
+            onSelectPeriod(true);
+        }
+
+        function onSelectPeriod(skipRender = false) {
+            const sel = document.getElementById('selectPeriodo');
+            if (!sel) return;
+            const period = (vaultState.periods || []).find(p => p.id === sel.value);
+            if (period) {
+                if (period.start) document.getElementById('inputInicioPeriodo').value = period.start;
+                if (period.end) document.getElementById('inputFinPeriodo').value = period.end;
+                const badge = document.getElementById('vacLinkedPeriodBadge');
+                if (badge) badge.textContent = period.name;
+            }
+            if (!skipRender) updateDocument();
+        }
+
+        function syncVacationDatesFromActivePeriod(notify = false) {
+            const sel = document.getElementById('selectPeriodo');
+            const period = (vaultState.periods || []).find(p => p.id === sel?.value);
+            if (period) {
+                if (period.vacStart) document.getElementById('inputVacInicio').value = period.vacStart;
+                if (period.vacEnd) document.getElementById('inputVacFin').value = period.vacEnd;
+                updateDocument();
+                if (notify) showToast('Fechas vacacionales sincronizadas con el periodo activo.');
+            }
+        }
+
+        function onChangeTipoPeriodoGrado() {
+            const tipo = document.getElementById('selectTipoPeriodoGrado')?.value || 'Cuatrimestre';
+            const gradoSel = document.getElementById('inputGrado');
+            if (!gradoSel) return;
+            const numMatch = gradoSel.value.match(/^(\d+°)/);
+            const num = numMatch ? numMatch[1] : '1°';
+            const targetVal = `${num} ${tipo}`;
+            if (gradoSel.querySelector(`option[value="${targetVal}"]`)) {
+                gradoSel.value = targetVal;
+            }
+            updateDocument();
+        }
+
+        function syncTipoPeriodoFromGrado() {
+            const gradoVal = document.getElementById('inputGrado')?.value || '';
+            const tipoSel = document.getElementById('selectTipoPeriodoGrado');
+            if (!tipoSel) return;
+            if (gradoVal.includes('Semestre')) tipoSel.value = 'Semestre';
+            else if (gradoVal.includes('Cuatrimestre')) tipoSel.value = 'Cuatrimestre';
+        }
+
+        function detectGenderFromName() {
+            const fullName = (document.getElementById('inputAlumno')?.value || '').trim().toUpperCase();
+            if (!fullName) return;
+            const firstName = fullName.split(/\s+/)[0] || '';
+            const femaleNames = ['MARIA', 'MARÍA', 'FERNANDA', 'ANA', 'SOFIA', 'SOFÍA', 'LAURA', 'DANIELA', 'PAOLA', 'ANDREA', 'KARLA', 'CARLA', 'VALERIA', 'GABRIELA', 'DIANA', 'GISELLE', 'NATALY', 'ADRIANA', 'ALEJANDRA', 'JESSICA', 'YESENIA', 'GUADALUPE', 'LIZBETH', 'MONTSERRAT', 'ABIGAIL', 'ITZEL', 'ARACELI', 'MARIANA', 'CAMILA', 'XIMENA', 'REGINA', 'NATALIA', 'FATIMA', 'FÁTIMA', 'ESTEFANIA', 'ESTEFANÍA'];
+            const maleNames = ['JUAN', 'CARLOS', 'JOSE', 'JOSÉ', 'LUIS', 'MIGUEL', 'ANGEL', 'ÁNGEL', 'JESUS', 'JESÚS', 'ALEJANDRO', 'DANIEL', 'DAVID', 'JORGE', 'FERNANDO', 'RICARDO', 'EDUARDO', 'ROBERTO', 'FRANCISCO', 'ANTONIO', 'PEDRO', 'MANUEL', 'ABRAHAM', 'DIEGO', 'KEVIN', 'BRAYAN', 'ALAN', 'OMAR', 'OSCAR', 'ÓSCAR', 'IVAN', 'IVÁN', 'HECTOR', 'HÉCTOR', 'RAUL', 'RAÚL'];
+            const genSel = document.getElementById('selectGenero');
+            if (!genSel) return;
+            if (femaleNames.includes(firstName)) {
+                genSel.value = 'F';
+            } else if (maleNames.includes(firstName)) {
+                genSel.value = 'M';
+            } else if (firstName.endsWith('A') && !['JOSHUA', 'BORJA', 'LUKA', 'NICOLA'].includes(firstName)) {
+                genSel.value = 'F';
+            } else if (firstName.endsWith('O')) {
+                genSel.value = 'M';
+            }
+        }
+
+        // ==========================================
+        // TABLAS DINÁMICAS: MONTOS Y CALIFICACIONES
+        // ==========================================
+        function formatCurrencyMXN(value) {
+            const num = Number(value) || 0;
+            return '$' + num.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' M.N.';
+        }
+
+        function renderMontosEditorRows() {
+            const container = document.getElementById('montosEditorRows');
+            if (!container) return;
+            container.innerHTML = '';
+            let total = 0;
+
+            montoItems.forEach((item, idx) => {
+                total += Number(item.monto) || 0;
+                const row = document.createElement('div');
+                row.className = 'grid grid-cols-12 gap-1.5 items-center bg-white p-2 rounded-xl border border-teal-200';
+                row.innerHTML = `
+                    <input type="text" value="${escapeHtmlAttr(item.concepto)}" oninput="updateMontoItem(${idx}, 'concepto', this.value)" placeholder="Concepto (ej. Inscripción)" class="col-span-7 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-800 outline-none focus:border-teal-500">
+                    <input type="number" step="0.01" value="${item.monto}" oninput="updateMontoItem(${idx}, 'monto', this.value)" placeholder="0.00" class="col-span-4 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-extrabold text-right text-teal-950 outline-none focus:border-teal-500">
+                    <button type="button" onclick="removeMontoItemRow(${idx})" title="Eliminar concepto" class="col-span-1 text-rose-600 hover:bg-rose-50 rounded-lg py-1 font-extrabold text-xs">✕</button>
+                `;
+                container.appendChild(row);
+            });
+
+            const badge = document.getElementById('montosTotalPreviewBadge');
+            if (badge) badge.textContent = formatCurrencyMXN(total);
+        }
+
+        function addMontoItemRow() {
+            montoItems.push({ concepto: 'CUOTA ESCOLAR ADICIONAL', monto: 0 });
+            renderMontosEditorRows();
+            updateDocument();
+        }
+
+        function updateMontoItem(index, field, value) {
+            if (!montoItems[index]) return;
+            if (field === 'monto') {
+                montoItems[index].monto = parseFloat(value) || 0;
+            } else {
+                montoItems[index].concepto = value;
+            }
+            const total = montoItems.reduce((acc, it) => acc + (Number(it.monto) || 0), 0);
+            const badge = document.getElementById('montosTotalPreviewBadge');
+            if (badge) badge.textContent = formatCurrencyMXN(total);
+            updateDocument();
+        }
+
+        function removeMontoItemRow(index) {
+            montoItems.splice(index, 1);
+            renderMontosEditorRows();
+            updateDocument();
+        }
+
+        function buildMontosOfficialTableHtml() {
+            let total = 0;
+            const rowsHtml = montoItems.map(item => {
+                const val = Number(item.monto) || 0;
+                total += val;
+                return `
+                    <tr>
+                        <td style="border:1.25pt solid #000000; padding:5pt 8pt; text-align:left; font-weight:600;">${escapeHtml(item.concepto || 'CONCEPTO')}</td>
+                        <td style="border:1.25pt solid #000000; padding:5pt 8pt; text-align:right; font-weight:700; white-space:nowrap;">${formatCurrencyMXN(val)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            return `
+                <table class="doc-montos-table" data-bound-table="montos" style="width:100%; border-collapse:collapse; border:1.25pt solid #000000; margin:8pt 0; color:#000000;">
+                    <thead>
+                        <tr>
+                            <th style="border:1.25pt solid #000000; padding:5pt 8pt; text-align:left; background:#f8fafc; font-weight:700;">CONCEPTO</th>
+                            <th style="border:1.25pt solid #000000; padding:5pt 8pt; text-align:right; background:#f8fafc; font-weight:700; width:34%;">MONTO</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHtml || '<tr><td colspan="2" style="border:1.25pt solid #000000; padding:5pt 8pt; text-align:center;">SIN CONCEPTOS REGISTRADOS</td></tr>'}
+                        <tr class="doc-montos-total-row">
+                            <td style="border:1.25pt solid #000000; border-top:1.75pt solid #000000; padding:5.5pt 8pt; text-align:right; background:#f1f5f9; font-weight:700;">TOTAL</td>
+                            <td style="border:1.25pt solid #000000; border-top:1.75pt solid #000000; padding:5.5pt 8pt; text-align:right; background:#f1f5f9; font-weight:700; white-space:nowrap;">${formatCurrencyMXN(total)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function renderGradesEditorRows() {
+            const container = document.getElementById('gradesEditorRows');
+            if (!container) return;
+            container.innerHTML = '';
+            gradeItems.forEach((item, idx) => {
+                const row = document.createElement('div');
+                row.className = 'grid grid-cols-12 gap-1.5 items-center bg-slate-50 p-2 rounded-xl border border-slate-200';
+                row.innerHTML = `
+                    <input type="text" value="${escapeHtmlAttr(item.grupo)}" oninput="updateGradeItem(${idx}, 'grupo', this.value)" placeholder="Gpo" class="col-span-2 rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-bold text-center">
+                    <input type="text" value="${escapeHtmlAttr(item.codigo)}" oninput="updateGradeItem(${idx}, 'codigo', this.value)" placeholder="Clave" class="col-span-2 rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-semibold">
+                    <input type="text" value="${escapeHtmlAttr(item.materia)}" oninput="updateGradeItem(${idx}, 'materia', this.value)" placeholder="Asignatura" class="col-span-5 rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-bold">
+                    <input type="text" value="${escapeHtmlAttr(item.calificacion)}" oninput="updateGradeItem(${idx}, 'calificacion', this.value)" placeholder="Cal." class="col-span-2 rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-extrabold text-center">
+                    <button type="button" onclick="removeGradeRow(${idx})" class="col-span-1 text-rose-600 hover:bg-rose-50 rounded-lg py-1 font-extrabold text-xs">✕</button>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function addGradeRow() {
+            gradeItems.push({ grupo: '5A', codigo: 'ASIG-00', materia: 'NUEVA ASIGNATURA', calificacion: '9.0' });
+            renderGradesEditorRows();
+            updateDocument();
+        }
+
+        function updateGradeItem(index, field, value) {
+            if (!gradeItems[index]) return;
+            gradeItems[index][field] = value;
+            updateDocument();
+        }
+
+        function removeGradeRow(index) {
+            gradeItems.splice(index, 1);
+            renderGradesEditorRows();
+            updateDocument();
+        }
+
+        function parseAndReplaceCalificaciones() {
+            const raw = (document.getElementById('bulkCalificacionesInput')?.value || '').trim();
+            if (!raw) {
+                showToast('Pega o escribe al menos una línea de calificación.');
+                return;
+            }
+            const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+            const parsed = [];
+            lines.forEach(line => {
+                const parts = line.includes('\t') ? line.split('\t') : line.split('|');
+                const clean = parts.map(p => p.trim());
+                if (clean.length >= 4) {
+                    parsed.push({ grupo: clean[0], codigo: clean[1], materia: clean[2], calificacion: clean[3] });
+                } else if (clean.length === 3) {
+                    parsed.push({ grupo: 'ÚNICO', codigo: clean[0], materia: clean[1], calificacion: clean[2] });
+                } else if (clean.length === 2) {
+                    parsed.push({ grupo: 'ÚNICO', codigo: '—', materia: clean[0], calificacion: clean[1] });
+                }
+            });
+            if (parsed.length > 0) {
+                gradeItems = parsed;
+                renderGradesEditorRows();
+                updateDocument();
+                showToast(`Tabla actualizada con ${parsed.length} asignaturas.`);
+            } else {
+                showToast('Formato no reconocido. Usa: GRUPO | CLAVE | MATERIA | CALIFICACIÓN');
+            }
+        }
+
+        function buildGradesOfficialTableHtml() {
+            const rows = gradeItems.map(g => `
+                <tr>
+                    <td style="text-align:center;">${escapeHtml(g.grupo)}</td>
+                    <td>${escapeHtml(g.codigo)}</td>
+                    <td>${escapeHtml(g.materia)}</td>
+                    <td style="text-align:center; font-weight:700;">${escapeHtml(g.calificacion)}</td>
+                </tr>
+            `).join('');
+
+            return `
+                <table class="doc-grades-table" data-bound-table="calificaciones">
+                    <thead>
+                        <tr>
+                            <th style="text-align:center; width:12%;">GRUPO</th>
+                            <th style="width:18%;">CLAVE</th>
+                            <th>ASIGNATURA</th>
+                            <th style="text-align:center; width:16%;">CALIFICACIÓN</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows || '<tr><td colspan="4" style="text-align:center;">SIN ASIGNATURAS CAPTURADAS</td></tr>'}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // ==========================================
+        // RENDERIZADO Y AUTOAJUSTE INTELIGENTE A 1 HOJA CARTA
+        // ==========================================
+        function selectDocType(type, skipFocus = false) {
+            if (!DOC_TYPE_META[type]) type = 'simple';
+            currentDocType = type;
+
+            Object.keys(DOC_TYPE_META).forEach(k => {
+                const btn = document.getElementById('btn-type-' + k);
+                if (!btn) return;
+                btn.className = (k === type ? DOC_TYPE_BTN_COLORS[k].active : DOC_TYPE_BTN_COLORS[k].inactive) +
+                    (btn.classList.contains('hidden') ? ' hidden' : '');
+            });
+
+            const badge = document.getElementById('currentFormatLabelBadge');
+            if (badge) badge.textContent = DOC_TYPE_META[type].label;
+
+            const tplArea = document.getElementById('customDocFormatText');
+            if (tplArea) {
+                tplArea.value = vaultState.customTemplates[type] || DEFAULT_TEMPLATES[type] || '';
+            }
+
+            document.getElementById('fields-vacaciones')?.classList.toggle('hidden', type !== 'vacaciones');
+            document.getElementById('fields-anteriores')?.classList.toggle('hidden', type !== 'anteriores');
+            document.getElementById('fields-montos')?.classList.toggle('hidden', type !== 'montos');
+            document.getElementById('fields-resguardo')?.classList.toggle('hidden', type !== 'resguardo');
+            document.getElementById('fields-promedio')?.classList.toggle('hidden', type !== 'promedio');
+            document.getElementById('fields-tabla-materias')?.classList.toggle('hidden', type !== 'calificaciones');
+
+            if (type === 'montos') renderMontosEditorRows();
+            if (type === 'calificaciones') renderGradesEditorRows();
+
+            updateDocument();
+        }
+
+        function formatSpanishLongDate(isoDateStr) {
+            if (!isoDateStr) return '';
+            const parts = isoDateStr.split('-');
+            if (parts.length !== 3) return isoDateStr.toUpperCase();
+            const months = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+            const day = parts[2].padStart(2, '0');
+            const monthName = months[parseInt(parts[1], 10) - 1] || '';
+            return `${day} DE ${monthName} DE ${parts[0]}`;
+        }
+
+        function buildResolvedTokensMap() {
+            const folio = (document.getElementById('inputFolio')?.value || '').trim();
+            const ciudad = (document.getElementById('inputCiudad')?.value || '').trim().toUpperCase();
+            const fechaIso = document.getElementById('inputFecha')?.value || '';
+            const fechaMayus = formatSpanishLongDate(fechaIso);
+            const destinatario = (document.getElementById('inputDestinatario')?.value || '').trim().toUpperCase();
+            const alumno = (document.getElementById('inputAlumno')?.value || '').trim().toUpperCase();
+            const genero = document.getElementById('selectGenero')?.value || 'F';
+            const tratamiento = genero === 'F' ? 'la C.' : 'el C.';
+            const inscrito = genero === 'F' ? 'inscrita' : 'inscrito';
+            const matricula = (document.getElementById('inputMatricula')?.value || '').trim().toUpperCase();
+            const grado = (document.getElementById('inputGrado')?.value || '').trim();
+            const licSel = document.getElementById('selectLicenciatura');
+            const licText = licSel && licSel.selectedIndex >= 0 ? licSel.options[licSel.selectedIndex].text.toUpperCase() : '';
+            const rvoe = (document.getElementById('inputRvoe')?.value || '').trim().toUpperCase();
+            const perSel = document.getElementById('selectPeriodo');
+            const perText = perSel && perSel.selectedIndex >= 0 ? perSel.options[perSel.selectedIndex].text.toUpperCase() : '';
+            const inicioPer = (document.getElementById('inputInicioPeriodo')?.value || '').trim().toUpperCase();
+            const finPer = (document.getElementById('inputFinPeriodo')?.value || '').trim().toUpperCase();
+            const vacInicio = (document.getElementById('inputVacInicio')?.value || '').trim().toUpperCase();
+            const vacFin = (document.getElementById('inputVacFin')?.value || '').trim().toUpperCase();
+            const estatusCursamiento = document.getElementById('selectEstatusPeriodosAnteriores')?.value || 'cursó';
+            const periodosAnt = (document.getElementById('inputPeriodosAnteriores')?.value || '').trim();
+            const docsResguardo = (document.getElementById('inputDocumentosResguardo')?.value || '').trim();
+            const promGen = (document.getElementById('inputPromedioGeneral')?.value || '').trim().toUpperCase();
+            const perProm = (document.getElementById('inputPeriodosPromedio')?.value || '').trim().toUpperCase();
+            const firmante = (document.getElementById('inputFirmante')?.value || '').trim().toUpperCase();
+            const cargoFirmante = (document.getElementById('inputCargoFirmante')?.value || '').trim().toUpperCase();
+            const asunto = DOC_TYPE_META[currentDocType]?.asunto || 'CONSTANCIA DE ESTUDIOS';
+
+            return {
+                '{FOLIO}': folio,
+                '{ASUNTO}': asunto,
+                '{CIUDAD_MAYUS}': ciudad,
+                '{FECHA_MAYUS}': fechaMayus,
+                '{DESTINATARIO}': destinatario,
+                '{TRATAMIENTO}': tratamiento,
+                '{ALUMNO}': `<strong>${escapeHtml(alumno)}</strong>`,
+                '{MATRICULA}': `<strong>${escapeHtml(matricula)}</strong>`,
+                '{INSCRITO}': inscrito,
+                '{GRADO}': `<strong>${escapeHtml(grado)}</strong>`,
+                '{LICENCIATURA}': `<strong>${escapeHtml(licText)}</strong>`,
+                '{RVOE}': `<strong>${escapeHtml(rvoe)}</strong>`,
+                '{PERIODO}': `<strong>${escapeHtml(perText)}</strong>`,
+                '{INICIO_PERIODO}': `<strong>${escapeHtml(inicioPer)}</strong>`,
+                '{FIN_PERIODO}': `<strong>${escapeHtml(finPer)}</strong>`,
+                '{VAC_INICIO}': `<strong>${escapeHtml(vacInicio)}</strong>`,
+                '{VAC_FIN}': `<strong>${escapeHtml(vacFin)}</strong>`,
+                '{ESTATUS_CURSAMIENTO}': `<strong>${escapeHtml(estatusCursamiento)}</strong>`,
+                '{PERIODOS_ANTERIORES}': escapeHtml(periodosAnt),
+                '{DOCUMENTOS_RESGUARDO}': escapeHtml(docsResguardo),
+                '{PROMEDIO_GENERAL}': `<strong>${escapeHtml(promGen)}</strong>`,
+                '{PERIODOS_PROMEDIO}': `<strong>${escapeHtml(perProm)}</strong>`,
+                '{FIRMANTE}': firmante,
+                '{CARGO_FIRMANTE}': cargoFirmante,
+                '{TABLA}': buildGradesOfficialTableHtml(),
+                '{TABLA_MONTOS}': buildMontosOfficialTableHtml()
+            };
+        }
+
+        function updateDocument() {
+            const container = document.getElementById('documentRenderedBody');
+            if (!container) return;
+
+            const template = document.getElementById('customDocFormatText')?.value ||
+                vaultState.customTemplates[currentDocType] ||
+                DEFAULT_TEMPLATES[currentDocType] || '';
+
+            const tokens = buildResolvedTokensMap();
+            const lines = template.split(/\r?\n/);
+            let htmlParts = [];
+            let inSignature = false;
+            let sigLines = [];
+
+            const flushSignature = () => {
+                if (!sigLines.length) return;
+                const atentamente = sigLines[0] || 'ATENTAMENTE';
+                const rest = sigLines.slice(1);
+                htmlParts.push(`
+                    <div class="doc-signature-block">
+                        <div class="doc-signature-atentamente">${atentamente}</div>
+                        <div class="doc-signature-line"></div>
+                        ${rest.map(l => `<div style="font-weight:700;">${l}</div>`).join('')}
                     </div>
-                    <div class="flex items-center gap-3">
-                        <div class="text-right text-[10px] text-slate-500">
-                            <div>Emitido por: <strong>${escapeHtml(h.issuedBy || 'Admin')}</strong></div>
-                            <div>${new Date(h.timestamp).toLocaleString('es-MX')}</div>
+                `);
+                sigLines = [];
+                inSignature = false;
+            };
+
+            lines.forEach((rawLine, idx) => {
+                let processed = escapeHtml(rawLine);
+                Object.keys(tokens).forEach(key => {
+                    if (processed.includes(key)) {
+                        processed = processed.split(key).join(tokens[key]);
+                    }
+                });
+
+                const trimmedUpper = rawLine.trim().toUpperCase();
+                if (trimmedUpper === 'ATENTAMENTE') {
+                    inSignature = true;
+                    sigLines.push(processed);
+                    return;
+                }
+
+                if (inSignature) {
+                    if (rawLine.trim() !== '') {
+                        sigLines.push(processed);
+                    }
+                    return;
+                }
+
+                if (rawLine.trim() === '') {
+                    htmlParts.push('<div class="doc-blank"></div>');
+                } else if (idx <= 2 && (trimmedUpper.includes('{FOLIO}') || trimmedUpper.startsWith('ASUNTO:') || trimmedUpper.includes('{CIUDAD_MAYUS}'))) {
+                    htmlParts.push(`<div class="doc-para-right">${processed}</div>`);
+                } else if (trimmedUpper === '{DESTINATARIO}' || trimmedUpper === 'PRESENTE') {
+                    htmlParts.push(`<div class="doc-para-left-bold">${processed}</div>`);
+                } else if (rawLine.trim() === '{TABLA}' || rawLine.trim() === '{TABLA_MONTOS}') {
+                    htmlParts.push(processed);
+                } else {
+                    htmlParts.push(`<div class="doc-para">${processed}</div>`);
+                }
+            });
+
+            flushSignature();
+            container.innerHTML = htmlParts.join('');
+
+            const fontFam = vaultState.typography?.fontFamily || 'Arial, Helvetica, sans-serif';
+            container.style.setProperty('--doc-font-family', fontFam);
+
+            fitDocumentToSingleLetterSheet();
+            scheduleWorkspaceAutoSave();
+        }
+
+        function fitDocumentToSingleLetterSheet() {
+            const sheet = document.getElementById('officialLetterSheet');
+            const smart = document.getElementById('docSmartContent');
+            const body = document.getElementById('documentRenderedBody');
+            if (!sheet || !smart || !body) return;
+
+            smart.style.transform = 'none';
+            smart.style.width = '100%';
+            body.style.setProperty('--doc-font-size', '12pt');
+            body.style.setProperty('--doc-line-height', '1.48');
+            body.style.setProperty('--doc-para-mb', '11pt');
+            body.style.setProperty('--doc-blank-h', '10pt');
+            body.style.setProperty('--doc-sig-mt', '16pt');
+            body.style.setProperty('--doc-sig-rule-mt', '44pt');
+            body.style.setProperty('--doc-cell-py', '5pt');
+
+            const style = window.getComputedStyle(sheet);
+            const padTop = parseFloat(style.paddingTop) || 0;
+            const padBottom = parseFloat(style.paddingBottom) || 0;
+            const maxAvailableHeight = sheet.clientHeight - padTop - padBottom - 2;
+
+            if (maxAvailableHeight <= 0) return;
+
+            // Fase 1: Ajuste progresivo de interlineado y márgenes verticales
+            const steps = [
+                { fs: '12pt', lh: '1.40', mb: '9pt', bh: '8pt', smt: '12pt', rmt: '38pt', cpy: '4pt' },
+                { fs: '11.5pt', lh: '1.34', mb: '7.5pt', bh: '6pt', smt: '10pt', rmt: '34pt', cpy: '3.5pt' },
+                { fs: '11pt', lh: '1.28', mb: '6pt', bh: '5pt', smt: '8pt', rmt: '30pt', cpy: '3pt' },
+                { fs: '10.5pt', lh: '1.22', mb: '5pt', bh: '4pt', smt: '6pt', rmt: '26pt', cpy: '2.5pt' }
+            ];
+
+            for (const s of steps) {
+                if (smart.scrollHeight <= maxAvailableHeight) break;
+                body.style.setProperty('--doc-font-size', s.fs);
+                body.style.setProperty('--doc-line-height', s.lh);
+                body.style.setProperty('--doc-para-mb', s.mb);
+                body.style.setProperty('--doc-blank-h', s.bh);
+                body.style.setProperty('--doc-sig-mt', s.smt);
+                body.style.setProperty('--doc-sig-rule-mt', s.rmt);
+                body.style.setProperty('--doc-cell-py', s.cpy);
+            }
+
+            // Fase 2: Escalado proporcional exacto si aún excede 1 hoja carta
+            if (smart.scrollHeight > maxAvailableHeight) {
+                const ratio = Math.max(0.72, maxAvailableHeight / smart.scrollHeight);
+                smart.style.transform = `scale(${ratio})`;
+                smart.style.width = `${(100 / ratio).toFixed(3)}%`;
+            }
+        }
+
+        function onCustomFormatTextareaInput() {
+            const val = document.getElementById('customDocFormatText')?.value || '';
+            vaultState.customTemplates[currentDocType] = val;
+            updateDocument();
+        }
+
+        function handleCustomFormatKeydown(event) {
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+                event.preventDefault();
+                saveCurrentDocTypeFormat();
+            }
+        }
+
+        function saveCurrentDocTypeFormat() {
+            const val = document.getElementById('customDocFormatText')?.value || '';
+            vaultState.customTemplates[currentDocType] = val;
+            persistVaultData(true);
+            showToast(`Formato "${DOC_TYPE_META[currentDocType].label}" guardado permanentemente.`);
+        }
+
+        function resetCurrentDocTypeFormat() {
+            vaultState.customTemplates[currentDocType] = DEFAULT_TEMPLATES[currentDocType];
+            const tplArea = document.getElementById('customDocFormatText');
+            if (tplArea) tplArea.value = DEFAULT_TEMPLATES[currentDocType];
+            updateDocument();
+            persistVaultData(true);
+            showToast('Estructura base restaurada y guardada.');
+        }
+
+        function insertFormatToken(token) {
+            const textarea = document.getElementById('customDocFormatText');
+            if (!textarea || textarea.disabled) return;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const text = textarea.value;
+            textarea.value = text.slice(0, start) + token + text.slice(end);
+            textarea.selectionStart = textarea.selectionEnd = start + token.length;
+            textarea.focus();
+            onCustomFormatTextareaInput();
+        }
+
+        // ==========================================
+        // FIRMA POR DEFECTO Y COMANDOS RÁPIDOS
+        // ==========================================
+        function applySavedSignatureDefaultsToInputs() {
+            const firmanteEl = document.getElementById('inputFirmante');
+            const cargoEl = document.getElementById('inputCargoFirmante');
+            if (firmanteEl && vaultState.globalDefaults?.firmante) {
+                firmanteEl.value = vaultState.globalDefaults.firmante;
+            }
+            if (cargoEl && vaultState.globalDefaults?.cargoFirmante) {
+                cargoEl.value = vaultState.globalDefaults.cargoFirmante;
+            }
+        }
+
+        function saveSignatureDefaults() {
+            vaultState.globalDefaults.firmante = (document.getElementById('inputFirmante')?.value || '').trim();
+            vaultState.globalDefaults.cargoFirmante = (document.getElementById('inputCargoFirmante')?.value || '').trim();
+            persistVaultData(true);
+            showToast('Firma oficial guardada permanentemente.');
+        }
+
+        function resetSignatureDefaults() {
+            vaultState.globalDefaults.firmante = DEFAULT_SIGNATURE_INFO.firmante;
+            vaultState.globalDefaults.cargoFirmante = DEFAULT_SIGNATURE_INFO.cargoFirmante;
+            applySavedSignatureDefaultsToInputs();
+            updateDocument();
+            persistVaultData(true);
+            showToast('Firma restablecida a valores institucionales.');
+        }
+
+        function setTodayExpeditionDate(skipUpdate = false) {
+            const dateInput = document.getElementById('inputFecha');
+            if (!dateInput) return;
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            dateInput.value = `${yyyy}-${mm}-${dd}`;
+            if (!skipUpdate) updateDocument();
+        }
+
+        function incrementFolioByOne() {
+            const folioInput = document.getElementById('inputFolio');
+            if (!folioInput || folioInput.disabled) return;
+            const val = folioInput.value;
+            const match = val.match(/(\d+)(?!.*\d)/);
+            if (match) {
+                const numStr = match[1];
+                const nextNum = String(parseInt(numStr, 10) + 1).padStart(numStr.length, '0');
+                const idx = match.index;
+                folioInput.value = val.slice(0, idx) + nextNum + val.slice(idx + numStr.length);
+            } else {
+                folioInput.value = val + '-001';
+            }
+            updateDocument();
+            showToast('Folio incrementado: ' + folioInput.value);
+        }
+
+        function clearStudentQuickCommand() {
+            const alumnoEl = document.getElementById('inputAlumno');
+            const matEl = document.getElementById('inputMatricula');
+            if (alumnoEl && !alumnoEl.disabled) alumnoEl.value = '';
+            if (matEl && !matEl.disabled) matEl.value = '';
+            updateDocument();
+            if (alumnoEl && !alumnoEl.disabled) alumnoEl.focus();
+            showToast('Campos del alumno limpiados.');
+        }
+
+        function copyDocumentTextCommand() {
+            const body = document.getElementById('documentRenderedBody');
+            if (!body) return;
+            const text = body.innerText;
+            const temp = document.createElement('textarea');
+            temp.value = text;
+            document.body.appendChild(temp);
+            temp.select();
+            try {
+                document.execCommand('copy');
+                showToast('Texto de la constancia copiado al portapapeles.');
+            } catch (e) {
+                showToast('No se pudo copiar el texto.');
+            }
+            document.body.removeChild(temp);
+        }
+
+        // ==========================================
+        // EDICIÓN DIRECTA EN HOJA Y BARRA FLOTANTE
+        // ==========================================
+        function handleDirectSheetKeydown(event) {
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+                event.preventDefault();
+                saveCurrentWorkspaceCheckpoint(true);
+            }
+        }
+
+        function onDirectSheetVisualInput() {
+            fitDocumentToSingleLetterSheet();
+        }
+
+        function handleSheetSelectionToolbar() {
+            const toolbar = document.getElementById('floatingTextFormatToolbar');
+            const sheet = document.getElementById('documentRenderedBody');
+            if (!toolbar || !sheet) return;
+            const sel = window.getSelection();
+            if (!sel || sel.isCollapsed || !sheet.contains(sel.anchorNode)) {
+                toolbar.classList.add('hidden');
+                return;
+            }
+            const rect = sel.getRangeAt(0).getBoundingClientRect();
+            if (!rect || (rect.width === 0 && rect.height === 0)) {
+                toolbar.classList.add('hidden');
+                return;
+            }
+            toolbar.style.top = Math.max(10, rect.top - 46) + 'px';
+            toolbar.style.left = Math.max(10, Math.min(window.innerWidth - 320, rect.left)) + 'px';
+            toolbar.classList.remove('hidden');
+        }
+
+        function hideFloatingTextToolbar() {
+            document.getElementById('floatingTextFormatToolbar')?.classList.add('hidden');
+        }
+
+        function applyFloatingSelectionStyle(prop, value) {
+            const sel = window.getSelection();
+            if (!sel || sel.isCollapsed) return;
+            const range = sel.getRangeAt(0);
+            const span = document.createElement('span');
+            span.style[prop] = value;
+            try {
+                range.surroundContents(span);
+            } catch (e) {
+                const fragment = range.extractContents();
+                span.appendChild(fragment);
+                range.insertNode(span);
+            }
+            if (prop === 'fontFamily') {
+                vaultState.typography.fontFamily = value;
+                document.getElementById('documentRenderedBody')?.style.setProperty('--doc-font-family', value);
+            }
+            fitDocumentToSingleLetterSheet();
+            scheduleWorkspaceAutoSave();
+        }
+
+        function toggleSelectedTextBold() {
+            document.execCommand('bold', false, null);
+        }
+
+        function toggleSelectedTextUnderline() {
+            document.execCommand('underline', false, null);
+        }
+
+        // ==========================================
+        // ZOOM Y PANTALLA COMPLETA DE VISTA PREVIA
+        // ==========================================
+        function adjustPreviewZoom(delta, autoFit = false) {
+            const box = document.getElementById('previewScaleBox');
+            const label = document.getElementById('previewZoomLabel');
+            if (!box) return;
+            if (autoFit) {
+                const wrapper = box.parentElement;
+                const sheet = document.getElementById('officialLetterSheet');
+                if (wrapper && sheet && sheet.offsetWidth > 0) {
+                    currentPreviewZoom = Math.min(1.15, Math.max(0.45, (wrapper.clientWidth - 48) / sheet.offsetWidth));
+                } else {
+                    currentPreviewZoom = 0.78;
+                }
+            } else {
+                currentPreviewZoom = Math.min(1.4, Math.max(0.4, Number((currentPreviewZoom + delta).toFixed(2))));
+            }
+            box.style.transform = `scale(${currentPreviewZoom})`;
+            if (label) label.textContent = Math.round(currentPreviewZoom * 100) + '%';
+        }
+
+        function togglePreviewFullscreen() {
+            const sec = document.getElementById('previewSection');
+            const label = document.getElementById('labelFullscreenPreview');
+            if (!sec) return;
+            const isFull = sec.classList.toggle('preview-fullscreen');
+            if (label) label.textContent = isFull ? 'Salir Pantalla Completa' : 'Pantalla Completa';
+            setTimeout(() => adjustPreviewZoom(0, true), 50);
+        }
+
+        // ==========================================
+        // PDF, IMPRESIÓN E HISTORIAL CON ELIMINACIÓN DEFINITIVA
+        // ==========================================
+        function recordConstanciaInHistory() {
+            const licSel = document.getElementById('selectLicenciatura');
+            const licName = licSel && licSel.selectedIndex >= 0 ? licSel.options[licSel.selectedIndex].text : '';
+            const entry = {
+                id: 'hist_' + Date.now(),
+                timestamp: new Date().toISOString(),
+                monthKey: new Date().toISOString().slice(0, 7),
+                folio: (document.getElementById('inputFolio')?.value || '').trim(),
+                alumno: (document.getElementById('inputAlumno')?.value || '').trim().toUpperCase(),
+                matricula: (document.getElementById('inputMatricula')?.value || '').trim().toUpperCase(),
+                licenciatura: licName,
+                tipo: currentDocType,
+                tipoLabel: DOC_TYPE_META[currentDocType]?.label || currentDocType,
+                usuario: currentSessionRole === 'ADMIN' ? 'Administrador' : (currentActiveProfile?.name || 'Sistema')
+            };
+            vaultState.history = [entry, ...(vaultState.history || [])];
+            updateHistoryBadge();
+            persistVaultData(true);
+        }
+
+        function updateHistoryBadge() {
+            const badge = document.getElementById('historyCountBadge');
+            if (badge) badge.textContent = String((vaultState.history || []).length);
+        }
+
+        async function saveAndDownloadConstanciaPDF() {
+            const sheet = document.getElementById('officialLetterSheet');
+            if (!sheet) return;
+            recordConstanciaInHistory();
+            showToast('Generando PDF oficial tamaño carta...');
+
+            try {
+                const fontFamily = vaultState.typography?.fontFamily || 'Arial, Helvetica, sans-serif';
+                const canvas = await html2canvas(sheet, {
+                    scale: 2.5,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    onclone: (clonedDoc) => {
+                        const clonedSheet = clonedDoc.getElementById('officialLetterSheet');
+                        const clonedBody = clonedDoc.getElementById('documentRenderedBody');
+                        const clonedScale = clonedDoc.getElementById('previewScaleBox');
+                        if (clonedScale) clonedScale.style.transform = 'none';
+                        if (clonedSheet) {
+                            clonedSheet.style.boxShadow = 'none';
+                            clonedSheet.style.border = 'none';
+                        }
+                        if (clonedBody) {
+                            clonedBody.style.fontFamily = fontFamily;
+                            clonedBody.querySelectorAll('*').forEach(el => {
+                                el.style.fontFamily = fontFamily;
+                            });
+                        }
+                    }
+                });
+
+                const imgData = canvas.toDataURL('image/png');
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+                pdf.addImage(imgData, 'PNG', 0, 0, 215.9, 279.4);
+
+                const alumnoClean = (document.getElementById('inputAlumno')?.value || 'CONSTANCIA')
+                    .trim().replace(/[^a-zA-Z0-9ÁÉÍÓÚÑáéíóúñ\s]/g, '').replace(/\s+/g, '_');
+                const folioClean = (document.getElementById('inputFolio')?.value || 'UAP')
+                    .trim().replace(/[^a-zA-Z0-9]/g, '_');
+                pdf.save(`${folioClean}_${alumnoClean}.pdf`);
+                showToast('Constancia guardada en historial y descargada en PDF.');
+            } catch (err) {
+                console.error(err);
+                showToast('Error al generar el PDF. Intenta imprimir como PDF.');
+            }
+        }
+
+        function printOfficialConstancia() {
+            recordConstanciaInHistory();
+            window.print();
+        }
+
+        function openHistoryModal() {
+            const modal = document.getElementById('historyModal');
+            const monthSel = document.getElementById('historyMonthFilter');
+            if (monthSel) {
+                const months = [...new Set((vaultState.history || []).map(h => h.monthKey).filter(Boolean))];
+                monthSel.innerHTML = '<option value="ALL">Todos los meses</option>' +
+                    months.map(m => `<option value="${m}">${m}</option>`).join('');
+            }
+            renderHistoryModalContent();
+            modal?.classList.remove('hidden');
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal')?.classList.add('hidden');
+        }
+
+        function renderHistoryModalContent() {
+            const filterMonth = document.getElementById('historyMonthFilter')?.value || 'ALL';
+            const listEl = document.getElementById('historyModalList');
+            const totalBadge = document.getElementById('historyTotalMonthBadge');
+            const breakdownGrid = document.getElementById('historyModalityBreakdownGrid');
+            if (!listEl) return;
+
+            const filtered = (vaultState.history || []).filter(h => filterMonth === 'ALL' || h.monthKey === filterMonth);
+            if (totalBadge) totalBadge.textContent = `Total Emitidas: ${filtered.length}`;
+
+            if (breakdownGrid) {
+                breakdownGrid.innerHTML = Object.keys(DOC_TYPE_META).map(type => {
+                    const count = filtered.filter(h => h.tipo === type).length;
+                    return `
+                        <div class="bg-white rounded-xl border border-slate-200 px-3 py-2 flex items-center justify-between text-[11px]">
+                            <span class="font-bold text-slate-600">${DOC_TYPE_META[type].label}</span>
+                            <span class="font-extrabold text-blue-950">${count}</span>
                         </div>
-                        <button type="button" onclick="deleteHistoryEntryPermanently('${escapeHtml(h.id)}')" title="Eliminar definitivamente" class="px-2.5 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-900 font-bold text-[10px] transition">Eliminar</button>
+                    `;
+                }).join('');
+            }
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = '<div class="text-center text-xs text-slate-400 py-8">No hay constancias registradas en este periodo.</div>';
+                return;
+            }
+
+            listEl.innerHTML = filtered.map(item => `
+                <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs">
+                    <div>
+                        <div class="font-extrabold text-blue-950">${escapeHtml(item.alumno)} <span class="text-slate-500 font-semibold">(${escapeHtml(item.matricula)})</span></div>
+                        <div class="text-[11px] text-slate-600">Folio: <strong>${escapeHtml(item.folio)}</strong> • ${escapeHtml(item.tipoLabel)} • Emitió: ${escapeHtml(item.usuario)}</div>
+                    </div>
+                    <button type="button" onclick="deleteHistoryItemPermanently('${item.id}')" class="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-[11px]">
+                        Eliminar
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function deleteHistoryItemPermanently(id) {
+            vaultState.deletedHistoryIds = [...new Set([...(vaultState.deletedHistoryIds || []), id])];
+            vaultState.history = (vaultState.history || []).filter(h => h.id !== id);
+            updateHistoryBadge();
+            persistVaultData(true);
+            renderHistoryModalContent();
+            showToast('Registro eliminado permanentemente.');
+        }
+
+        // ==========================================
+        // CATÁLOGO LICENCIATURAS/RVOE Y PERIODOS
+        // ==========================================
+        function renderMajorsCatalogList() {
+            const container = document.getElementById('majorsCatalogList');
+            if (!container) return;
+            container.innerHTML = (vaultState.majors || []).map(m => `
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-start justify-between gap-3">
+                    <div class="space-y-1">
+                        <div class="text-xs font-extrabold text-blue-950">${escapeHtml(m.name)}</div>
+                        <div class="text-[11px] font-semibold text-slate-600">${escapeHtml(m.rvoe)} ${m.rvoeDate ? '• ' + escapeHtml(m.rvoeDate) : ''}</div>
+                    </div>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <button type="button" onclick="editMajorRvoe('${m.id}')" class="px-2.5 py-1 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-900 font-bold text-[11px]">Editar</button>
+                        <button type="button" onclick="deleteMajorRvoe('${m.id}')" class="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-[11px]">Eliminar</button>
                     </div>
                 </div>
             `).join('');
         }
 
-        function deleteHistoryEntryPermanently(id) {
-            vaultState.history = vaultState.history.filter(h => h.id !== id);
-            if (!vaultState.deletedHistoryIds.includes(id)) {
-                vaultState.deletedHistoryIds.push(id);
+        function saveMajorRvoeForm(event) {
+            event.preventDefault();
+            const editId = document.getElementById('editMajorIdInput').value;
+            const name = document.getElementById('newMajorNameInput').value.trim().toUpperCase();
+            const rvoe = document.getElementById('newMajorRvoeInput').value.trim().toUpperCase();
+            const rvoeDate = document.getElementById('newMajorRvoeDateInput').value.trim().toUpperCase();
+
+            if (editId) {
+                const idx = vaultState.majors.findIndex(m => m.id === editId);
+                if (idx >= 0) {
+                    vaultState.majors[idx] = { id: editId, name, rvoe, rvoeDate };
+                }
+            } else {
+                vaultState.majors.push({ id: 'maj_' + Date.now(), name, rvoe, rvoeDate });
             }
-            persistVaultData(true);
-            updateHistoryBadge();
-            renderHistoryModalContent();
-            showToast('Registro eliminado para siempre.');
-        }
-// ... existing code ... -->
-        function deleteAcademicPeriod(id) {
-            vaultState.periods = vaultState.periods.filter(p => p.id !== id);
-            if (!vaultState.deletedPeriodIds.includes(id)) {
-                vaultState.deletedPeriodIds.push(id);
-            }
-            persistVaultData(true);
-            populatePeriodsSelect();
-            renderPeriodsModalList();
-            showToast('Periodo eliminado para siempre.');
-        }
-// ... existing code ... -->
-        function deleteMajorRvoe(id) {
-            vaultState.majors = vaultState.majors.filter(m => m.id !== id);
-            if (!vaultState.deletedMajorIds.includes(id)) {
-                vaultState.deletedMajorIds.push(id);
-            }
-            persistVaultData(true);
+
+            cancelEditMajorRvoe();
             populateMajorsSelect();
             renderMajorsCatalogList();
-            showToast('Oferta académica eliminada para siempre.');
+            persistVaultData(true);
+            showToast('Oferta educativa guardada permanentemente.');
         }
-// ... existing code ... -->
+
+        function editMajorRvoe(id) {
+            const major = (vaultState.majors || []).find(m => m.id === id);
+            if (!major) return;
+            document.getElementById('editMajorIdInput').value = major.id;
+            document.getElementById('newMajorNameInput').value = major.name;
+            document.getElementById('newMajorRvoeInput').value = major.rvoe;
+            document.getElementById('newMajorRvoeDateInput').value = major.rvoeDate || '';
+            document.getElementById('btnSubmitMajorForm').textContent = 'Actualizar Oferta';
+            document.getElementById('btnCancelEditMajor').classList.remove('hidden');
+        }
+
+        function cancelEditMajorRvoe() {
+            document.getElementById('editMajorIdInput').value = '';
+            document.getElementById('majorsAdminForm').reset();
+            document.getElementById('btnSubmitMajorForm').textContent = 'Guardar Oferta';
+            document.getElementById('btnCancelEditMajor').classList.add('hidden');
+        }
+
+        function deleteMajorRvoe(id) {
+            vaultState.deletedMajorIds = [...new Set([...(vaultState.deletedMajorIds || []), id])];
+            vaultState.majors = (vaultState.majors || []).filter(m => m.id !== id);
+            populateMajorsSelect();
+            renderMajorsCatalogList();
+            persistVaultData(true);
+            showToast('Licenciatura eliminada permanentemente.');
+        }
+
+        function openPeriodsModal() {
+            renderPeriodsModalList();
+            document.getElementById('periodsModal')?.classList.remove('hidden');
+        }
+
+        function closePeriodsModal() {
+            document.getElementById('periodsModal')?.classList.add('hidden');
+        }
+
+        function renderPeriodsModalList() {
+            const list = document.getElementById('periodsModalList');
+            if (!list) return;
+            list.innerHTML = (vaultState.periods || []).map(p => `
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div>
+                        <div class="font-extrabold text-blue-950">${escapeHtml(p.name)}</div>
+                        <div class="text-[11px] text-slate-600">Clases: ${escapeHtml(p.start || '—')} al ${escapeHtml(p.end || '—')} | Vacaciones: ${escapeHtml(p.vacStart || '—')} al ${escapeHtml(p.vacEnd || '—')}</div>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" onclick="editAcademicPeriod('${p.id}')" class="px-2.5 py-1 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-900 font-bold text-[11px]">Editar</button>
+                        <button type="button" onclick="deleteAcademicPeriod('${p.id}')" class="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-[11px]">Eliminar</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function saveCustomAcademicPeriod(event) {
+            event.preventDefault();
+            const editId = document.getElementById('editPeriodIdInput').value;
+            const name = document.getElementById('periodNameInput').value.trim().toUpperCase();
+            const start = document.getElementById('periodStartInput').value.trim().toUpperCase();
+            const end = document.getElementById('periodEndInput').value.trim().toUpperCase();
+            const vacStart = document.getElementById('periodVacStartInput').value.trim().toUpperCase();
+            const vacEnd = document.getElementById('periodVacEndInput').value.trim().toUpperCase();
+
+            if (editId) {
+                const idx = vaultState.periods.findIndex(p => p.id === editId);
+                if (idx >= 0) {
+                    vaultState.periods[idx] = { id: editId, name, start, end, vacStart, vacEnd };
+                }
+            } else {
+                vaultState.periods.push({ id: 'per_' + Date.now(), name, start, end, vacStart, vacEnd });
+            }
+
+            cancelEditAcademicPeriod();
+            populatePeriodsSelect();
+            renderPeriodsModalList();
+            persistVaultData(true);
+            showToast('Periodo escolar guardado permanentemente.');
+        }
+
+        function editAcademicPeriod(id) {
+            const p = (vaultState.periods || []).find(item => item.id === id);
+            if (!p) return;
+            document.getElementById('editPeriodIdInput').value = p.id;
+            document.getElementById('periodNameInput').value = p.name;
+            document.getElementById('periodStartInput').value = p.start || '';
+            document.getElementById('periodEndInput').value = p.end || '';
+            document.getElementById('periodVacStartInput').value = p.vacStart || '';
+            document.getElementById('periodVacEndInput').value = p.vacEnd || '';
+            document.getElementById('btnSubmitPeriodForm').textContent = 'Actualizar Periodo';
+            document.getElementById('btnCancelEditPeriod').classList.remove('hidden');
+        }
+
+        function cancelEditAcademicPeriod() {
+            document.getElementById('editPeriodIdInput').value = '';
+            document.getElementById('periodNameInput').value = '';
+            document.getElementById('periodStartInput').value = '';
+            document.getElementById('periodEndInput').value = '';
+            document.getElementById('periodVacStartInput').value = '';
+            document.getElementById('periodVacEndInput').value = '';
+            document.getElementById('btnSubmitPeriodForm').textContent = 'Guardar Periodo';
+            document.getElementById('btnCancelEditPeriod').classList.add('hidden');
+        }
+
+        function deleteAcademicPeriod(id) {
+            vaultState.deletedPeriodIds = [...new Set([...(vaultState.deletedPeriodIds || []), id])];
+            vaultState.periods = (vaultState.periods || []).filter(p => p.id !== id);
+            populatePeriodsSelect();
+            renderPeriodsModalList();
+            persistVaultData(true);
+            showToast('Periodo eliminado permanentemente.');
+        }
+
+        // ==========================================
+        // PANEL DE CONTROL: PERFILES Y PERMISOS
+        // ==========================================
+        function renderProfilesManagerGrid() {
+            const grid = document.getElementById('profilesManagerGrid');
+            const countBadge = document.getElementById('profilesCountIndicator');
+            if (countBadge) countBadge.textContent = `${(vaultState.profiles || []).length} Perfiles`;
+            if (!grid) return;
+
+            grid.innerHTML = (vaultState.profiles || []).map(p => `
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                    <div class="grid grid-cols-12 gap-2 items-center">
+                        <input type="text" value="${escapeHtmlAttr(p.name)}" onchange="updateProfileBasicField('${p.id}', 'name', this.value)" class="col-span-7 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-extrabold text-blue-950">
+                        <input type="text" value="${escapeHtmlAttr(p.code)}" onchange="updateProfileBasicField('${p.id}', 'code', this.value)" class="col-span-5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-extrabold text-amber-950 text-center uppercase">
+                    </div>
+                    <div class="flex items-center justify-between gap-2 pt-1">
+                        <button type="button" onclick="openUserPermissionsModal('${p.id}')" class="flex-1 px-3 py-1.5 rounded-xl bg-blue-950 hover:bg-blue-900 text-white font-bold text-xs transition">
+                            Configurar Permisos
+                        </button>
+                        <button type="button" onclick="deleteUserProfilePermanently('${p.id}')" class="px-3 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-xs transition">
+                            Eliminar
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateProfileBasicField(id, field, val) {
+            const prof = (vaultState.profiles || []).find(p => p.id === id);
+            if (!prof) return;
+            prof[field] = field === 'code' ? val.trim().toUpperCase() : val.trim();
+            persistVaultData(true);
+            showToast('Perfil actualizado permanentemente.');
+        }
+
+        function addNewUserProfile() {
+            const nextNum = (vaultState.profiles || []).length + 1;
+            const code = 'UAP' + String(nextNum).padStart(2, '0');
+            vaultState.profiles.push({
+                id: 'prof_' + Date.now(),
+                name: `Nuevo Usuario ${nextNum}`,
+                code,
+                permissions: {
+                    simple: 'select',
+                    simple_writeName: true,
+                    anteriores: 'select',
+                    anteriores_writeName: true,
+                    vacaciones: 'select',
+                    vacaciones_writeName: true,
+                    calificaciones: 'select',
+                    calificaciones_writeName: true,
+                    kardex: 'select',
+                    kardex_writeName: true,
+                    promedio: 'select',
+                    promedio_writeName: true,
+                    montos: 'select',
+                    montos_writeName: true,
+                    resguardo: 'select',
+                    resguardo_writeName: true,
+                    headerButtons: { downloadPdf: true, print: true, history: true }
+                }
+            });
+            renderProfilesManagerGrid();
+            persistVaultData(true);
+            showToast(`Nuevo perfil creado con código ${code}.`);
+        }
+
+        function deleteUserProfilePermanently(id) {
+            vaultState.deletedProfileIds = [...new Set([...(vaultState.deletedProfileIds || []), id])];
+            vaultState.profiles = (vaultState.profiles || []).filter(p => p.id !== id);
+            renderProfilesManagerGrid();
+            persistVaultData(true);
+            showToast('Perfil eliminado permanentemente.');
+        }
+
+        function openUserPermissionsModal(profileId) {
+            const prof = (vaultState.profiles || []).find(p => p.id === profileId);
+            if (!prof) return;
+            editingPermissionsProfileId = profileId;
+            document.getElementById('permModalUserName').textContent = `${prof.name} (Código: ${prof.code})`;
+            const body = document.getElementById('permChecklistBody');
+            const perms = prof.permissions || {};
+
+            body.innerHTML = Object.keys(DOC_TYPE_META).map(type => {
+                const mode = perms[type] || 'select';
+                const canWriteName = perms[type + '_writeName'] !== false;
+                return `
+                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2">
+                        <span class="font-extrabold text-blue-950">${DOC_TYPE_META[type].label}</span>
+                        <div class="flex items-center gap-3">
+                            <label class="flex items-center gap-1.5 text-[11px] font-bold text-slate-700">
+                                <input type="checkbox" id="perm_write_${type}" ${canWriteName ? 'checked' : ''}>
+                                Escribir Alumno
+                            </label>
+                            <select id="perm_mode_${type}" class="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-bold">
+                                <option value="edit" ${mode === 'edit' ? 'selected' : ''}>Edición Total</option>
+                                <option value="select" ${mode === 'select' ? 'selected' : ''}>Solo Selección</option>
+                                <option value="none" ${mode === 'none' ? 'selected' : ''}>Oculto</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('userPermissionsChecklistModal')?.classList.remove('hidden');
+        }
+
+        function closeUserPermissionsModal() {
+            editingPermissionsProfileId = null;
+            document.getElementById('userPermissionsChecklistModal')?.classList.add('hidden');
+        }
+
+        function saveUserPermissionsChecklist() {
+            const prof = (vaultState.profiles || []).find(p => p.id === editingPermissionsProfileId);
+            if (!prof) return;
+            if (!prof.permissions) prof.permissions = {};
+            Object.keys(DOC_TYPE_META).forEach(type => {
+                const modeEl = document.getElementById('perm_mode_' + type);
+                const writeEl = document.getElementById('perm_write_' + type);
+                if (modeEl) prof.permissions[type] = modeEl.value;
+                if (writeEl) prof.permissions[type + '_writeName'] = writeEl.checked;
+            });
+            persistVaultData(true);
+            closeUserPermissionsModal();
+            showToast('Permisos actualizados permanentemente.');
+        }
+
+        // ==========================================
+        // EXCEL, RESPALDO HTML Y JSON FUENTE
+        // ==========================================
+        function openDatabaseVaultModal() {
+            document.getElementById('databaseVaultModal')?.classList.remove('hidden');
+        }
+
+        function closeDatabaseVaultModal() {
+            document.getElementById('databaseVaultModal')?.classList.add('hidden');
+        }
+
+        function importStudentsExcel(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(firstSheet);
+                    importedStudentsList = rows;
+                    const sel = document.getElementById('selectImportedStudent');
+                    const box = document.getElementById('loadedStudentsBox');
+                    if (sel && box && rows.length > 0) {
+                        sel.innerHTML = '<option value="">-- Seleccionar alumno --</option>' +
+                            rows.map((r, i) => `<option value="${i}">${r.MATRICULA || ''} - ${r.ALUMNO || r.NOMBRE || ''}</option>`).join('');
+                        box.classList.remove('hidden');
+                        showToast(`${rows.length} alumnos cargados desde Excel.`);
+                    }
+                } catch (err) {
+                    showToast('Error al leer el archivo Excel.');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function applyImportedStudent(idxStr) {
+            const idx = parseInt(idxStr, 10);
+            const st = importedStudentsList[idx];
+            if (!st) return;
+            if (st.ALUMNO || st.NOMBRE) document.getElementById('inputAlumno').value = String(st.ALUMNO || st.NOMBRE).toUpperCase();
+            if (st.MATRICULA) document.getElementById('inputMatricula').value = String(st.MATRICULA).toUpperCase();
+            detectGenderFromName();
+            updateDocument();
+            closeDatabaseVaultModal();
+            showToast('Datos del alumno aplicados.');
+        }
+
+        function exportHistoryToExcel() {
+            if (!window.XLSX) return;
+            const rows = (vaultState.history || []).map(h => ({
+                Folio: h.folio,
+                Fecha: h.timestamp,
+                Alumno: h.alumno,
+                Matricula: h.matricula,
+                Licenciatura: h.licenciatura,
+                Modalidad: h.tipoLabel,
+                Usuario: h.usuario
+            }));
+            const ws = XLSX.utils.json_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Constancias');
+            XLSX.writeFile(wb, 'Historial_Constancias_UAP.xlsx');
+            showToast('Historial exportado a Excel (.xlsx).');
+        }
+
+        function openSourceCodeSyncModal() {
+            const editor = document.getElementById('sourceVaultJsonEditor');
+            const badge = document.getElementById('sourceProfilesSummaryBadge');
+            if (editor) editor.value = JSON.stringify(vaultState, null, 2);
+            if (badge) badge.textContent = `${(vaultState.profiles || []).length} perfiles • ${(vaultState.majors || []).length} licenciaturas`;
+            document.getElementById('sourceCodeSyncModal')?.classList.remove('hidden');
+        }
+
+        function closeSourceCodeSyncModal() {
+            document.getElementById('sourceCodeSyncModal')?.classList.add('hidden');
+        }
+
         function applyEditedSourceVaultJson() {
             try {
-                const raw = document.getElementById('sourceVaultJsonEditor')?.value || '';
-                const parsed = JSON.parse(raw);
-                vaultState = {
-                    ...vaultState,
-                    ...parsed,
-                    deletedProfileIds: Array.isArray(parsed.deletedProfileIds) ? parsed.deletedProfileIds : vaultState.deletedProfileIds,
-                    deletedMajorIds: Array.isArray(parsed.deletedMajorIds) ? parsed.deletedMajorIds : vaultState.deletedMajorIds,
-                    deletedPeriodIds: Array.isArray(parsed.deletedPeriodIds) ? parsed.deletedPeriodIds : vaultState.deletedPeriodIds,
-                    deletedHistoryIds: Array.isArray(parsed.deletedHistoryIds) ? parsed.deletedHistoryIds : vaultState.deletedHistoryIds
-                };
+                const parsed = JSON.parse(document.getElementById('sourceVaultJsonEditor').value);
+                vaultState = parsed;
                 persistVaultData(true);
                 populateMajorsSelect();
                 populatePeriodsSelect();
                 renderProfilesManagerGrid();
-                updateHistoryBadge();
-                selectDocType(currentDocType);
+                updateDocument();
                 closeSourceCodeSyncModal();
-                showToast('Configuración JSON guardada permanentemente.');
+                showToast('Configuración JSON aplicada y guardada permanentemente.');
             } catch (e) {
-                showToast('Error de sintaxis en el JSON.');
+                showToast('JSON inválido. Revisa la sintaxis.');
             }
         }
-// ... existing code ... -->
+
+        function downloadSelfContainedPageWithData() {
+            persistVaultData(true);
+            const docClone = document.documentElement.cloneNode(true);
+            const embeddedScript = docClone.querySelector('#embeddedInternalVaultData');
+            if (embeddedScript) {
+                embeddedScript.textContent = JSON.stringify(vaultState);
+            }
+            const htmlContent = '<!DOCTYPE html>\n' + docClone.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Constancias_Oficiales_UAP.html';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Código base HTML descargado con todos los cambios guardados.');
+        }
+
+        function restoreFullDatabaseCatalogs(notify = false) {
+            try {
+                localStorage.removeItem(PERMANENT_STORAGE_KEY);
+                window.name = '';
+            } catch (e) {}
+            loadEmbeddedVaultData();
+            populateMajorsSelect();
+            populatePeriodsSelect();
+            updateDocument();
+            if (notify) showToast('Catálogos base restaurados.');
+        }
+
+        // ==========================================
+        // UTILIDADES UI Y ARRANQUE INICIAL
+        // ==========================================
+        function escapeHtml(str) {
+            return String(str ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        function escapeHtmlAttr(str) {
+            return escapeHtml(str).replace(/"/g, '&quot;');
+        }
+
+        function updateSyncStatusBadge(text) {
+            const el = document.getElementById('liveSaveStatusText');
+            if (el) el.textContent = text;
+        }
+
+        let toastTimer = null;
+        function showToast(msg) {
+            const box = document.getElementById('toastNotification');
+            const text = document.getElementById('toastMessageText');
+            if (!box || !text) return;
+            text.textContent = msg;
+            box.classList.remove('hidden');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => box.classList.add('hidden'), 3200);
+        }
+
+        function closeCustomConfirmModal(result) {
+            document.getElementById('customConfirmModal')?.classList.add('hidden');
+            if (confirmModalResolver) {
+                confirmModalResolver(result);
+                confirmModalResolver = null;
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadEmbeddedVaultData();
+            setTodayExpeditionDate(true);
+            applySavedSignatureDefaultsToInputs();
+            populateMajorsSelect();
+            populatePeriodsSelect();
+            restoreWorkspaceFormSnapshot(vaultState.workspaceFormData);
+            updateHistoryBadge();
+            selectDocType(vaultState.workspaceFormData?.currentDocType || 'simple');
+            applySessionPermissionsUI();
+            setTimeout(() => adjustPreviewZoom(0, true), 80);
+
+            document.addEventListener('selectionchange', handleSheetSelectionToolbar);
+            window.addEventListener('resize', () => adjustPreviewZoom(0, true));
+        });
+    </script>
+</body>
+</html>
