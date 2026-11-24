@@ -202,6 +202,11 @@
                 size: letter portrait;
                 margin: 0;
             }
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
             html, body {
                 background: #ffffff !important;
                 margin: 0 !important;
@@ -218,31 +223,42 @@
                 padding: 0 !important;
                 margin: 0 !important;
                 max-width: none !important;
+                width: 215.9mm !important;
             }
             #previewSection {
+                display: block !important;
+                position: static !important;
                 border: none !important;
                 box-shadow: none !important;
                 background: #ffffff !important;
                 height: auto !important;
+                width: 215.9mm !important;
                 overflow: visible !important;
             }
             .preview-scroll-wrapper {
+                display: block !important;
                 padding: 0 !important;
+                margin: 0 !important;
                 background: #ffffff !important;
                 overflow: visible !important;
                 max-height: none !important;
             }
             .preview-scale-box {
                 transform: none !important;
+                width: 215.9mm !important;
+                height: 279.4mm !important;
             }
             .letter-sheet {
                 box-shadow: none !important;
+                border: none !important;
                 margin: 0 !important;
                 width: 215.9mm !important;
                 height: 279.4mm !important;
                 max-height: 279.4mm !important;
                 overflow: hidden !important;
                 padding: 25mm 22mm 22mm 22mm !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
             }
         }
     </style>
@@ -341,10 +357,10 @@
                     <button type="button" id="mainTabBtn-constancias" onclick="switchMainWorkspaceTab('constancias')" class="px-3.5 py-1.5 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5 bg-white text-blue-950 shadow-sm transition shrink-0">
                         Generador de Constancias
                     </button>
-                    <button type="button" id="mainTabBtn-licenciaturas" onclick="switchMainWorkspaceTab('licenciaturas')" class="px-3.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 bg-white/5 hover:bg-white/15 text-slate-200 transition shrink-0">
+                    <button type="button" id="mainTabBtn-licenciaturas" onclick="switchMainWorkspaceTab('licenciaturas')" class="hidden px-3.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 bg-white/5 hover:bg-white/15 text-slate-200 transition shrink-0">
                         Licenciaturas y RVOE
                     </button>
-                    <button type="button" id="mainTabBtn-roles" onclick="switchMainWorkspaceTab('roles')" class="px-3.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 bg-white/5 hover:bg-white/15 text-slate-200 transition shrink-0">
+                    <button type="button" id="mainTabBtn-roles" onclick="switchMainWorkspaceTab('roles')" class="hidden px-3.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 bg-white/5 hover:bg-white/15 text-slate-200 transition shrink-0">
                         Panel de Control
                     </button>
                 </div>
@@ -373,7 +389,10 @@
             <div class="w-14 h-14 rounded-2xl bg-blue-950 text-amber-400 flex items-center justify-center mx-auto shadow-md">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-7 h-7"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
             </div>
-            <h2 class="text-lg font-extrabold text-blue-950">Sistema Protegido • UAP</h2>
+            <div class="inline-block px-3 py-0.5 rounded-full bg-amber-100 border border-amber-300 text-amber-950 font-extrabold text-[11px] tracking-wider uppercase">
+                SISTEMA BUBU1.0- UAMP
+            </div>
+            <h2 class="text-lg font-extrabold text-blue-950">SISTEMA BUBU1.0- UAMP</h2>
             <p class="text-xs text-slate-600 leading-relaxed">
                 Coloca tu <strong>código de acceso</strong> en el recuadro de la barra superior y presiona <strong>Entrar</strong> para acceder al sistema.
             </p>
@@ -1085,11 +1104,11 @@
         let previewZoom = 0.78;
         let isPreviewFullscreen = false;
         let activeSession = {
-            unlocked: true,
-            role: 'admin',
-            profileId: 'admin',
-            name: 'Administrador General',
-            code: ADMIN_MASTER_CODE
+            unlocked: false,
+            role: 'guest',
+            profileId: null,
+            name: 'Bloqueado',
+            code: ''
         };
 
         let gradesRowsData = [
@@ -1252,13 +1271,20 @@
         }
 
         function lockProfileQuickAccess() {
-            activeSession.unlocked = false;
+            activeSession = {
+                unlocked: false,
+                role: 'guest',
+                profileId: null,
+                name: 'Bloqueado',
+                code: ''
+            };
+            switchMainWorkspaceTab('constancias', true);
             syncSessionUI();
-            showToast('Pantalla bloqueada.');
+            showToast('Pantalla bloqueada. Ingresa tu código de acceso para continuar.');
         }
 
         function getActiveUserProfile() {
-            if (activeSession.role === 'admin') return null;
+            if (!activeSession.unlocked || activeSession.role !== 'user') return null;
             return vaultState.profiles.find(p => p.id === activeSession.profileId) || null;
         }
 
@@ -1270,19 +1296,27 @@
             const toolsContainer = document.getElementById('headerToolsContainer');
             const rolesTabBtn = document.getElementById('mainTabBtn-roles');
             const licTabBtn = document.getElementById('mainTabBtn-licenciaturas');
+            const tabsBar = document.getElementById('headerWorkspaceTabsBar');
 
             if (!activeSession.unlocked) {
                 lockNotice?.classList.remove('hidden');
                 mainContainer?.classList.add('hidden');
                 toolsContainer?.classList.add('hidden');
+                rolesTabBtn?.classList.add('hidden');
+                licTabBtn?.classList.add('hidden');
+                tabsBar?.classList.add('hidden');
                 closeHeaderToolsDropdown();
-                if (headerName) headerName.textContent = 'Bloqueado';
-                if (headerRole) headerRole.textContent = 'LOCK';
+                if (headerName) headerName.textContent = 'Sin Acceso';
+                if (headerRole) headerRole.textContent = 'BLOQUEADO';
+                ['topBtnSaveAndDownloadPdf', 'topBtnPrintConstancia', 'topBtnHistory', 'topBtnPeriods'].forEach(id => {
+                    document.getElementById(id)?.classList.add('hidden');
+                });
                 return;
             }
 
             lockNotice?.classList.add('hidden');
             mainContainer?.classList.remove('hidden');
+            tabsBar?.classList.remove('hidden');
 
             const isAdmin = activeSession.role === 'admin';
             if (headerName) headerName.textContent = activeSession.name;
@@ -1293,6 +1327,7 @@
                 if (!isAdmin) closeHeaderToolsDropdown();
             }
             if (rolesTabBtn) rolesTabBtn.classList.toggle('hidden', !isAdmin);
+            if (licTabBtn) licTabBtn.classList.toggle('hidden', !isAdmin);
 
             const profile = getActiveUserProfile();
             const hb = profile?.permissions?.headerButtons || {};
@@ -1313,25 +1348,19 @@
                 if (el) el.classList.toggle('hidden', !allowed);
             });
 
-            if (licTabBtn) {
-                licTabBtn.classList.toggle('hidden', false);
-            }
-
             if (!isAdmin) {
-                const currentActiveTab = !document.getElementById('rolesAdminTabContainer')?.classList.contains('hidden') ? 'roles' : null;
-                if (currentActiveTab === 'roles') switchMainWorkspaceTab('constancias');
-                if (!document.getElementById('majorsRvoeTabContainer')?.classList.contains('hidden')) {
-                    renderMajorsCatalogList();
-                }
-            } else if (!document.getElementById('majorsRvoeTabContainer')?.classList.contains('hidden')) {
-                renderMajorsCatalogList();
+                const inAdminOnlyTab =
+                    !document.getElementById('rolesAdminTabContainer')?.classList.contains('hidden') ||
+                    !document.getElementById('majorsRvoeTabContainer')?.classList.contains('hidden');
+                if (inAdminOnlyTab) switchMainWorkspaceTab('constancias', true);
             }
 
             applyModalityAndFieldPermissions();
         }
 
         function applyModalityAndFieldPermissions() {
-            const isAdmin = activeSession.role === 'admin';
+            const isUnlocked = activeSession.unlocked;
+            const isAdmin = isUnlocked && activeSession.role === 'admin';
             const profile = getActiveUserProfile();
             const perms = profile?.permissions || {};
             const alertBox = document.getElementById('readOnlyRoleAlert');
@@ -1340,11 +1369,11 @@
             Object.keys(DOC_TYPE_META).forEach(type => {
                 const btn = document.getElementById(`btn-type-${type}`);
                 if (!btn) return;
-                const mode = isAdmin ? 'edit' : (perms[type] || 'select');
+                const mode = !isUnlocked ? 'none' : (isAdmin ? 'edit' : (perms[type] || 'select'));
                 btn.classList.toggle('hidden', mode === 'none');
             });
 
-            const curMode = isAdmin ? 'edit' : (perms[currentDocType] || 'select');
+            const curMode = !isUnlocked ? 'none' : (isAdmin ? 'edit' : (perms[currentDocType] || 'select'));
             const fieldsPerm = isAdmin ? null : (perms[`${currentDocType}_fields`] || {});
 
             if (alertBox) {
@@ -1359,39 +1388,43 @@
                 }
             };
 
-            setDisabled('inputFolio', isAdmin || !!fieldsPerm.folio);
-            setDisabled('inputCiudad', isAdmin || !!fieldsPerm.fechaCiudad);
-            setDisabled('inputFecha', isAdmin || !!fieldsPerm.fechaCiudad);
-            setDisabled('inputDestinatario', isAdmin || !!fieldsPerm.destinatario);
-            setDisabled('inputAlumno', isAdmin || !!fieldsPerm.writeName || !!perms[`${currentDocType}_writeName`]);
-            setDisabled('selectGenero', isAdmin || !!fieldsPerm.writeName || !!perms[`${currentDocType}_writeName`]);
-            setDisabled('inputMatricula', isAdmin || !!fieldsPerm.matricula);
-            setDisabled('selectTipoPeriodoGrado', isAdmin || !!fieldsPerm.grado);
-            setDisabled('inputGrado', isAdmin || !!fieldsPerm.grado);
-            setDisabled('selectLicenciatura', isAdmin || !!fieldsPerm.licenciaturaRvoe);
-            setDisabled('inputRvoe', isAdmin || !!fieldsPerm.licenciaturaRvoe);
-            setDisabled('selectPeriodo', isAdmin || !!fieldsPerm.periodoActivo);
-            setDisabled('inputInicioPeriodo', isAdmin || !!fieldsPerm.periodoActivo);
-            setDisabled('inputFinPeriodo', isAdmin || !!fieldsPerm.periodoActivo);
-            setDisabled('inputFirmante', isAdmin || !!fieldsPerm.firmante);
-            setDisabled('inputCargoFirmante', isAdmin || !!fieldsPerm.firmante);
-            setDisabled('customDocFormatText', isAdmin || !!fieldsPerm.estructuraTexto);
-            setDisabled('inputPeriodosAnteriores', isAdmin || !!fieldsPerm.periodosAnteriores);
-            setDisabled('inputVacInicio', isAdmin || !!fieldsPerm.vacacionesFechas);
-            setDisabled('inputVacFin', isAdmin || !!fieldsPerm.vacacionesFechas);
-            setDisabled('inputMontoInscripcion', isAdmin || !!fieldsPerm.montosCuotas);
-            setDisabled('inputMontoColegiatura', isAdmin || !!fieldsPerm.montosCuotas);
-            setDisabled('inputDocumentosResguardo', isAdmin || !!fieldsPerm.docsResguardo);
-            setDisabled('inputPromedioGeneral', isAdmin || !!fieldsPerm.promedioGeneral || curMode === 'edit');
-            setDisabled('inputPeriodosPromedio', isAdmin || !!fieldsPerm.promedioGeneral || curMode === 'edit');
+            setDisabled('inputFolio', isAdmin || (isUnlocked && !!fieldsPerm.folio));
+            setDisabled('inputCiudad', isAdmin || (isUnlocked && !!fieldsPerm.fechaCiudad));
+            setDisabled('inputFecha', isAdmin || (isUnlocked && !!fieldsPerm.fechaCiudad));
+            setDisabled('inputDestinatario', isAdmin || (isUnlocked && !!fieldsPerm.destinatario));
+            setDisabled('inputAlumno', isAdmin || (isUnlocked && (!!fieldsPerm.writeName || !!perms[`${currentDocType}_writeName`])));
+            setDisabled('selectGenero', isAdmin || (isUnlocked && (!!fieldsPerm.writeName || !!perms[`${currentDocType}_writeName`])));
+            setDisabled('inputMatricula', isAdmin || (isUnlocked && !!fieldsPerm.matricula));
+            setDisabled('selectTipoPeriodoGrado', isAdmin || (isUnlocked && !!fieldsPerm.grado));
+            setDisabled('inputGrado', isAdmin || (isUnlocked && !!fieldsPerm.grado));
+            setDisabled('selectLicenciatura', isAdmin || (isUnlocked && !!fieldsPerm.licenciaturaRvoe));
+            setDisabled('inputRvoe', isAdmin || (isUnlocked && !!fieldsPerm.licenciaturaRvoe));
+            setDisabled('selectPeriodo', isAdmin || (isUnlocked && !!fieldsPerm.periodoActivo));
+            setDisabled('inputInicioPeriodo', isAdmin || (isUnlocked && !!fieldsPerm.periodoActivo));
+            setDisabled('inputFinPeriodo', isAdmin || (isUnlocked && !!fieldsPerm.periodoActivo));
+            setDisabled('inputFirmante', isAdmin || (isUnlocked && !!fieldsPerm.firmante));
+            setDisabled('inputCargoFirmante', isAdmin || (isUnlocked && !!fieldsPerm.firmante));
+            setDisabled('customDocFormatText', isAdmin || (isUnlocked && !!fieldsPerm.estructuraTexto));
+            setDisabled('inputPeriodosAnteriores', isAdmin || (isUnlocked && !!fieldsPerm.periodosAnteriores));
+            setDisabled('inputVacInicio', isAdmin || (isUnlocked && !!fieldsPerm.vacacionesFechas));
+            setDisabled('inputVacFin', isAdmin || (isUnlocked && !!fieldsPerm.vacacionesFechas));
+            setDisabled('inputMontoInscripcion', isAdmin || (isUnlocked && !!fieldsPerm.montosCuotas));
+            setDisabled('inputMontoColegiatura', isAdmin || (isUnlocked && !!fieldsPerm.montosCuotas));
+            setDisabled('inputDocumentosResguardo', isAdmin || (isUnlocked && !!fieldsPerm.docsResguardo));
+            setDisabled('inputPromedioGeneral', isAdmin || (isUnlocked && (!!fieldsPerm.promedioGeneral || curMode === 'edit')));
+            setDisabled('inputPeriodosPromedio', isAdmin || (isUnlocked && (!!fieldsPerm.promedioGeneral || curMode === 'edit')));
         }
 
         // ==========================================
         // NAVEGACIÓN ENTRE PESTAÑAS PRINCIPALES
         // ==========================================
-        function switchMainWorkspaceTab(tabName) {
-            if (tabName === 'roles' && activeSession.role !== 'admin') {
-                showToast('Solo el Administrador puede acceder al Panel de Control.');
+        function switchMainWorkspaceTab(tabName, silent = false) {
+            if (!activeSession.unlocked && tabName !== 'constancias') {
+                if (!silent) showToast('Ingresa tu código de acceso primero.');
+                return;
+            }
+            if ((tabName === 'roles' || tabName === 'licenciaturas') && activeSession.role !== 'admin') {
+                if (!silent) showToast('Acceso exclusivo para el Administrador.');
                 return;
             }
 
@@ -1421,143 +1454,52 @@
         }
 
         // ==========================================
-        // CATÁLOGOS: LICENCIATURAS, PERIODOS Y GRADOS
+        // MENÚ HERRAMIENTAS Y ZOOM / PANTALLA COMPLETA
         // ==========================================
-        function populateMajorsSelect() {
-            const sel = document.getElementById('selectLicenciatura');
-            if (!sel) return;
-            const prev = sel.value;
-            sel.innerHTML = vaultState.majors.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
-            if (prev && vaultState.majors.some(m => m.id === prev)) {
-                sel.value = prev;
-            }
-            onSelectMajor();
+        function toggleHeaderToolsDropdown() {
+            if (!activeSession.unlocked || activeSession.role !== 'admin') return;
+            document.getElementById('headerSystemToolsDropdown')?.classList.toggle('hidden');
         }
 
-        function onSelectMajor() {
-            const sel = document.getElementById('selectLicenciatura');
-            const rvoeInput = document.getElementById('inputRvoe');
-            if (!sel || !rvoeInput) return;
-            const major = vaultState.majors.find(m => m.id === sel.value);
-            if (major) rvoeInput.value = major.rvoe;
-            updateDocument();
+        function closeHeaderToolsDropdown() {
+            document.getElementById('headerSystemToolsDropdown')?.classList.add('hidden');
         }
 
-        function populatePeriodsSelect() {
-            const sel = document.getElementById('selectPeriodo');
-            if (!sel) return;
-            const prev = sel.value;
-            sel.innerHTML = vaultState.periods.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-            if (prev && vaultState.periods.some(p => p.id === prev)) {
-                sel.value = prev;
-            }
-            onSelectPeriod();
+        function adjustPreviewZoom(delta, reset = false) {
+            previewZoom = reset ? 0.78 : Math.min(1.4, Math.max(0.45, +(previewZoom + delta).toFixed(2)));
+            const box = document.getElementById('previewScaleBox');
+            const label = document.getElementById('previewZoomLabel');
+            if (box) box.style.transform = `scale(${previewZoom})`;
+            if (label) label.textContent = `${Math.round(previewZoom * 100)}%`;
         }
 
-        function onSelectPeriod() {
-            const sel = document.getElementById('selectPeriodo');
-            if (!sel) return;
-            const period = vaultState.periods.find(p => p.id === sel.value);
-            if (period) {
-                const startEl = document.getElementById('inputInicioPeriodo');
-                const endEl = document.getElementById('inputFinPeriodo');
-                if (startEl) startEl.value = period.start;
-                if (endEl) endEl.value = period.end;
-                syncVacationDatesFromActivePeriod(false);
-            }
-            updateDocument();
-        }
-
-        function syncVacationDatesFromActivePeriod(notify = false) {
-            const sel = document.getElementById('selectPeriodo');
-            const period = vaultState.periods.find(p => p.id === sel?.value);
-            const badge = document.getElementById('vacLinkedPeriodBadge');
-            if (period) {
-                if (badge) badge.textContent = period.name;
-                const vacIn = document.getElementById('inputVacInicio');
-                const vacOut = document.getElementById('inputVacFin');
-                if (vacIn && period.vacStart) vacIn.value = period.vacStart;
-                if (vacOut && period.vacEnd) vacOut.value = period.vacEnd;
-                updateDocument();
-                if (notify) showToast('Fechas vacacionales sincronizadas con el periodo.');
-            }
-        }
-
-        function onChangeTipoPeriodoGrado() {
-            const tipo = document.getElementById('selectTipoPeriodoGrado')?.value || 'CUATRIMESTRE';
-            const gradoSel = document.getElementById('inputGrado');
-            if (!gradoSel) return;
-            const currentVal = gradoSel.value || '';
-            const numMatch = currentVal.match(/^\d+°/);
-            const prefix = numMatch ? numMatch[0] : '5°';
-            const candidate = `${prefix} ${tipo}`;
-            if (Array.from(gradoSel.options).some(opt => opt.value === candidate)) {
-                gradoSel.value = candidate;
-            }
-            updateDocument();
-        }
-
-        function syncTipoPeriodoFromGrado() {
-            const gradoVal = document.getElementById('inputGrado')?.value || '';
-            const tipoSel = document.getElementById('selectTipoPeriodoGrado');
-            if (!tipoSel) return;
-            if (gradoVal.includes('SEMESTRE')) tipoSel.value = 'SEMESTRE';
-            else if (gradoVal.includes('CUATRIMESTRE')) tipoSel.value = 'CUATRIMESTRE';
-        }
-
-        function setTodayExpeditionDate(shouldRender = true) {
-            const dateInput = document.getElementById('inputFecha');
-            if (!dateInput) return;
-            const today = new Date();
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            dateInput.value = `${yyyy}-${mm}-${dd}`;
-            if (shouldRender) updateDocument();
-        }
-
-        function formatSpanishDateUpper(isoDate) {
-            const months = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
-            if (!isoDate || !isoDate.includes('-')) {
-                const now = new Date();
-                return `${String(now.getDate()).padStart(2, '0')} DE ${months[now.getMonth()]} DE ${now.getFullYear()}`;
-            }
-            const [y, m, d] = isoDate.split('-').map(Number);
-            return `${String(d).padStart(2, '0')} DE ${months[(m || 1) - 1]} DE ${y}`;
-        }
-
-        function detectGenderFromName() {
-            const rawName = (document.getElementById('inputAlumno')?.value || '').trim().toUpperCase();
-            const firstName = rawName.split(/\s+/)[0] || '';
-            const sel = document.getElementById('selectGenero');
-            if (!sel || !firstName) return;
-            const femaleExceptions = ['MARÍA', 'MARIA', 'GUADALUPE', 'CARMEN', 'LUZ', 'PILAR', 'ROCÍO', 'ROCIO', 'CONSUELO', 'BEATRIZ', 'RAQUEL', 'ESTHER', 'ABIGAIL', 'ITZEL', 'YARETZI', 'ARACELI', 'NOEMÍ', 'NOEMI'];
-            const maleExceptions = ['JOSÉ', 'JOSE', 'JESÚS', 'JESUS', 'JOSHUA', 'BORJA', 'LUCA'];
-            if (maleExceptions.includes(firstName)) {
-                sel.value = 'M';
-            } else if (femaleExceptions.includes(firstName) || firstName.endsWith('A')) {
-                sel.value = 'F';
-            } else if (firstName.endsWith('O')) {
-                sel.value = 'M';
-            }
+        function togglePreviewFullscreen() {
+            const sec = document.getElementById('previewSection');
+            const lbl = document.getElementById('labelFullscreenPreview');
+            if (!sec) return;
+            isPreviewFullscreen = !isPreviewFullscreen;
+            sec.classList.toggle('preview-fullscreen', isPreviewFullscreen);
+            if (lbl) lbl.textContent = isPreviewFullscreen ? 'Salir Pantalla Completa' : 'Pantalla Completa';
         }
 
         // ==========================================
-        // MODALIDADES Y ESTRUCTURA DE PLANTILLA
+        // MODALIDADES, PLANTILLAS Y RENDERIZADO DE CONSTANCIA
         // ==========================================
         function selectDocType(type) {
+            if (!DOC_TYPE_META[type]) return;
             currentDocType = type;
 
-            Object.keys(DOC_TYPE_META).forEach(k => {
-                const btn = document.getElementById(`btn-type-${k}`);
-                if (!btn) return;
-                const isHidden = btn.classList.contains('hidden');
-                const palette = DOC_TYPE_BTN_COLORS[k] || DOC_TYPE_BTN_COLORS.simple;
-                btn.className = (k === type ? palette.active : palette.inactive) + (isHidden ? ' hidden' : '');
+            Object.keys(DOC_TYPE_META).forEach(t => {
+                const btn = document.getElementById(`btn-type-${t}`);
+                const palette = DOC_TYPE_BTN_COLORS[t];
+                if (btn && palette) {
+                    const isHidden = btn.classList.contains('hidden') ? ' hidden' : '';
+                    btn.className = (t === type ? palette.active : palette.inactive) + isHidden;
+                }
             });
 
             const badge = document.getElementById('currentFormatLabelBadge');
-            if (badge) badge.textContent = DOC_TYPE_META[type]?.label || type;
+            if (badge) badge.textContent = DOC_TYPE_META[type].label;
 
             const textarea = document.getElementById('customDocFormatText');
             if (textarea) {
@@ -1571,9 +1513,8 @@
             document.getElementById('fields-promedio')?.classList.toggle('hidden', type !== 'promedio');
             document.getElementById('fields-tabla-materias')?.classList.toggle('hidden', type !== 'calificaciones' && type !== 'kardex');
 
-            if (type === 'calificaciones' || type === 'kardex') {
-                renderGradesEditorRows();
-            }
+            if (type === 'calificaciones' || type === 'kardex') renderGradesEditorRows();
+            if (type === 'vacaciones') syncVacationDatesFromActivePeriod(false);
 
             applyModalityAndFieldPermissions();
             updateDocument();
@@ -1597,7 +1538,7 @@
             if (textarea) textarea.value = DEFAULT_TEMPLATES[currentDocType];
             persistVaultData(true);
             updateDocument();
-            showToast('Estructura restaurada al formato base.');
+            showToast('Plantilla restaurada al texto oficial base.');
         }
 
         function insertFormatToken(token) {
@@ -1606,120 +1547,93 @@
             const start = ta.selectionStart || 0;
             const end = ta.selectionEnd || 0;
             ta.value = ta.value.substring(0, start) + token + ta.value.substring(end);
-            ta.selectionStart = ta.selectionEnd = start + token.length;
             ta.focus();
+            ta.selectionStart = ta.selectionEnd = start + token.length;
             onCustomFormatTextareaInput();
         }
 
-        // ==========================================
-        // TABLA DE CALIFICACIONES Y KARDEX
-        // ==========================================
-        function renderGradesEditorRows() {
-            const container = document.getElementById('gradesEditorRows');
-            if (!container) return;
-            container.innerHTML = gradesRowsData.map((row, idx) => `
-                <div class="grid grid-cols-12 gap-1.5 items-center bg-slate-50 p-2 rounded-xl border border-slate-200">
-                    <input type="text" value="${row.grupo}" oninput="updateGradeRow(${idx}, 'grupo', this.value)" placeholder="Gpo" class="col-span-2 rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-bold uppercase">
-                    <input type="text" value="${row.codigo}" oninput="updateGradeRow(${idx}, 'codigo', this.value)" placeholder="Clave" class="col-span-3 rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-mono uppercase">
-                    <input type="text" value="${row.materia}" oninput="updateGradeRow(${idx}, 'materia', this.value)" placeholder="Asignatura" class="col-span-5 rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-semibold uppercase">
-                    <input type="text" value="${row.calificacion}" oninput="updateGradeRow(${idx}, 'calificacion', this.value)" placeholder="Cal." class="col-span-1 rounded-lg border border-slate-300 px-1.5 py-1 text-[11px] font-extrabold text-center">
-                    <button type="button" onclick="removeGradeRow(${idx})" class="col-span-1 text-rose-600 hover:text-rose-800 font-bold text-xs text-center" title="Eliminar">✕</button>
-                </div>
-            `).join('');
-        }
+        function detectGenderFromName() {
+            const name = (document.getElementById('inputAlumno')?.value || '').trim().toUpperCase();
+            const sel = document.getElementById('selectGenero');
+            if (!name || !sel) return;
+            const firstWord = name.split(/\s+/)[0] || '';
+            const maleExceptions = ['JOSE', 'JOSÉ', 'JESUS', 'JESÚS', 'LUIS', 'CARLOS', 'JUAN', 'PEDRO', 'MIGUEL', 'ANGEL', 'ÁNGEL', 'DANIEL', 'DAVID', 'ALEJANDRO', 'FERNANDO', 'JORGE', 'RICARDO', 'EDUARDO', 'ROBERTO', 'MANUEL', 'FRANCISCO', 'ANTONIO', 'JAVIER', 'RAFAEL', 'DIEGO', 'ANDRES', 'ANDRÉS', 'OSCAR', 'ÓSCAR', 'HECTOR', 'HÉCTOR', 'VICTOR', 'VÍCTOR', 'RAUL', 'RAÚL', 'OMAR', 'IVAN', 'IVÁN', 'ALAN', 'KEVIN', 'BRAYAN', 'CRISTIAN', 'CHRISTIAN', 'MARCO', 'MARIO', 'SERGIO', 'ARTURO', 'ENRIQUE', 'ALBERTO', 'RUBEN', 'RUBÉN', 'EDGAR', 'SAUL', 'SAÚL', 'ERICK', 'ERIK', 'JONATHAN', 'ABRAHAM', 'ISAAC', 'URIEL', 'EMMANUEL', 'LEONARDO', 'SANTIAGO', 'MATEO', 'SEBASTIAN', 'SEBASTIÁN', 'EMILIANO', 'RODRIGO', 'PABLO', 'CESAR', 'CÉSAR', 'GUILLERMO', 'GUSTAVO', 'HUGO', 'ALFREDO', 'ARMANDO', 'GERARDO', 'GILBERTO', 'ERNESTO', 'ESTEBAN', 'FELIPE', 'GABRIEL', 'IGNACIO', 'ISRAEL', 'JAIME', 'JOAQUIN', 'JOAQUÍN', 'JULIO', 'LORENZO', 'MARTIN', 'MARTÍN', 'MAURICIO', 'MOISES', 'MOISÉS', 'NICOLAS', 'NICOLÁS', 'NOE', 'NOÉ', 'OCTAVIO', 'ORLANDO', 'RAMON', 'RAMÓN', 'RENE', 'RENÉ', 'RODOLFO', 'ROLANDO', 'SALVADOR', 'SAMUEL', 'SIMON', 'SIMÓN', 'TOMAS', 'TOMÁS', 'ULISES', 'VICENTE'];
+            const femaleExceptions = ['MARIA', 'MARÍA', 'GUADALUPE', 'CARMEN', 'ROCIO', 'ROCÍO', 'ROSARIO', 'CONSUELO', 'SOCORRO', 'PILAR', 'LUZ', 'FLOR', 'SOL', 'MAR', 'BELEN', 'BELÉN', 'ESTHER', 'RUTH', 'JUDITH', 'EDITH', 'LIZBETH', 'YAZMIN', 'YAZMÍN', 'JAZMIN', 'JAZMÍN', 'ABIGAIL', 'RAQUEL', 'ISABEL', 'BEATRIZ', 'INES', 'INÉS', 'IRENE', 'NOEMI', 'NOEMÍ', 'NAYELI', 'CITLALI', 'ITZEL', 'ARACELI', 'ANAHI', 'ANAHÍ', 'MIRIAM', 'MYRIAM', 'KAREN', 'SHARON', 'EVELYN', 'INGRID', 'ASTRID'];
 
-        function addGradeRow() {
-            gradesRowsData.push({ grupo: '5A', codigo: 'MAT-001', materia: 'NUEVA ASIGNATURA', calificacion: '9.5' });
-            renderGradesEditorRows();
-            updateDocument();
-        }
-
-        function updateGradeRow(idx, key, val) {
-            if (gradesRowsData[idx]) {
-                gradesRowsData[idx][key] = val;
-                updateDocument();
+            if (maleExceptions.includes(firstWord)) {
+                sel.value = 'M';
+            } else if (femaleExceptions.includes(firstWord) || firstWord.endsWith('A')) {
+                sel.value = 'F';
+            } else {
+                sel.value = 'M';
             }
         }
 
-        function removeGradeRow(idx) {
-            gradesRowsData.splice(idx, 1);
-            renderGradesEditorRows();
+        function onChangeTipoPeriodoGrado() {
+            const tipo = document.getElementById('selectTipoPeriodoGrado')?.value || 'CUATRIMESTRE';
+            const gradoSel = document.getElementById('inputGrado');
+            if (!gradoSel) return;
+            const numMatch = (gradoSel.value || '1°').match(/^(\d+°)/);
+            const num = numMatch ? numMatch[1] : '1°';
+            const targetVal = `${num} ${tipo}`;
+            if ([...gradoSel.options].some(o => o.value === targetVal)) {
+                gradoSel.value = targetVal;
+            }
             updateDocument();
         }
 
-        function parseAndReplaceCalificaciones() {
-            const raw = (document.getElementById('bulkCalificacionesInput')?.value || '').trim();
-            if (!raw) {
-                showToast('Pega o escribe las materias primero.');
-                return;
-            }
-            const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-            const parsed = [];
-            lines.forEach(line => {
-                let parts = line.includes('\t') ? line.split('\t') : line.split(/[|;,]+/);
-                parts = parts.map(p => p.trim()).filter(Boolean);
-                if (parts.length >= 4) {
-                    parsed.push({ grupo: parts[0], codigo: parts[1], materia: parts[2], calificacion: parts[3] });
-                } else if (parts.length === 3) {
-                    parsed.push({ grupo: '-', codigo: parts[0], materia: parts[1], calificacion: parts[2] });
-                } else if (parts.length === 2) {
-                    parsed.push({ grupo: '-', codigo: '-', materia: parts[0], calificacion: parts[1] });
-                }
-            });
-            if (!parsed.length) {
-                showToast('No se pudieron interpretar filas válidas.');
-                return;
-            }
-            gradesRowsData = parsed;
-            renderGradesEditorRows();
-            updateDocument();
-            showToast(`Tabla actualizada con ${parsed.length} materias.`);
+        function syncTipoPeriodoFromGrado() {
+            const val = document.getElementById('inputGrado')?.value || '';
+            const tipoSel = document.getElementById('selectTipoPeriodoGrado');
+            if (!tipoSel) return;
+            if (val.includes('SEMESTRE')) tipoSel.value = 'SEMESTRE';
+            else if (val.includes('CUATRIMESTRE')) tipoSel.value = 'CUATRIMESTRE';
         }
 
-        function buildGradesTableHTML() {
-            const isKardex = currentDocType === 'kardex';
+        function formatExpeditionDateSpanish(isoDate) {
+            if (!isoDate) return '';
+            const parts = isoDate.split('-');
+            if (parts.length !== 3) return isoDate.toUpperCase();
+            const months = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+            const day = parts[2].padStart(2, '0');
+            const monthName = months[parseInt(parts[1], 10) - 1] || 'ENERO';
+            return `${day} DE ${monthName} DE ${parts[0]}`;
+        }
+
+        function buildGradesTableHtml(isKardex) {
+            if (!gradesRowsData.length) return '';
             let sum = 0;
             let count = 0;
             const rowsHtml = gradesRowsData.map(r => {
-                const num = parseFloat(String(r.calificacion).replace(',', '.'));
-                if (!isNaN(num)) {
-                    sum += num;
-                    count++;
-                }
-                return `
-                    <tr>
-                        <td style="text-align:center;">${r.grupo || '-'}</td>
-                        <td>${r.codigo || '-'}</td>
-                        <td>${r.materia || ''}</td>
-                        <td style="text-align:center;font-weight:700;">${r.calificacion || '-'}</td>
-                    </tr>
-                `;
+                const num = parseFloat(r.calificacion);
+                if (!isNaN(num)) { sum += num; count++; }
+                return `<tr>
+                    <td>${escapeHtml(r.grupo || '')}</td>
+                    <td>${escapeHtml(r.codigo || '')}</td>
+                    <td>${escapeHtml(r.materia || '')}</td>
+                    <td style="text-align:center;font-weight:700;">${escapeHtml(r.calificacion || '')}</td>
+                </tr>`;
             }).join('');
             const avg = count > 0 ? (sum / count).toFixed(2) : 'N/A';
-            return `
-                <table class="doc-grades-table ${isKardex ? 'doc-kardex-table' : ''}">
-                    <thead>
-                        <tr>
-                            <th style="width:12%;text-align:center;">Grupo</th>
-                            <th style="width:18%;">Clave</th>
-                            <th style="width:54%;">Asignatura</th>
-                            <th style="width:16%;text-align:center;">Calificación</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${rowsHtml}
-                        <tr>
-                            <td colspan="3" style="text-align:right;font-weight:700;background:#f8fafc;">PROMEDIO GENERAL:</td>
-                            <td style="text-align:center;font-weight:800;background:#f8fafc;">${avg}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            `;
+            return `<table class="doc-grades-table ${isKardex ? 'doc-kardex-table' : ''}">
+                <thead>
+                    <tr>
+                        <th style="width:14%;">Grupo</th>
+                        <th style="width:20%;">Clave</th>
+                        <th>Asignatura</th>
+                        <th style="width:18%;text-align:center;">Calificación</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rowsHtml}
+                    <tr>
+                        <td colspan="3" style="text-align:right;font-weight:700;">PROMEDIO GENERAL:</td>
+                        <td style="text-align:center;font-weight:700;">${avg}</td>
+                    </tr>
+                </tbody>
+            </table>`;
         }
 
-        // ==========================================
-        // RENDERIZADO DE LA CONSTANCIA Y AUTOAJUSTE A 1 HOJA
-        // ==========================================
         function escapeHtml(str) {
             return String(str || '')
                 .replace(/&/g, '&amp;')
@@ -1727,172 +1641,223 @@
                 .replace(/>/g, '&gt;');
         }
 
-        function formatRichInlineMarkdown(text) {
-            return text
+        function formatInlineRichText(raw) {
+            return escapeHtml(raw)
                 .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                 .replace(/__(.+?)__/g, '<u>$1</u>');
         }
 
         function updateDocument() {
-            const bodyContainer = document.getElementById('documentRenderedBody');
-            if (!bodyContainer) return;
+            const bodyEl = document.getElementById('documentRenderedBody');
+            if (!bodyEl) return;
 
+            const folio = (document.getElementById('inputFolio')?.value || '').trim();
+            const ciudad = (document.getElementById('inputCiudad')?.value || '').trim().toUpperCase();
+            const fechaIso = document.getElementById('inputFecha')?.value || '';
+            const fechaMayus = formatExpeditionDateSpanish(fechaIso);
+            const destinatario = (document.getElementById('inputDestinatario')?.value || '').trim().toUpperCase();
+            const alumno = (document.getElementById('inputAlumno')?.value || '').trim().toUpperCase();
             const genero = document.getElementById('selectGenero')?.value || 'F';
-            const isFem = genero === 'F';
-            const majorObj = vaultState.majors.find(m => m.id === document.getElementById('selectLicenciatura')?.value);
-            const periodObj = vaultState.periods.find(p => p.id === document.getElementById('selectPeriodo')?.value);
+            const matricula = (document.getElementById('inputMatricula')?.value || '').trim().toUpperCase();
+            const grado = (document.getElementById('inputGrado')?.value || '').trim().toUpperCase();
 
-            const vars = {
-                '{FOLIO}': `<strong>${escapeHtml((document.getElementById('inputFolio')?.value || '').toUpperCase())}</strong>`,
-                '{ASUNTO}': `<strong>${escapeHtml(DOC_TYPE_META[currentDocType]?.asunto || 'CONSTANCIA DE ESTUDIOS')}</strong>`,
-                '{CIUDAD_MAYUS}': escapeHtml((document.getElementById('inputCiudad')?.value || '').toUpperCase()),
-                '{FECHA_MAYUS}': escapeHtml(formatSpanishDateUpper(document.getElementById('inputFecha')?.value)),
-                '{DESTINATARIO}': escapeHtml((document.getElementById('inputDestinatario')?.value || 'A QUIEN CORRESPONDA').toUpperCase()),
-                '{TRATAMIENTO}': isFem ? 'la alumna' : 'el alumno',
-                '{ALUMNO}': `<strong>${escapeHtml((document.getElementById('inputAlumno')?.value || '').toUpperCase())}</strong>`,
-                '{MATRICULA}': `<strong>${escapeHtml((document.getElementById('inputMatricula')?.value || '').toUpperCase())}</strong>`,
-                '{INSCRITO}': isFem ? 'inscrita' : 'inscrito',
-                '{GRADO}': `<strong>${escapeHtml((document.getElementById('inputGrado')?.value || '').toUpperCase())}</strong>`,
-                '{LICENCIATURA}': `<strong>${escapeHtml((majorObj?.name || '').toUpperCase())}</strong>`,
-                '{RVOE}': `<strong>${escapeHtml((document.getElementById('inputRvoe')?.value || '').toUpperCase())}</strong>`,
-                '{PERIODO}': `<strong>${escapeHtml((periodObj?.name || '').toUpperCase())}</strong>`,
-                '{INICIO_PERIODO}': `<strong>${escapeHtml((document.getElementById('inputInicioPeriodo')?.value || '').toUpperCase())}</strong>`,
-                '{FIN_PERIODO}': `<strong>${escapeHtml((document.getElementById('inputFinPeriodo')?.value || '').toUpperCase())}</strong>`,
-                '{PERIODOS_ANTERIORES}': escapeHtml(document.getElementById('inputPeriodosAnteriores')?.value || ''),
-                '{VAC_INICIO}': `<strong>${escapeHtml((document.getElementById('inputVacInicio')?.value || '').toUpperCase())}</strong>`,
-                '{VAC_FIN}': `<strong>${escapeHtml((document.getElementById('inputVacFin')?.value || '').toUpperCase())}</strong>`,
-                '{MONTO_INSCRIPCION}': `<strong>${escapeHtml(document.getElementById('inputMontoInscripcion')?.value || '')}</strong>`,
-                '{MONTO_COLEGIATURA}': `<strong>${escapeHtml(document.getElementById('inputMontoColegiatura')?.value || '')}</strong>`,
-                '{DOCUMENTOS_RESGUARDO}': escapeHtml(document.getElementById('inputDocumentosResguardo')?.value || ''),
-                '{PROMEDIO_GENERAL}': `<strong>${escapeHtml((document.getElementById('inputPromedioGeneral')?.value || '').toUpperCase())}</strong>`,
-                '{PERIODOS_PROMEDIO}': escapeHtml((document.getElementById('inputPeriodosPromedio')?.value || '').toUpperCase()),
-                '{FIRMANTE}': `<strong>${escapeHtml((document.getElementById('inputFirmante')?.value || '').toUpperCase())}</strong>`,
-                '{CARGO_FIRMANTE}': escapeHtml((document.getElementById('inputCargoFirmante')?.value || '').toUpperCase()),
-                '{TABLA}': '___TABLA_PLACEHOLDER___'
+            const licSel = document.getElementById('selectLicenciatura');
+            const licText = licSel && licSel.selectedIndex >= 0 ? licSel.options[licSel.selectedIndex].text.toUpperCase() : '';
+            const rvoe = (document.getElementById('inputRvoe')?.value || '').trim().toUpperCase();
+
+            const perSel = document.getElementById('selectPeriodo');
+            const perText = perSel && perSel.selectedIndex >= 0 ? perSel.options[perSel.selectedIndex].text.toUpperCase() : '';
+            const inicioPeriodo = (document.getElementById('inputInicioPeriodo')?.value || '').trim().toUpperCase();
+            const finPeriodo = (document.getElementById('inputFinPeriodo')?.value || '').trim().toUpperCase();
+
+            const firmante = (document.getElementById('inputFirmante')?.value || '').trim().toUpperCase();
+            const cargoFirmante = (document.getElementById('inputCargoFirmante')?.value || '').trim().toUpperCase();
+
+            const vacInicio = (document.getElementById('inputVacInicio')?.value || '').trim().toUpperCase();
+            const vacFin = (document.getElementById('inputVacFin')?.value || '').trim().toUpperCase();
+            const periodosAnteriores = (document.getElementById('inputPeriodosAnteriores')?.value || '').trim();
+            const montoInscripcion = (document.getElementById('inputMontoInscripcion')?.value || '').trim();
+            const montoColegiatura = (document.getElementById('inputMontoColegiatura')?.value || '').trim();
+            const documentosResguardo = (document.getElementById('inputDocumentosResguardo')?.value || '').trim();
+            const promedioGeneral = (document.getElementById('inputPromedioGeneral')?.value || '').trim().toUpperCase();
+            const periodosPromedio = (document.getElementById('inputPeriodosPromedio')?.value || '').trim().toUpperCase();
+
+            const tratamiento = genero === 'M' ? 'el alumno' : 'la alumna';
+            const inscrito = genero === 'M' ? 'inscrito' : 'inscrita';
+            const asunto = DOC_TYPE_META[currentDocType]?.asunto || 'CONSTANCIA DE ESTUDIOS';
+
+            let tpl = document.getElementById('customDocFormatText')?.value || vaultState.customTemplates[currentDocType] || DEFAULT_TEMPLATES[currentDocType];
+
+            const tokens = {
+                '{FOLIO}': `**${folio}**`,
+                '{ASUNTO}': `**${asunto}**`,
+                '{CIUDAD_MAYUS}': `**${ciudad}**`,
+                '{FECHA_MAYUS}': `**${fechaMayus}**`,
+                '{DESTINATARIO}': `**${destinatario}**`,
+                '{TRATAMIENTO}': tratamiento,
+                '{ALUMNO}': `**${alumno}**`,
+                '{MATRICULA}': `**${matricula}**`,
+                '{INSCRITO}': inscrito,
+                '{GRADO}': `**${grado}**`,
+                '{LICENCIATURA}': `**${licText}**`,
+                '{RVOE}': `**${rvoe}**`,
+                '{PERIODO}': `**${perText}**`,
+                '{INICIO_PERIODO}': `**${inicioPeriodo}**`,
+                '{FIN_PERIODO}': `**${finPeriodo}**`,
+                '{VAC_INICIO}': `**${vacInicio}**`,
+                '{VAC_FIN}': `**${vacFin}**`,
+                '{PERIODOS_ANTERIORES}': periodosAnteriores,
+                '{MONTO_INSCRIPCION}': `**${montoInscripcion}**`,
+                '{MONTO_COLEGIATURA}': `**${montoColegiatura}**`,
+                '{DOCUMENTOS_RESGUARDO}': documentosResguardo,
+                '{PROMEDIO_GENERAL}': `**${promedioGeneral}**`,
+                '{PERIODOS_PROMEDIO}': `**${periodosPromedio}**`,
+                '{FIRMANTE}': `**${firmante}**`,
+                '{CARGO_FIRMANTE}': `**${cargoFirmante}**`
             };
 
-            let templateText = document.getElementById('customDocFormatText')?.value || vaultState.customTemplates[currentDocType] || DEFAULT_TEMPLATES[currentDocType];
-            let renderedText = escapeHtml(templateText);
-
-            Object.entries(vars).forEach(([token, replacement]) => {
-                renderedText = renderedText.split(token).join(replacement);
+            Object.entries(tokens).forEach(([k, v]) => {
+                tpl = tpl.split(k).join(v);
             });
-            renderedText = formatRichInlineMarkdown(renderedText);
 
+            const lines = tpl.split('\n');
             const secStyles = vaultState.typography.sections || SECTION_TYPO_DEFAULT;
             const buildInlineStyle = (secKey) => {
                 const s = secStyles[secKey] || {};
                 const parts = [];
-                if (s.fontFamily) parts.push(`font-family:${s.fontFamily}`);
-                if (s.fontSize) parts.push(`font-size:${s.fontSize}pt`);
-                if (s.lineHeight) parts.push(`line-height:${s.lineHeight}`);
-                return parts.length ? ` style="${parts.join(';')}"` : '';
+                if (s.fontFamily) parts.push(`font-family:${s.fontFamily};`);
+                if (s.fontSize) parts.push(`font-size:${s.fontSize}pt;`);
+                if (s.lineHeight) parts.push(`line-height:${s.lineHeight};`);
+                return parts.length ? ` style="${parts.join('')}"` : '';
             };
 
-            const folioPlain = escapeHtml((document.getElementById('inputFolio')?.value || '').toUpperCase());
-            const lines = renderedText.split(/\r?\n/);
-            let htmlOutput = '';
-            let sigIndex = lines.findIndex(l => l.trim().toUpperCase() === 'ATENTAMENTE');
+            let htmlOut = '';
+            let inSignature = false;
+            let sigLines = [];
 
-            lines.forEach((line, idx) => {
-                const trimmed = line.trim();
-                if (trimmed === '___TABLA_PLACEHOLDER___') {
-                    htmlOutput += buildGradesTableHTML();
-                    return;
+            for (let i = 0; i < lines.length; i++) {
+                const rawLine = lines[i];
+                const trimmed = rawLine.trim();
+
+                if (trimmed === '{TABLA}') {
+                    htmlOut += buildGradesTableHtml(currentDocType === 'kardex');
+                    continue;
                 }
+
+                if (/^ATENTAMENTE$/i.test(trimmed)) {
+                    inSignature = true;
+                    sigLines = [trimmed];
+                    continue;
+                }
+
+                if (inSignature) {
+                    if (trimmed) sigLines.push(trimmed);
+                    continue;
+                }
+
                 if (!trimmed) {
-                    htmlOutput += '<div class="doc-blank"></div>';
-                    return;
+                    htmlOut += '<div class="doc-blank"></div>';
+                    continue;
                 }
-                if (idx <= 3 && (trimmed === `<strong>${folioPlain}</strong>` || trimmed.startsWith('ASUNTO:') || trimmed.includes(', A '))) {
-                    htmlOutput += `<div class="doc-para-right"${buildInlineStyle('header')}>${trimmed}</div>`;
-                    return;
-                }
-                if (idx <= 7 && (trimmed === 'PRESENTE' || trimmed === escapeHtml((document.getElementById('inputDestinatario')?.value || '').toUpperCase()))) {
-                    htmlOutput += `<div class="doc-para-left-bold"${buildInlineStyle('recipient')}>${trimmed}</div>`;
-                    return;
-                }
-                if (sigIndex !== -1 && idx >= sigIndex) {
-                    if (trimmed === 'ATENTAMENTE') {
-                        htmlOutput += `<div class="doc-signature-block"${buildInlineStyle('signature')}><div style="font-weight:700;">ATENTAMENTE</div><div class="doc-signature-line"></div>`;
-                    } else if (idx === lines.length - 1) {
-                        htmlOutput += `<div>${trimmed}</div></div>`;
-                    } else {
-                        htmlOutput += `<div>${trimmed}</div>`;
-                    }
-                    return;
-                }
-                htmlOutput += `<p class="doc-para"${buildInlineStyle('body')}>${trimmed}</p>`;
-            });
 
-            bodyContainer.innerHTML = htmlOutput;
-            applyTypographyVarsToSheet();
+                if (i <= 2) {
+                    htmlOut += `<div class="doc-para-right" data-doc-section="header"${buildInlineStyle('header')}>${formatInlineRichText(trimmed)}</div>`;
+                } else if (i <= 5 && (trimmed.includes(destinatario) || /^PRESENTE$/i.test(trimmed))) {
+                    htmlOut += `<div class="doc-para-left-bold" data-doc-section="recipient"${buildInlineStyle('recipient')}>${formatInlineRichText(trimmed)}</div>`;
+                } else {
+                    htmlOut += `<div class="doc-para" data-doc-section="body"${buildInlineStyle('body')}>${formatInlineRichText(trimmed)}</div>`;
+                }
+            }
+
+            if (inSignature && sigLines.length) {
+                const atentamente = sigLines[0] || 'ATENTAMENTE';
+                const rest = sigLines.slice(1).map(l => `<div>${formatInlineRichText(l)}</div>`).join('');
+                htmlOut += `<div class="doc-signature-block" data-doc-section="signature"${buildInlineStyle('signature')}>
+                    <div style="font-weight:700;">${formatInlineRichText(atentamente)}</div>
+                    <div class="doc-signature-line"></div>
+                    ${rest}
+                </div>`;
+            }
+
+            bodyEl.innerHTML = htmlOut;
+            applyGlobalTypographyVariables();
             fitDocumentToSingleLetterSheet();
         }
 
-        function applyTypographyVarsToSheet() {
-            const bodyEl = document.getElementById('documentRenderedBody');
-            if (!bodyEl) return;
-            const typo = vaultState.typography || { fontFamily: 'Arial, Helvetica, sans-serif', fontSize: 12, lineHeight: 1.15 };
-            bodyEl.style.setProperty('--doc-font-family', typo.fontFamily || 'Arial, Helvetica, sans-serif');
-            bodyEl.style.setProperty('--doc-font-size', `${typo.fontSize || 12}pt`);
-            bodyEl.style.setProperty('--doc-line-height', `${typo.lineHeight || 1.15}`);
-        }
-
+        // ==========================================
+        // AUTOAJUSTE INTELIGENTE A UNA SOLA HOJA CARTA
+        // ==========================================
         function fitDocumentToSingleLetterSheet() {
             const sheet = document.getElementById('officialLetterSheet');
-            const content = document.getElementById('docSmartContent');
-            const bodyEl = document.getElementById('documentRenderedBody');
-            if (!sheet || !content || !bodyEl) return;
+            const smart = document.getElementById('docSmartContent');
+            const body = document.getElementById('documentRenderedBody');
+            if (!sheet || !smart || !body) return;
 
-            content.style.transform = 'none';
-            content.style.width = '100%';
-            bodyEl.style.setProperty('--doc-para-mb', '10pt');
-            bodyEl.style.setProperty('--doc-blank-h', '10pt');
-            bodyEl.style.setProperty('--doc-sig-rule-mt', '36pt');
-            bodyEl.style.setProperty('--doc-sig-mt', '16pt');
+            smart.style.transform = 'none';
+            smart.style.width = '100%';
+            sheet.style.paddingTop = '25mm';
+            sheet.style.paddingBottom = '22mm';
 
-            const availableHeight = sheet.clientHeight - 175;
-            if (availableHeight <= 0) return;
+            const baseFont = Number(vaultState.typography.fontSize) || 12;
+            const baseLine = Number(vaultState.typography.lineHeight) || 1.15;
 
-            let currentHeight = content.scrollHeight;
+            body.style.setProperty('--doc-font-size', `${baseFont}pt`);
+            body.style.setProperty('--doc-line-height', `${baseLine}`);
+            body.style.setProperty('--doc-para-mb', '10pt');
+            body.style.setProperty('--doc-blank-h', '10pt');
+            body.style.setProperty('--doc-sig-rule-mt', '36pt');
+            body.style.setProperty('--doc-sig-mt', '16pt');
 
-            if (currentHeight > availableHeight) {
-                bodyEl.style.setProperty('--doc-para-mb', '5.5pt');
-                bodyEl.style.setProperty('--doc-blank-h', '5pt');
-                bodyEl.style.setProperty('--doc-sig-rule-mt', '22pt');
-                bodyEl.style.setProperty('--doc-sig-mt', '8pt');
-                currentHeight = content.scrollHeight;
+            const maxAllowedH = sheet.clientHeight - 170;
+            let contentH = smart.scrollHeight;
+
+            if (contentH > maxAllowedH) {
+                body.style.setProperty('--doc-para-mb', '5pt');
+                body.style.setProperty('--doc-blank-h', '5pt');
+                body.style.setProperty('--doc-sig-rule-mt', '22pt');
+                body.style.setProperty('--doc-sig-mt', '8pt');
+                sheet.style.paddingTop = '16mm';
+                sheet.style.paddingBottom = '14mm';
+                contentH = smart.scrollHeight;
             }
 
-            if (currentHeight > availableHeight) {
-                const scale = Math.max(0.72, availableHeight / currentHeight);
-                content.style.transform = `scale(${scale.toFixed(3)})`;
-                content.style.width = `${(100 / scale).toFixed(2)}%`;
+            const updatedMaxH = sheet.clientHeight - 110;
+            if (contentH > updatedMaxH && contentH > 0) {
+                const ratio = Math.max(0.62, +(updatedMaxH / contentH).toFixed(3));
+                smart.style.transform = `scale(${ratio})`;
+                smart.style.width = `${(100 / ratio).toFixed(2)}%`;
             }
         }
 
         // ==========================================
-        // TIPOGRAFÍA POR ESPACIOS Y SELECCIÓN EN HOJA
+        // TIPOGRAFÍA POR ESPACIOS, NEGRITAS Y SUBRAYADOS
         // ==========================================
+        function applyGlobalTypographyVariables() {
+            const body = document.getElementById('documentRenderedBody');
+            if (!body) return;
+            const t = vaultState.typography;
+            body.style.setProperty('--doc-font-family', t.fontFamily || 'Arial, Helvetica, sans-serif');
+            body.style.setProperty('--doc-font-size', `${t.fontSize || 12}pt`);
+            body.style.setProperty('--doc-line-height', `${t.lineHeight || 1.15}`);
+        }
+
         function onChangeTypoTargetSection() {
             const target = document.getElementById('typoTargetSection')?.value || 'all';
-            const sec = target === 'selection'
-                ? vaultState.typography
-                : (vaultState.typography.sections?.[target] || vaultState.typography);
+            const sec = vaultState.typography.sections?.[target] || vaultState.typography;
             const fontSel = document.getElementById('typoFontFamily');
             const sizeRange = document.getElementById('typoFontSize');
-            const lhRange = document.getElementById('typoLineHeight');
+            const lineRange = document.getElementById('typoLineHeight');
+
             if (fontSel && sec.fontFamily) fontSel.value = sec.fontFamily;
             if (sizeRange) {
                 const sz = sec.fontSize || vaultState.typography.fontSize || 12;
                 sizeRange.value = sz;
                 document.getElementById('typoFontSizeVal').textContent = `${sz}pt`;
             }
-            if (lhRange) {
+            if (lineRange) {
                 const lh = sec.lineHeight || vaultState.typography.lineHeight || 1.15;
-                lhRange.value = lh;
-                document.getElementById('typoLineHeightVal').textContent = Number(lh).toFixed(2);
+                lineRange.value = lh;
+                document.getElementById('typoLineHeightVal').textContent = `${lh}`;
             }
         }
 
@@ -1900,36 +1865,35 @@
             const target = document.getElementById('typoTargetSection')?.value || 'all';
             const fontVal = document.getElementById('typoFontFamily')?.value || 'Arial, Helvetica, sans-serif';
             if (target === 'selection') {
-                const ok = wrapPreviewSelectionSafely(() => {
-                    const span = document.createElement('span');
-                    span.style.fontFamily = fontVal;
-                    return span;
-                });
-                if (!ok) showToast('Selecciona texto directamente en la hoja para cambiar su letra.');
+                applyFloatingSelectionStyle('fontFamily', fontVal);
                 return;
             }
             updateSectionOrGlobalTypography(true);
         }
 
-        function updateSectionOrGlobalTypography(shouldSave = true) {
+        function updateSectionOrGlobalTypography(persist = false) {
             const target = document.getElementById('typoTargetSection')?.value || 'all';
-            const fontFamily = document.getElementById('typoFontFamily')?.value || 'Arial, Helvetica, sans-serif';
-            const fontSize = parseFloat(document.getElementById('typoFontSize')?.value || '12');
-            const lineHeight = parseFloat(document.getElementById('typoLineHeight')?.value || '1.15');
+            const fontVal = document.getElementById('typoFontFamily')?.value || 'Arial, Helvetica, sans-serif';
+            const sizeVal = parseFloat(document.getElementById('typoFontSize')?.value || '12');
+            const lineVal = parseFloat(document.getElementById('typoLineHeight')?.value || '1.15');
 
-            document.getElementById('typoFontSizeVal').textContent = `${fontSize}pt`;
-            document.getElementById('typoLineHeightVal').textContent = lineHeight.toFixed(2);
+            document.getElementById('typoFontSizeVal').textContent = `${sizeVal}pt`;
+            document.getElementById('typoLineHeightVal').textContent = `${lineVal}`;
 
             if (target === 'all' || target === 'selection') {
-                vaultState.typography.fontFamily = fontFamily;
-                vaultState.typography.fontSize = fontSize;
-                vaultState.typography.lineHeight = lineHeight;
+                vaultState.typography.fontFamily = fontVal;
+                vaultState.typography.fontSize = sizeVal;
+                vaultState.typography.lineHeight = lineVal;
             } else {
                 if (!vaultState.typography.sections) vaultState.typography.sections = JSON.parse(JSON.stringify(SECTION_TYPO_DEFAULT));
-                vaultState.typography.sections[target] = { fontFamily, fontSize, lineHeight };
+                vaultState.typography.sections[target] = {
+                    fontFamily: fontVal,
+                    fontSize: sizeVal,
+                    lineHeight: lineVal
+                };
             }
 
-            if (shouldSave) persistVaultData(true);
+            if (persist) persistVaultData(true);
             updateDocument();
         }
 
@@ -1942,8 +1906,8 @@
             };
             document.getElementById('typoTargetSection').value = 'all';
             document.getElementById('typoFontFamily').value = 'Arial, Helvetica, sans-serif';
-            document.getElementById('typoFontSize').value = 12;
-            document.getElementById('typoLineHeight').value = 1.15;
+            document.getElementById('typoFontSize').value = '12';
+            document.getElementById('typoLineHeight').value = '1.15';
             document.getElementById('typoFontSizeVal').textContent = '12pt';
             document.getElementById('typoLineHeightVal').textContent = '1.15';
             persistVaultData(true);
@@ -1951,333 +1915,275 @@
             showToast('Tipografía restaurada a Arial 12pt.');
         }
 
-        function wrapPreviewSelectionSafely(createWrapperFn) {
-            const bodyEl = document.getElementById('documentRenderedBody');
+        function wrapPreviewSelectionSafely(tagName, styleObj = null) {
             const sel = window.getSelection();
-            if (!bodyEl || !sel || sel.rangeCount === 0 || sel.isCollapsed) return false;
+            const body = document.getElementById('documentRenderedBody');
+            if (!sel || sel.rangeCount === 0 || sel.isCollapsed || !body) return false;
             const range = sel.getRangeAt(0);
-            if (!bodyEl.contains(range.commonAncestorContainer)) return false;
+            if (!body.contains(range.commonAncestorContainer)) return false;
 
-            const wrapper = createWrapperFn();
-            const extracted = range.extractContents();
-            wrapper.appendChild(extracted);
+            const wrapper = document.createElement(tagName);
+            if (styleObj) Object.assign(wrapper.style, styleObj);
+            const fragment = range.extractContents();
+            wrapper.appendChild(fragment);
             range.insertNode(wrapper);
+
             sel.removeAllRanges();
+            const newRange = document.createRange();
+            newRange.selectNodeContents(wrapper);
+            sel.addRange(newRange);
             fitDocumentToSingleLetterSheet();
             return true;
         }
 
-        function toggleSelectedTextBold() {
+        function toggleTextareaMarker(marker) {
             const ta = document.getElementById('customDocFormatText');
-            if (ta && document.activeElement === ta && ta.selectionStart !== ta.selectionEnd) {
-                const s = ta.selectionStart;
-                const e = ta.selectionEnd;
-                const selected = ta.value.substring(s, e);
-                const before = ta.value.substring(Math.max(0, s - 2), s);
-                const after = ta.value.substring(e, Math.min(ta.value.length, e + 2));
+            if (!ta || ta.disabled) return false;
+            const start = ta.selectionStart;
+            const end = ta.selectionEnd;
+            if (start === end) return false;
 
-                if (selected.startsWith('**') && selected.endsWith('**') && selected.length > 4) {
-                    const unwrapped = selected.slice(2, -2);
-                    ta.value = ta.value.substring(0, s) + unwrapped + ta.value.substring(e);
-                    ta.setSelectionRange(s, s + unwrapped.length);
-                    showToast('Negritas quitadas.');
-                } else if (before === '**' && after === '**') {
-                    ta.value = ta.value.substring(0, s - 2) + selected + ta.value.substring(e + 2);
-                    ta.setSelectionRange(s - 2, s - 2 + selected.length);
-                    showToast('Negritas quitadas.');
-                } else {
-                    ta.value = ta.value.substring(0, s) + `**${selected}**` + ta.value.substring(e);
-                    ta.setSelectionRange(s + 2, s + 2 + selected.length);
-                    showToast('Negritas aplicadas.');
-                }
-                onCustomFormatTextareaInput();
-                return;
+            const selected = ta.value.slice(start, end);
+            const len = marker.length;
+            if (selected.startsWith(marker) && selected.endsWith(marker) && selected.length >= len * 2) {
+                const unwrapped = selected.slice(len, selected.length - len);
+                ta.value = ta.value.slice(0, start) + unwrapped + ta.value.slice(end);
+                ta.focus();
+                ta.setSelectionRange(start, start + unwrapped.length);
+            } else {
+                const wrapped = `${marker}${selected}${marker}`;
+                ta.value = ta.value.slice(0, start) + wrapped + ta.value.slice(end);
+                ta.focus();
+                ta.setSelectionRange(start, start + wrapped.length);
             }
+            onCustomFormatTextareaInput();
+            return true;
+        }
 
-            const bodyEl = document.getElementById('documentRenderedBody');
+        function toggleSelectedTextBold() {
+            if (toggleTextareaMarker('**')) return;
             const sel = window.getSelection();
-            if ((!sel || sel.isCollapsed) && savedPreviewSelectionRange) {
-                sel.removeAllRanges();
-                sel.addRange(savedPreviewSelectionRange);
-            }
-            if (!bodyEl || !sel || sel.rangeCount === 0 || sel.isCollapsed) {
-                showToast('Selecciona un texto para poner o quitar negritas.');
+            const body = document.getElementById('documentRenderedBody');
+            if (!sel || sel.rangeCount === 0 || sel.isCollapsed || !body || !body.contains(sel.anchorNode)) {
+                showToast('Selecciona primero el texto al que deseas agregar o quitar negritas.');
                 return;
             }
-
-            const range = sel.getRangeAt(0);
-            if (!bodyEl.contains(range.commonAncestorContainer)) return;
-
-            let ancestor = range.commonAncestorContainer.nodeType === 3
-                ? range.commonAncestorContainer.parentElement
-                : range.commonAncestorContainer;
-            let existingBold = ancestor ? ancestor.closest('strong, b') : null;
-            if (existingBold && !bodyEl.contains(existingBold)) existingBold = null;
-
-            const selectedStr = range.toString();
-            const containsBoldTag = range.cloneContents().querySelector('strong, b') !== null;
-
-            if (existingBold && existingBold.textContent.trim() === selectedStr.trim()) {
-                const textNode = document.createTextNode(existingBold.textContent);
-                existingBold.replaceWith(textNode);
-                const newRange = document.createRange();
-                newRange.selectNodeContents(textNode);
-                sel.removeAllRanges();
-                sel.addRange(newRange);
-                savedPreviewSelectionRange = newRange.cloneRange();
+            let node = sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode;
+            let boldAncestor = null;
+            while (node && node !== body) {
+                if (node.tagName === 'STRONG' || node.tagName === 'B') {
+                    boldAncestor = node;
+                    break;
+                }
+                node = node.parentElement;
+            }
+            if (boldAncestor) {
+                const parent = boldAncestor.parentNode;
+                while (boldAncestor.firstChild) {
+                    parent.insertBefore(boldAncestor.firstChild, boldAncestor);
+                }
+                parent.removeChild(boldAncestor);
                 fitDocumentToSingleLetterSheet();
-                showToast('Negritas quitadas de la selección.');
-                return;
+            } else {
+                wrapPreviewSelectionSafely('strong');
             }
-
-            if (existingBold || containsBoldTag) {
-                const wrapper = document.createElement('span');
-                wrapper.style.fontWeight = '400';
-                const extracted = range.extractContents();
-                extracted.querySelectorAll('strong, b').forEach(el => {
-                    el.replaceWith(document.createTextNode(el.textContent));
-                });
-                wrapper.appendChild(extracted);
-                range.insertNode(wrapper);
-                const newRange = document.createRange();
-                newRange.selectNodeContents(wrapper);
-                sel.removeAllRanges();
-                sel.addRange(newRange);
-                savedPreviewSelectionRange = newRange.cloneRange();
-                fitDocumentToSingleLetterSheet();
-                showToast('Negritas quitadas de la selección.');
-                return;
-            }
-
-            const strongEl = document.createElement('strong');
-            const extracted = range.extractContents();
-            strongEl.appendChild(extracted);
-            range.insertNode(strongEl);
-            const newRange = document.createRange();
-            newRange.selectNodeContents(strongEl);
-            sel.removeAllRanges();
-            sel.addRange(newRange);
-            savedPreviewSelectionRange = newRange.cloneRange();
-            fitDocumentToSingleLetterSheet();
-            showToast('Negritas aplicadas a la selección.');
         }
 
         function toggleSelectedTextUnderline() {
-            const ta = document.getElementById('customDocFormatText');
-            if (ta && document.activeElement === ta && ta.selectionStart !== ta.selectionEnd) {
-                const s = ta.selectionStart;
-                const e = ta.selectionEnd;
-                const selected = ta.value.substring(s, e);
-                ta.value = ta.value.substring(0, s) + `__${selected}__` + ta.value.substring(e);
-                onCustomFormatTextareaInput();
+            if (toggleTextareaMarker('__')) return;
+            if (!wrapPreviewSelectionSafely('u')) {
+                showToast('Selecciona primero el texto que deseas subrayar.');
+            }
+        }
+
+        function applyFloatingSelectionStyle(prop, val) {
+            const styleObj = {};
+            styleObj[prop] = val;
+            if (!wrapPreviewSelectionSafely('span', styleObj)) {
+                showToast('Selecciona un fragmento de texto dentro de la constancia.');
+            }
+        }
+
+        function hideFloatingTextToolbar() {
+            document.getElementById('floatingTextFormatToolbar')?.classList.add('hidden');
+        }
+
+        function handlePreviewTextSelectionToolbar() {
+            const toolbar = document.getElementById('floatingTextFormatToolbar');
+            const body = document.getElementById('documentRenderedBody');
+            const sel = window.getSelection();
+            if (!toolbar || !body || !sel || sel.rangeCount === 0 || sel.isCollapsed) {
+                hideFloatingTextToolbar();
                 return;
             }
-            const ok = wrapPreviewSelectionSafely(() => document.createElement('u'));
-            if (ok) showToast('Subrayado aplicado a la selección.');
-        }
-
-        // ==========================================
-        // ZOOM, PANTALLA COMPLETA, PDF E IMPRESIÓN
-        // ==========================================
-        function adjustPreviewZoom(delta, reset = false) {
-            if (reset) {
-                previewZoom = 0.78;
-            } else {
-                previewZoom = Math.min(1.4, Math.max(0.45, +(previewZoom + delta).toFixed(2)));
-            }
-            const box = document.getElementById('previewScaleBox');
-            const lbl = document.getElementById('previewZoomLabel');
-            if (box) box.style.transform = `scale(${previewZoom})`;
-            if (lbl) lbl.textContent = `${Math.round(previewZoom * 100)}%`;
-        }
-
-        function togglePreviewFullscreen() {
-            const sec = document.getElementById('previewSection');
-            const lbl = document.getElementById('labelFullscreenPreview');
-            if (!sec) return;
-            isPreviewFullscreen = !isPreviewFullscreen;
-            sec.classList.toggle('preview-fullscreen', isPreviewFullscreen);
-            if (lbl) lbl.textContent = isPreviewFullscreen ? 'Salir Pantalla Completa' : 'Pantalla Completa';
-        }
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && isPreviewFullscreen) {
-                togglePreviewFullscreen();
-            }
-        });
-
-        function recordCurrentConstanciaInHistory() {
-            const folio = (document.getElementById('inputFolio')?.value || '').trim();
-            const alumno = (document.getElementById('inputAlumno')?.value || '').trim();
-            const matricula = (document.getElementById('inputMatricula')?.value || '').trim();
-            const major = vaultState.majors.find(m => m.id === document.getElementById('selectLicenciatura')?.value)?.name || '';
-            const entry = {
-                id: 'hist_' + Date.now(),
-                date: new Date().toLocaleString('es-MX'),
-                type: DOC_TYPE_META[currentDocType]?.label || currentDocType,
-                folio,
-                alumno,
-                matricula,
-                licenciatura: major
-            };
-            vaultState.history.unshift(entry);
-            updateHistoryBadge();
-            persistVaultData(true);
-        }
-
-        function updateHistoryBadge() {
-            const badge = document.getElementById('historyCountBadge');
-            if (badge) badge.textContent = String(vaultState.history.length);
-        }
-
-        async function saveAndDownloadConstanciaPDF() {
-            const sheet = document.getElementById('officialLetterSheet');
-            if (!sheet || !window.html2canvas || !window.jspdf) {
-                showToast('Preparando motor PDF, intenta de nuevo en un segundo.');
+            const range = sel.getRangeAt(0);
+            if (!body.contains(range.commonAncestorContainer)) {
+                hideFloatingTextToolbar();
                 return;
             }
+            const rect = range.getBoundingClientRect();
+            toolbar.style.top = `${Math.max(12, rect.top - 48)}px`;
+            toolbar.style.left = `${Math.min(window.innerWidth - 290, Math.max(12, rect.left))}px`;
+            toolbar.classList.remove('hidden');
+        }
 
-            recordCurrentConstanciaInHistory();
-            showToast('Generando PDF oficial tamaño carta...');
+        // ==========================================
+        // CATÁLOGOS: LICENCIATURAS, PERIODOS Y CALIFICACIONES
+        // ==========================================
+        function populateMajorsSelect() {
+            const sel = document.getElementById('selectLicenciatura');
+            if (!sel) return;
+            const prev = sel.value;
+            sel.innerHTML = vaultState.majors.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
+            if (prev && vaultState.majors.some(m => m.id === prev)) sel.value = prev;
+            onSelectMajor();
+        }
 
-            const cloneWrapper = document.createElement('div');
-            cloneWrapper.style.position = 'fixed';
-            cloneWrapper.style.left = '-10000px';
-            cloneWrapper.style.top = '0';
-            cloneWrapper.style.width = '215.9mm';
-            cloneWrapper.style.height = '279.4mm';
-            cloneWrapper.style.background = '#ffffff';
-            cloneWrapper.style.zIndex = '-1';
+        function onSelectMajor() {
+            const id = document.getElementById('selectLicenciatura')?.value;
+            const major = vaultState.majors.find(m => m.id === id);
+            const rvoeInput = document.getElementById('inputRvoe');
+            if (major && rvoeInput) rvoeInput.value = major.rvoe || '';
+            updateDocument();
+        }
 
-            const clonedSheet = sheet.cloneNode(true);
-            clonedSheet.style.transform = 'none';
-            clonedSheet.style.boxShadow = 'none';
-            clonedSheet.style.margin = '0';
-            cloneWrapper.appendChild(clonedSheet);
-            document.body.appendChild(cloneWrapper);
+        function populatePeriodsSelect() {
+            const sel = document.getElementById('selectPeriodo');
+            if (!sel) return;
+            const prev = sel.value;
+            sel.innerHTML = vaultState.periods.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+            if (prev && vaultState.periods.some(p => p.id === prev)) sel.value = prev;
+            onSelectPeriod();
+        }
 
-            try {
-                const canvas = await window.html2canvas(clonedSheet, {
-                    scale: 2,
-                    useCORS: true,
-                    backgroundColor: '#ffffff',
-                    width: clonedSheet.offsetWidth,
-                    height: clonedSheet.offsetHeight
-                });
-                const imgData = canvas.toDataURL('image/jpeg', 0.98);
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
-                pdf.addImage(imgData, 'JPEG', 0, 0, 215.9, 279.4);
-
-                const alumnoClean = (document.getElementById('inputAlumno')?.value || 'ALUMNO')
-                    .trim()
-                    .replace(/[^a-zA-Z0-9ÁÉÍÓÚÑáéíóúñ\s]/g, '')
-                    .replace(/\s+/g, '_');
-                const folioClean = (document.getElementById('inputFolio')?.value || 'FOLIO').replace(/[^a-zA-Z0-9]/g, '_');
-                pdf.save(`Constancia_${folioClean}_${alumnoClean}.pdf`);
-                showToast('Constancia guardada y descargada en PDF.');
-            } catch (err) {
-                console.error('Error exportando PDF:', err);
-                showToast('No se pudo generar el PDF. Usa Imprimir -> Guardar como PDF.');
-            } finally {
-                document.body.removeChild(cloneWrapper);
+        function onSelectPeriod() {
+            const id = document.getElementById('selectPeriodo')?.value;
+            const period = vaultState.periods.find(p => p.id === id);
+            if (period) {
+                document.getElementById('inputInicioPeriodo').value = period.start || '';
+                document.getElementById('inputFinPeriodo').value = period.end || '';
+                syncVacationDatesFromActivePeriod(false);
             }
+            updateDocument();
         }
 
-        function printOfficialConstancia() {
-            recordCurrentConstanciaInHistory();
-            window.print();
+        function syncVacationDatesFromActivePeriod(notify = false) {
+            const id = document.getElementById('selectPeriodo')?.value;
+            const period = vaultState.periods.find(p => p.id === id);
+            if (!period) return;
+            const badge = document.getElementById('vacLinkedPeriodBadge');
+            if (badge) badge.textContent = period.name;
+            if (period.vacStart) document.getElementById('inputVacInicio').value = period.vacStart;
+            if (period.vacEnd) document.getElementById('inputVacFin').value = period.vacEnd;
+            updateDocument();
+            if (notify) showToast('Fechas vacacionales vinculadas con el periodo activo.');
         }
 
-        // ==========================================
-        // COMANDOS RÁPIDOS DE BARRA SUPERIOR
-        // ==========================================
-        function incrementFolioByOne() {
-            const inp = document.getElementById('inputFolio');
-            if (!inp || inp.disabled) return;
-            inp.value = inp.value.replace(/(\d+)(?=\/\d{4}$)|(\d+)(?!.*\d)/, (match) => {
-                const next = parseInt(match, 10) + 1;
-                return String(next).padStart(match.length, '0');
+        function setTodayExpeditionDate(shouldRender = true) {
+            const input = document.getElementById('inputFecha');
+            if (!input) return;
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            input.value = `${yyyy}-${mm}-${dd}`;
+            if (shouldRender) updateDocument();
+        }
+
+        function renderGradesEditorRows() {
+            const container = document.getElementById('gradesEditorRows');
+            if (!container) return;
+            container.innerHTML = gradesRowsData.map((row, idx) => `
+                <div class="grid grid-cols-12 gap-1.5 items-center bg-slate-50 p-2 rounded-xl border border-slate-200">
+                    <input type="text" value="${escapeHtml(row.grupo)}" oninput="updateGradeCell(${idx}, 'grupo', this.value)" placeholder="Grupo" class="col-span-2 rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-bold uppercase">
+                    <input type="text" value="${escapeHtml(row.codigo)}" oninput="updateGradeCell(${idx}, 'codigo', this.value)" placeholder="Clave" class="col-span-3 rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-mono uppercase">
+                    <input type="text" value="${escapeHtml(row.materia)}" oninput="updateGradeCell(${idx}, 'materia', this.value)" placeholder="Materia" class="col-span-4 rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-semibold uppercase">
+                    <input type="text" value="${escapeHtml(row.calificacion)}" oninput="updateGradeCell(${idx}, 'calificacion', this.value)" placeholder="Cal." class="col-span-2 rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-bold text-center">
+                    <button type="button" onclick="removeGradeRow(${idx})" class="col-span-1 text-rose-600 hover:bg-rose-50 rounded-lg py-1 font-extrabold text-xs">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function updateGradeCell(idx, field, value) {
+            if (!gradesRowsData[idx]) return;
+            gradesRowsData[idx][field] = value;
+            updateDocument();
+        }
+
+        function addGradeRow() {
+            gradesRowsData.push({ grupo: '5A', codigo: 'MAT-001', materia: 'NUEVA ASIGNATURA', calificacion: '9.0' });
+            renderGradesEditorRows();
+            updateDocument();
+        }
+
+        function removeGradeRow(idx) {
+            gradesRowsData.splice(idx, 1);
+            renderGradesEditorRows();
+            updateDocument();
+        }
+
+        function parseAndReplaceCalificaciones() {
+            const raw = (document.getElementById('bulkCalificacionesInput')?.value || '').trim();
+            if (!raw) {
+                showToast('Pega o escribe las calificaciones antes de sustituir.');
+                return;
+            }
+            const parsed = [];
+            raw.split('\n').forEach(line => {
+                const clean = line.trim();
+                if (!clean) return;
+                let parts = clean.includes('\t') ? clean.split('\t') : (clean.includes('|') ? clean.split('|') : (clean.includes(';') ? clean.split(';') : clean.split(/\s{2,}/)));
+                parts = parts.map(p => p.trim()).filter(Boolean);
+                if (parts.length >= 4) {
+                    parsed.push({ grupo: parts[0], codigo: parts[1], materia: parts[2], calificacion: parts[3] });
+                } else if (parts.length === 2) {
+                    parsed.push({ grupo: '5A', codigo: 'ASIG', materia: parts[0], calificacion: parts[1] });
+                }
             });
+            if (!parsed.length) {
+                showToast('No se reconocieron filas válidas.');
+                return;
+            }
+            gradesRowsData = parsed;
+            renderGradesEditorRows();
             updateDocument();
-            showToast(`Folio incrementado: ${inp.value}`);
-        }
-
-        function clearStudentQuickCommand() {
-            const alumnoEl = document.getElementById('inputAlumno');
-            const matEl = document.getElementById('inputMatricula');
-            if (alumnoEl && !alumnoEl.disabled) alumnoEl.value = '';
-            if (matEl && !matEl.disabled) matEl.value = '';
-            updateDocument();
-            showToast('Campos de alumno limpiados.');
-        }
-
-        function copyDocumentTextCommand() {
-            const bodyEl = document.getElementById('documentRenderedBody');
-            if (!bodyEl) return;
-            const temp = document.createElement('textarea');
-            temp.value = bodyEl.innerText;
-            document.body.appendChild(temp);
-            temp.select();
-            document.execCommand('copy');
-            document.body.removeChild(temp);
-            showToast('Texto de la constancia copiado al portapapeles.');
+            showToast(`Tabla actualizada con ${parsed.length} asignaturas.`);
         }
 
         // ==========================================
-        // GESTIÓN DE LICENCIATURAS / OFERTAS EDUCATIVAS
+        // GESTIÓN DE LICENCIATURAS Y RVOE (ADMIN)
         // ==========================================
         function renderMajorsCatalogList() {
-            const container = document.getElementById('majorsCatalogList');
-            const adminForm = document.getElementById('majorsAdminForm');
-            const subtitle = document.getElementById('majorsTabSubtitle');
-            const isAdmin = activeSession.role === 'admin';
-
-            if (adminForm) adminForm.classList.toggle('hidden', !isAdmin);
-            if (subtitle) {
-                subtitle.textContent = isAdmin
-                    ? 'Agrega, modifica, guarda o elimina los programas académicos y sus acuerdos de incorporación oficiales.'
-                    : 'Consulta el catálogo oficial de licenciaturas y acuerdos RVOE vigentes (Modo Solo Lectura).';
-            }
-
-            if (!container) return;
-            container.innerHTML = vaultState.majors.map(m => `
+            const list = document.getElementById('majorsCatalogList');
+            if (!list) return;
+            list.innerHTML = vaultState.majors.map(m => `
                 <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 flex items-center justify-between gap-3">
                     <div>
                         <div class="text-xs font-extrabold text-blue-950">${escapeHtml(m.name)}</div>
                         <div class="text-[11px] font-mono text-slate-600 mt-0.5">${escapeHtml(m.rvoe)}</div>
                     </div>
-                    ${isAdmin ? `
                     <div class="flex items-center gap-1.5 shrink-0">
-                        <button type="button" onclick="editMajorRvoe('${m.id}')" class="px-2.5 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-[11px]">Modificar</button>
-                        <button type="button" onclick="deleteMajorRvoe('${m.id}')" class="px-2.5 py-1.5 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-[11px]">Eliminar</button>
-                    </div>` : `
-                    <span class="px-2.5 py-1 rounded-lg bg-slate-200/80 text-slate-600 font-bold text-[10px] shrink-0">Solo Lectura</span>`}
+                        <button type="button" onclick="editMajorRvoe('${m.id}')" class="px-2.5 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-[11px]">Modificar</button>
+                        <button type="button" onclick="deleteMajorRvoe('${m.id}')" class="px-2.5 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-900 font-bold text-[11px]">Eliminar</button>
+                    </div>
                 </div>
             `).join('');
         }
 
         function saveMajorRvoeForm(e) {
             e.preventDefault();
-            if (activeSession.role !== 'admin') {
-                showToast('Solo el Administrador puede modificar las licenciaturas y RVOE.');
-                return;
-            }
-            const editId = document.getElementById('editMajorIdInput').value;
-            const name = document.getElementById('newMajorNameInput').value.trim().toUpperCase();
-            const rvoe = document.getElementById('newMajorRvoeInput').value.trim().toUpperCase();
+            const editId = document.getElementById('editMajorIdInput')?.value || '';
+            const name = (document.getElementById('newMajorNameInput')?.value || '').trim().toUpperCase();
+            const rvoe = (document.getElementById('newMajorRvoeInput')?.value || '').trim().toUpperCase();
             if (!name || !rvoe) return;
 
             if (editId) {
-                const target = vaultState.majors.find(m => m.id === editId);
-                if (target) {
-                    target.name = name;
-                    target.rvoe = rvoe;
-                }
-                showToast('Oferta educativa modificada.');
+                const idx = vaultState.majors.findIndex(m => m.id === editId);
+                if (idx >= 0) vaultState.majors[idx] = { ...vaultState.majors[idx], name, rvoe };
+                showToast('Licenciatura modificada.');
             } else {
                 vaultState.majors.push({ id: 'maj_' + Date.now(), name, rvoe });
-                showToast('Nueva oferta educativa guardada.');
+                showToast('Licenciatura agregada.');
             }
 
             cancelEditMajorRvoe();
@@ -2287,14 +2193,13 @@
         }
 
         function editMajorRvoe(id) {
-            if (activeSession.role !== 'admin') return;
-            const m = vaultState.majors.find(x => x.id === id);
-            if (!m) return;
-            document.getElementById('editMajorIdInput').value = m.id;
-            document.getElementById('newMajorNameInput').value = m.name;
-            document.getElementById('newMajorRvoeInput').value = m.rvoe;
+            const major = vaultState.majors.find(m => m.id === id);
+            if (!major) return;
+            document.getElementById('editMajorIdInput').value = major.id;
+            document.getElementById('newMajorNameInput').value = major.name;
+            document.getElementById('newMajorRvoeInput').value = major.rvoe;
             document.getElementById('btnSubmitMajorForm').textContent = 'Actualizar Oferta';
-            document.getElementById('btnCancelEditMajor').classList.remove('hidden');
+            document.getElementById('btnCancelEditMajor')?.classList.remove('hidden');
         }
 
         function cancelEditMajorRvoe() {
@@ -2302,12 +2207,11 @@
             document.getElementById('newMajorNameInput').value = '';
             document.getElementById('newMajorRvoeInput').value = '';
             document.getElementById('btnSubmitMajorForm').textContent = 'Guardar Oferta';
-            document.getElementById('btnCancelEditMajor').classList.add('hidden');
+            document.getElementById('btnCancelEditMajor')?.classList.add('hidden');
         }
 
         function deleteMajorRvoe(id) {
-            if (activeSession.role !== 'admin') return;
-            askCustomConfirm('Eliminar Oferta Educativa', '¿Deseas eliminar esta licenciatura del catálogo oficial?', () => {
+            askCustomConfirm('Eliminar Oferta Educativa', '¿Deseas eliminar permanentemente esta licenciatura del catálogo?', () => {
                 vaultState.majors = vaultState.majors.filter(m => m.id !== id);
                 persistVaultData(true);
                 populateMajorsSelect();
@@ -2320,28 +2224,28 @@
         // GESTIÓN DE PERIODOS ESCOLARES Y VACACIONALES
         // ==========================================
         function openPeriodsModal() {
-            document.getElementById('periodsModal')?.classList.remove('hidden');
             renderPeriodsModalList();
+            document.getElementById('periodsModal')?.classList.remove('hidden');
         }
 
         function closePeriodsModal() {
-            document.getElementById('periodsModal')?.classList.add('hidden');
             cancelEditAcademicPeriod();
+            document.getElementById('periodsModal')?.classList.add('hidden');
         }
 
         function renderPeriodsModalList() {
-            const container = document.getElementById('periodsModalList');
-            if (!container) return;
-            container.innerHTML = vaultState.periods.map(p => `
-                <div class="p-3 rounded-2xl border border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-2">
-                    <div class="text-xs">
-                        <div class="font-extrabold text-blue-950">${escapeHtml(p.name)}</div>
+            const list = document.getElementById('periodsModalList');
+            if (!list) return;
+            list.innerHTML = vaultState.periods.map(p => `
+                <div class="p-3.5 rounded-2xl border border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-2">
+                    <div class="space-y-0.5">
+                        <div class="text-xs font-extrabold text-blue-950">${escapeHtml(p.name)}</div>
                         <div class="text-[11px] text-slate-600">Clases: ${escapeHtml(p.start)} al ${escapeHtml(p.end)}</div>
-                        <div class="text-[11px] text-amber-800 font-semibold">Vacaciones: ${escapeHtml(p.vacStart || '-')} • Regreso: ${escapeHtml(p.vacEnd || '-')}</div>
+                        <div class="text-[11px] text-amber-800 font-semibold">Vacaciones: ${escapeHtml(p.vacStart || '')} al ${escapeHtml(p.vacEnd || '')}</div>
                     </div>
                     <div class="flex items-center gap-1.5">
-                        <button type="button" onclick="editAcademicPeriod('${p.id}')" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-[11px]">Modificar</button>
-                        <button type="button" onclick="deleteAcademicPeriod('${p.id}')" class="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-[11px]">Eliminar</button>
+                        <button type="button" onclick="editAcademicPeriod('${p.id}')" class="px-2.5 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-[11px]">Modificar</button>
+                        <button type="button" onclick="deleteAcademicPeriod('${p.id}')" class="px-2.5 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-900 font-bold text-[11px]">Eliminar</button>
                     </div>
                 </div>
             `).join('');
@@ -2349,20 +2253,20 @@
 
         function saveCustomAcademicPeriod(e) {
             e.preventDefault();
-            const editId = document.getElementById('editPeriodIdInput').value;
-            const name = document.getElementById('periodNameInput').value.trim().toUpperCase();
-            const start = document.getElementById('periodStartInput').value.trim().toUpperCase();
-            const end = document.getElementById('periodEndInput').value.trim().toUpperCase();
-            const vacStart = document.getElementById('periodVacStartInput').value.trim().toUpperCase();
-            const vacEnd = document.getElementById('periodVacEndInput').value.trim().toUpperCase();
+            const editId = document.getElementById('editPeriodIdInput')?.value || '';
+            const name = (document.getElementById('periodNameInput')?.value || '').trim().toUpperCase();
+            const start = (document.getElementById('periodStartInput')?.value || '').trim().toUpperCase();
+            const end = (document.getElementById('periodEndInput')?.value || '').trim().toUpperCase();
+            const vacStart = (document.getElementById('periodVacStartInput')?.value || '').trim().toUpperCase();
+            const vacEnd = (document.getElementById('periodVacEndInput')?.value || '').trim().toUpperCase();
 
             if (editId) {
-                const target = vaultState.periods.find(p => p.id === editId);
-                if (target) Object.assign(target, { name, start, end, vacStart, vacEnd });
-                showToast('Periodo escolar actualizado.');
+                const idx = vaultState.periods.findIndex(p => p.id === editId);
+                if (idx >= 0) vaultState.periods[idx] = { ...vaultState.periods[idx], name, start, end, vacStart, vacEnd };
+                showToast('Periodo actualizado.');
             } else {
                 vaultState.periods.push({ id: 'per_' + Date.now(), name, start, end, vacStart, vacEnd });
-                showToast('Nuevo periodo escolar guardado.');
+                showToast('Periodo agregado.');
             }
 
             cancelEditAcademicPeriod();
@@ -2381,7 +2285,7 @@
             document.getElementById('periodVacStartInput').value = p.vacStart || '';
             document.getElementById('periodVacEndInput').value = p.vacEnd || '';
             document.getElementById('btnSubmitPeriodForm').textContent = 'Actualizar Periodo';
-            document.getElementById('btnCancelEditPeriod').classList.remove('hidden');
+            document.getElementById('btnCancelEditPeriod')?.classList.remove('hidden');
         }
 
         function cancelEditAcademicPeriod() {
@@ -2392,16 +2296,16 @@
             document.getElementById('periodVacStartInput').value = '';
             document.getElementById('periodVacEndInput').value = '';
             document.getElementById('btnSubmitPeriodForm').textContent = 'Guardar Periodo';
-            document.getElementById('btnCancelEditPeriod').classList.add('hidden');
+            document.getElementById('btnCancelEditPeriod')?.classList.add('hidden');
         }
 
         function deleteAcademicPeriod(id) {
-            askCustomConfirm('Eliminar Periodo', '¿Deseas eliminar este periodo escolar del catálogo?', () => {
+            askCustomConfirm('Eliminar Periodo', '¿Deseas eliminar este periodo escolar?', () => {
                 vaultState.periods = vaultState.periods.filter(p => p.id !== id);
                 persistVaultData(true);
                 populatePeriodsSelect();
                 renderPeriodsModalList();
-                showToast('Periodo escolar eliminado.');
+                showToast('Periodo eliminado.');
             });
         }
 
@@ -2410,12 +2314,12 @@
         // ==========================================
         function renderProfilesManagerGrid() {
             const grid = document.getElementById('profilesManagerGrid');
-            const counter = document.getElementById('profilesCountIndicator');
-            if (counter) counter.textContent = `${vaultState.profiles.length} Perfiles`;
+            const badge = document.getElementById('profilesCountIndicator');
+            if (badge) badge.textContent = `${vaultState.profiles.length} Perfiles`;
             if (!grid) return;
 
             grid.innerHTML = vaultState.profiles.map(p => `
-                <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 space-y-3">
+                <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50/80 space-y-3">
                     <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
                         <div class="sm:col-span-8">
                             <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Nombre del Usuario / Perfil</label>
@@ -2423,18 +2327,18 @@
                         </div>
                         <div class="sm:col-span-4">
                             <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Código Acceso</label>
-                            <input type="text" id="profCode_${p.id}" value="${escapeHtml(p.code)}" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-mono font-bold uppercase text-slate-800">
+                            <input type="text" id="profCode_${p.id}" value="${escapeHtml(p.code)}" class="w-full rounded-xl border border-amber-300 bg-amber-50/50 px-3 py-1.5 text-xs font-mono font-extrabold text-slate-900 uppercase">
                         </div>
                     </div>
-                    <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200/80">
-                        <button type="button" onclick="openUserPermissionsModal('${p.id}')" class="px-3 py-1.5 rounded-xl bg-blue-950 hover:bg-blue-900 text-amber-300 text-[11px] font-extrabold">
-                            Lista de Cotejo de Permisos
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200">
+                        <button type="button" onclick="openUserPermissionsModal('${p.id}')" class="px-3 py-1.5 rounded-xl bg-blue-950 hover:bg-blue-900 text-amber-300 font-extrabold text-[11px]">
+                            Permisos (Lista de Cotejo)
                         </button>
                         <div class="flex items-center gap-1.5">
-                            <button type="button" onclick="saveProfileCardChanges('${p.id}')" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-extrabold">
+                            <button type="button" onclick="saveProfileCardChanges('${p.id}')" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-[11px]">
                                 Guardar
                             </button>
-                            <button type="button" onclick="deleteUserProfilePermanently('${p.id}')" class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-extrabold">
+                            <button type="button" onclick="deleteUserProfilePermanently('${p.id}')" class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-[11px]">
                                 Eliminar
                             </button>
                         </div>
@@ -2444,35 +2348,34 @@
         }
 
         function addNewUserProfile() {
-            const num = vaultState.profiles.length + 13;
+            const nextNum = vaultState.profiles.length + 1;
             const newProf = {
                 id: 'prof_' + Date.now(),
-                name: `Nuevo Usuario ${num}`,
-                code: `UAP${num}`,
+                name: `Nuevo Usuario ${nextNum}`,
+                code: `UAP${String(nextNum).padStart(2, '0')}`,
                 permissions: {
                     simple: 'select',
                     simple_writeName: true,
-                    simple_fields: { folio: false, fechaCiudad: false, destinatario: false, writeName: true, matricula: true, grado: true, licenciaturaRvoe: true, periodoActivo: true, firmante: false, estructuraTexto: false },
-                    headerButtons: { downloadPdf: true, print: true, history: true, periods: false, licenciaturasTab: false, quickFolio: true, quickClear: true, quickCopy: true, quickToday: true }
+                    headerButtons: { downloadPdf: true, print: true, history: true, periods: false, quickFolio: true, quickClear: true, quickCopy: true, quickToday: true }
                 }
             };
             vaultState.profiles.push(newProf);
             persistVaultData(true);
             renderProfilesManagerGrid();
-            showToast('Nuevo usuario agregado.');
+            showToast('Nuevo perfil creado. Configura sus permisos y presiona Guardar.');
         }
 
         function saveProfileCardChanges(profileId) {
             const prof = vaultState.profiles.find(p => p.id === profileId);
             if (!prof) return;
-            const nameVal = document.getElementById(`profName_${profileId}`)?.value.trim();
-            const codeVal = document.getElementById(`profCode_${profileId}`)?.value.trim().toUpperCase();
-            if (!nameVal || !codeVal) {
-                showToast('El nombre y el código de acceso son obligatorios.');
+            const name = (document.getElementById(`profName_${profileId}`)?.value || '').trim();
+            const code = (document.getElementById(`profCode_${profileId}`)?.value || '').trim().toUpperCase();
+            if (!name || !code) {
+                showToast('El nombre y el código no pueden quedar vacíos.');
                 return;
             }
-            prof.name = nameVal;
-            prof.code = codeVal;
+            prof.name = name;
+            prof.code = code;
             persistVaultData(false);
             renderProfilesManagerGrid();
         }
@@ -2480,9 +2383,11 @@
         function deleteUserProfilePermanently(profileId) {
             const prof = vaultState.profiles.find(p => p.id === profileId);
             if (!prof) return;
-            askCustomConfirm('Eliminar Usuario', `¿Seguro que deseas eliminar permanentemente a "${prof.name}"?`, () => {
-                vaultState.deletedProfileIds.push(profileId);
+            askCustomConfirm('Eliminar Usuario', `¿Eliminar permanentemente a "${prof.name}" (${prof.code})? Ya no podrá ingresar al sistema.`, () => {
                 vaultState.profiles = vaultState.profiles.filter(p => p.id !== profileId);
+                if (!vaultState.deletedProfileIds.includes(profileId)) {
+                    vaultState.deletedProfileIds.push(profileId);
+                }
                 persistVaultData(true);
                 renderProfilesManagerGrid();
                 showToast('Usuario eliminado permanentemente.');
@@ -2495,63 +2400,64 @@
             editingPermissionsProfileId = profileId;
             document.getElementById('permModalUserName').textContent = `${prof.name} (${prof.code})`;
 
-            const hb = prof.permissions?.headerButtons || {};
-            const headerBtnsCatalog = [
+            const perms = prof.permissions || {};
+            const hb = perms.headerButtons || {};
+
+            const headerButtonsList = [
                 { key: 'downloadPdf', label: 'Botón: Guardar y Descargar PDF' },
-                { key: 'print', label: 'Botón: Imprimir' },
-                { key: 'history', label: 'Botón: Historial' },
-                { key: 'periods', label: 'Botón: Periodos' },
-                { key: 'quickFolio', label: 'Comando: +1 Folio' },
-                { key: 'quickClear', label: 'Comando: Limpiar Alumno' },
-                { key: 'quickCopy', label: 'Comando: Copiar Texto' },
-                { key: 'quickToday', label: 'Comando: Fecha Hoy' }
+                { key: 'print', label: 'Botón: Imprimir Constancia' },
+                { key: 'history', label: 'Botón: Historial de Constancias' },
+                { key: 'periods', label: 'Botón: Gestión de Periodos' },
+                { key: 'quickFolio', label: 'Comando Rápido: +1 Folio' },
+                { key: 'quickClear', label: 'Comando Rápido: Limpiar Alumno' },
+                { key: 'quickCopy', label: 'Comando Rápido: Copiar Texto' },
+                { key: 'quickToday', label: 'Comando Rápido: Fecha Hoy' }
             ];
 
-            const fieldsCatalog = [
+            const fieldLabels = [
                 { key: 'folio', label: 'Folio' },
-                { key: 'fechaCiudad', label: 'Fecha y Ciudad' },
+                { key: 'fechaCiudad', label: 'Ciudad y Fecha' },
                 { key: 'destinatario', label: 'Destinatario' },
-                { key: 'writeName', label: 'Nombre Alumno' },
+                { key: 'writeName', label: 'Nombre y Género Alumno' },
                 { key: 'matricula', label: 'Matrícula' },
-                { key: 'grado', label: 'Semestre / Cuatrimestre' },
+                { key: 'grado', label: 'Grado / Semestre' },
                 { key: 'licenciaturaRvoe', label: 'Licenciatura y RVOE' },
                 { key: 'periodoActivo', label: 'Periodo Escolar' },
                 { key: 'firmante', label: 'Firmante y Cargo' },
                 { key: 'estructuraTexto', label: 'Editar Plantilla' }
             ];
 
-            const body = document.getElementById('permChecklistBody');
-            body.innerHTML = `
-                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
-                    <div class="font-extrabold text-blue-950">1. Botones y Comandos Superiores Permitidos</div>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        ${headerBtnsCatalog.map(item => `
-                            <label class="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-200 cursor-pointer">
-                                <input type="checkbox" id="chk_hb_${item.key}" ${hb[item.key] ? 'checked' : ''} class="accent-blue-900">
-                                <span class="text-[11px] font-semibold">${item.label}</span>
+            let html = `
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2.5">
+                    <h4 class="font-extrabold text-blue-950 uppercase text-[11px]">1. Botones de la Barra Superior</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        ${headerButtonsList.map(item => `
+                            <label class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200 cursor-pointer">
+                                <input type="checkbox" id="chk_hb_${item.key}" ${hb[item.key] ? 'checked' : ''} class="accent-blue-900 w-4 h-4">
+                                <span class="font-semibold text-slate-800">${item.label}</span>
                             </label>
                         `).join('')}
                     </div>
                 </div>
-                <div class="space-y-3">
-                    <div class="font-extrabold text-blue-950">2. Permisos por Modalidad de Constancia y Campos Editables</div>
-                    ${Object.entries(DOC_TYPE_META).map(([typeKey, meta]) => {
-                        const mode = prof.permissions?.[typeKey] || 'select';
-                        const fMap = prof.permissions?.[`${typeKey}_fields`] || {};
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                    <h4 class="font-extrabold text-blue-950 uppercase text-[11px]">2. Acceso y Campos Editables por Modalidad</h4>
+                    ${Object.entries(DOC_TYPE_META).map(([type, meta]) => {
+                        const mode = perms[type] || 'select';
+                        const fMap = perms[`${type}_fields`] || {};
                         return `
-                            <div class="p-3.5 rounded-2xl border border-slate-200 bg-white space-y-2">
-                                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                            <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
                                     <span class="font-extrabold text-blue-950">${meta.label}</span>
-                                    <select id="sel_mode_${typeKey}" class="rounded-lg border border-slate-300 px-2.5 py-1 text-[11px] font-bold">
-                                        <option value="edit" ${mode === 'edit' ? 'selected' : ''}>Permitir Modificar</option>
+                                    <select id="sel_mode_${type}" class="rounded-lg border border-slate-300 px-2.5 py-1 text-[11px] font-bold">
+                                        <option value="edit" ${mode === 'edit' ? 'selected' : ''}>Puede Modificar</option>
                                         <option value="select" ${mode === 'select' ? 'selected' : ''}>Solo Seleccionar / Consultar</option>
-                                        <option value="none" ${mode === 'none' ? 'selected' : ''}>Ocultar / Sin Acceso</option>
+                                        <option value="none" ${mode === 'none' ? 'selected' : ''}>Oculto / Sin Acceso</option>
                                     </select>
                                 </div>
-                                <div class="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
-                                    ${fieldsCatalog.map(f => `
-                                        <label class="flex items-center gap-1.5 text-[10px] font-medium text-slate-700">
-                                            <input type="checkbox" id="chk_f_${typeKey}_${f.key}" ${fMap[f.key] ? 'checked' : ''} class="accent-emerald-600">
+                                <div class="grid grid-cols-2 sm:grid-cols-5 gap-1.5 pt-1">
+                                    ${fieldLabels.map(f => `
+                                        <label class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200/80">
+                                            <input type="checkbox" id="chk_fld_${type}_${f.key}" ${fMap[f.key] ? 'checked' : ''} class="accent-emerald-600">
                                             <span>${f.label}</span>
                                         </label>
                                     `).join('')}
@@ -2562,12 +2468,13 @@
                 </div>
             `;
 
+            document.getElementById('permChecklistBody').innerHTML = html;
             document.getElementById('userPermissionsChecklistModal')?.classList.remove('hidden');
         }
 
         function closeUserPermissionsModal() {
-            document.getElementById('userPermissionsChecklistModal')?.classList.add('hidden');
             editingPermissionsProfileId = null;
+            document.getElementById('userPermissionsChecklistModal')?.classList.add('hidden');
         }
 
         function saveUserPermissionsChecklist() {
@@ -2581,57 +2488,227 @@
                 if (el) prof.permissions.headerButtons[k] = el.checked;
             });
 
-            Object.keys(DOC_TYPE_META).forEach(typeKey => {
-                const modeEl = document.getElementById(`sel_mode_${typeKey}`);
-                if (modeEl) prof.permissions[typeKey] = modeEl.value;
-                if (!prof.permissions[`${typeKey}_fields`]) prof.permissions[`${typeKey}_fields`] = {};
-                ['folio', 'fechaCiudad', 'destinatario', 'writeName', 'matricula', 'grado', 'licenciaturaRvoe', 'periodoActivo', 'firmante', 'estructuraTexto'].forEach(fKey => {
-                    const chk = document.getElementById(`chk_f_${typeKey}_${fKey}`);
-                    if (chk) prof.permissions[`${typeKey}_fields`][fKey] = chk.checked;
+            const fieldKeys = ['folio', 'fechaCiudad', 'destinatario', 'writeName', 'matricula', 'grado', 'licenciaturaRvoe', 'periodoActivo', 'firmante', 'estructuraTexto'];
+            Object.keys(DOC_TYPE_META).forEach(type => {
+                const modeEl = document.getElementById(`sel_mode_${type}`);
+                if (modeEl) prof.permissions[type] = modeEl.value;
+                if (!prof.permissions[`${type}_fields`]) prof.permissions[`${type}_fields`] = {};
+                fieldKeys.forEach(fk => {
+                    const cb = document.getElementById(`chk_fld_${type}_${fk}`);
+                    if (cb) prof.permissions[`${type}_fields`][fk] = cb.checked;
                 });
+                prof.permissions[`${type}_writeName`] = !!prof.permissions[`${type}_fields`].writeName;
             });
 
             persistVaultData(false);
             closeUserPermissionsModal();
-            syncSessionUI();
         }
 
         // ==========================================
-        // HERRAMIENTAS DE ADMINISTRADOR (HISTORIAL, EXCEL Y RESPALDOS)
+        // EXPORTAR PDF, IMPRIMIR, HISTORIAL Y EXCEL
         // ==========================================
-        function toggleHeaderToolsDropdown() {
-            if (activeSession.role !== 'admin') {
-                closeHeaderToolsDropdown();
-                showToast('Acceso exclusivo para el Administrador.');
+        async function saveAndDownloadConstanciaPDF() {
+            const sheet = document.getElementById('officialLetterSheet');
+            if (!sheet) {
+                showToast('No se encontró la hoja de constancia.');
                 return;
             }
-            document.getElementById('headerSystemToolsDropdown')?.classList.toggle('hidden');
+
+            const alumno = (document.getElementById('inputAlumno')?.value || 'CONSTANCIA').trim().toUpperCase();
+            const folio = (document.getElementById('inputFolio')?.value || 'S-N').trim();
+            const matricula = (document.getElementById('inputMatricula')?.value || '').trim().toUpperCase();
+
+            // Registrar en historial
+            vaultState.history.unshift({
+                id: 'hist_' + Date.now(),
+                date: new Date().toLocaleString('es-MX'),
+                folio,
+                type: DOC_TYPE_META[currentDocType]?.label || currentDocType,
+                alumno,
+                matricula
+            });
+            if (vaultState.history.length > 200) vaultState.history.length = 200;
+            persistVaultData(true);
+            updateHistoryBadge();
+
+            showToast('Generando PDF oficial...');
+
+            // Clonar hoja en contenedor temporal 1:1 para evitar escala de vista previa
+            const cloneHost = document.createElement('div');
+            cloneHost.style.position = 'fixed';
+            cloneHost.style.left = '-9999px';
+            cloneHost.style.top = '0';
+            cloneHost.style.width = '215.9mm';
+            cloneHost.style.height = '279.4mm';
+            cloneHost.style.background = '#ffffff';
+            cloneHost.style.zIndex = '-1';
+
+            const clonedSheet = sheet.cloneNode(true);
+            clonedSheet.style.boxShadow = 'none';
+            clonedSheet.style.margin = '0';
+            cloneHost.appendChild(clonedSheet);
+            document.body.appendChild(cloneHost);
+
+            try {
+                const canvas = await html2canvas(clonedSheet, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    logging: false
+                });
+
+                const imgData = canvas.toDataURL('image/jpeg', 0.98);
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'letter'
+                });
+
+                pdf.addImage(imgData, 'JPEG', 0, 0, 215.9, 279.4);
+                const safeName = alumno.replace(/[^A-Z0-9ÁÉÍÓÚÑ\s]/gi, '').replace(/\s+/g, '_') || 'Constancia_UAP';
+                pdf.save(`${safeName}.pdf`);
+                showToast('Constancia guardada y PDF descargado.');
+            } catch (err) {
+                console.error('Error generando PDF:', err);
+                showToast('Error al generar PDF. Puedes usar el botón Imprimir -> Guardar como PDF.');
+            } finally {
+                document.body.removeChild(cloneHost);
+            }
         }
 
-        function closeHeaderToolsDropdown() {
-            document.getElementById('headerSystemToolsDropdown')?.classList.add('hidden');
+        function printOfficialConstancia() {
+            const sheet = document.getElementById('officialLetterSheet');
+            if (!sheet) {
+                showToast('No se encontró la hoja de constancia para imprimir.');
+                return;
+            }
+
+            // Asegurar que la vista previa esté activa y ajustada a 1 sola hoja tamaño carta
+            switchMainWorkspaceTab('constancias', true);
+            hideFloatingTextToolbar();
+            fitDocumentToSingleLetterSheet();
+
+            // Ejecutar impresión nativa a tamaño Carta a color tras un breve ciclo de renderizado
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    window.focus();
+                    window.print();
+                }, 80);
+            });
+        }
+
+        function updateHistoryBadge() {
+            const badge = document.getElementById('historyCountBadge');
+            if (badge) badge.textContent = String(vaultState.history.length || 0);
         }
 
         function openHistoryModal() {
             const list = document.getElementById('historyModalList');
             if (list) {
-                list.innerHTML = vaultState.history.length
-                    ? vaultState.history.map(h => `
+                if (!vaultState.history.length) {
+                    list.innerHTML = '<p class="text-xs text-slate-500 text-center py-6">Aún no hay constancias guardadas en el historial.</p>';
+                } else {
+                    list.innerHTML = vaultState.history.map(h => `
                         <div class="p-3 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-2 text-xs">
                             <div>
-                                <div class="font-extrabold text-blue-950">${escapeHtml(h.alumno)} (${escapeHtml(h.matricula)})</div>
-                                <div class="text-[11px] text-slate-600">${escapeHtml(h.type)} • Folio: <strong>${escapeHtml(h.folio)}</strong></div>
-                                <div class="text-[10px] text-slate-400">${escapeHtml(h.date)}</div>
+                                <div class="font-extrabold text-blue-950">${escapeHtml(h.alumno)} <span class="text-slate-500 font-mono">(${escapeHtml(h.matricula)})</span></div>
+                                <div class="text-[11px] text-slate-600">${escapeHtml(h.folio)} • ${escapeHtml(h.type)} • ${escapeHtml(h.date)}</div>
                             </div>
                         </div>
-                    `).join('')
-                    : '<p class="text-xs text-slate-500 text-center py-6">Aún no hay constancias registradas en el historial.</p>';
+                    `).join('');
+                }
             }
             document.getElementById('historyModal')?.classList.remove('hidden');
         }
 
         function closeHistoryModal() {
             document.getElementById('historyModal')?.classList.add('hidden');
+        }
+
+        // ==========================================
+        // HERRAMIENTAS DE ADMINISTRADOR Y COMANDOS RÁPIDOS
+        // ==========================================
+        function incrementFolioByOne() {
+            const input = document.getElementById('inputFolio');
+            if (!input || input.disabled) return;
+            input.value = input.value.replace(/(\d+)(?=\/\d{4}$|\D*$)/, m => String(parseInt(m, 10) + 1).padStart(m.length, '0'));
+            updateDocument();
+            showToast(`Folio incrementado: ${input.value}`);
+        }
+
+        function clearStudentQuickCommand() {
+            const elNombre = document.getElementById('inputAlumno');
+            const elMat = document.getElementById('inputMatricula');
+            if (elNombre && !elNombre.disabled) elNombre.value = '';
+            if (elMat && !elMat.disabled) elMat.value = '';
+            updateDocument();
+            showToast('Datos del alumno limpiados.');
+        }
+
+        function copyDocumentTextCommand() {
+            const text = document.getElementById('documentRenderedBody')?.innerText || '';
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast('Texto de la constancia copiado al portapapeles.');
+        }
+
+        function saveCurrentWorkspaceCheckpoint(notify = false) {
+            const snapshot = {
+                folio: document.getElementById('inputFolio')?.value || '',
+                ciudad: document.getElementById('inputCiudad')?.value || '',
+                destinatario: document.getElementById('inputDestinatario')?.value || '',
+                alumno: document.getElementById('inputAlumno')?.value || '',
+                matricula: document.getElementById('inputMatricula')?.value || '',
+                grado: document.getElementById('inputGrado')?.value || '',
+                docType: currentDocType,
+                vaultState
+            };
+            localStorage.setItem(STORAGE_KEY_CHECKPOINT, JSON.stringify(snapshot));
+            persistVaultData(true);
+            if (notify) showToast('Estado actual de la página guardado.');
+        }
+
+        function recoverPageEmergencyState() {
+            const raw = localStorage.getItem(STORAGE_KEY_CHECKPOINT);
+            if (!raw) {
+                showToast('No hay un punto de guardado previo.');
+                return;
+            }
+            try {
+                const snap = JSON.parse(raw);
+                if (snap.folio) document.getElementById('inputFolio').value = snap.folio;
+                if (snap.ciudad) document.getElementById('inputCiudad').value = snap.ciudad;
+                if (snap.destinatario) document.getElementById('inputDestinatario').value = snap.destinatario;
+                if (snap.alumno) document.getElementById('inputAlumno').value = snap.alumno;
+                if (snap.matricula) document.getElementById('inputMatricula').value = snap.matricula;
+                if (snap.grado) document.getElementById('inputGrado').value = snap.grado;
+                if (snap.docType) selectDocType(snap.docType);
+                updateDocument();
+                showToast('Último estado guardado recuperado.');
+            } catch (e) {
+                showToast('Error al recuperar punto guardado.');
+            }
+        }
+
+        function restoreFullDatabaseCatalogs(confirmFirst = false) {
+            const runRestore = () => {
+                localStorage.removeItem(STORAGE_KEY_VAULT);
+                loadEmbeddedVaultData();
+                populateMajorsSelect();
+                populatePeriodsSelect();
+                selectDocType(currentDocType);
+                showToast('Base de datos restaurada.');
+            };
+            if (confirmFirst) {
+                askCustomConfirm('Restaurar Base de Datos', '¿Restaurar los catálogos y plantillas al estado base del código?', runRestore);
+            } else {
+                runRestore();
+            }
         }
 
         function openDatabaseVaultModal() {
@@ -2642,102 +2719,56 @@
             document.getElementById('databaseVaultModal')?.classList.add('hidden');
         }
 
-        function importStudentsExcel(event) {
-            const file = event.target.files?.[0];
-            if (!file || !window.XLSX) return;
+        function importStudentsExcel(e) {
+            const file = e.target?.files?.[0];
+            if (!file || typeof XLSX === 'undefined') return;
             const reader = new FileReader();
-            reader.onload = (e) => {
-                const wb = window.XLSX.read(e.target.result, { type: 'binary' });
+            reader.onload = (evt) => {
+                const wb = XLSX.read(evt.target.result, { type: 'binary' });
                 const ws = wb.Sheets[wb.SheetNames[0]];
-                const rows = window.XLSX.utils.sheet_to_json(ws);
+                const rows = XLSX.utils.sheet_to_json(ws);
                 importedStudentsList = rows;
                 const box = document.getElementById('loadedStudentsBox');
                 const sel = document.getElementById('selectImportedStudent');
                 if (box && sel && rows.length) {
                     box.classList.remove('hidden');
-                    sel.innerHTML = `<option value="">-- Selecciona un alumno (${rows.length}) --</option>` +
-                        rows.map((r, i) => `<option value="${i}">${r.MATRICULA || ''} - ${r.ALUMNO || r.NOMBRE || ''}</option>`).join('');
+                    sel.innerHTML = '<option value="">-- Seleccionar Alumno --</option>' + rows.map((r, i) => {
+                        const nombre = r.ALUMNO || r.Nombre || r.NOMBRE || `Fila ${i + 1}`;
+                        const mat = r.MATRICULA || r.Matricula || '';
+                        return `<option value="${i}">${escapeHtml(mat)} - ${escapeHtml(nombre)}</option>`;
+                    }).join('');
                     showToast(`${rows.length} alumnos cargados desde Excel.`);
                 }
             };
             reader.readAsBinaryString(file);
         }
 
-        function applyImportedStudent(idx) {
-            const st = importedStudentsList[idx];
-            if (!st) return;
-            if (st.ALUMNO || st.NOMBRE) document.getElementById('inputAlumno').value = String(st.ALUMNO || st.NOMBRE).toUpperCase();
-            if (st.MATRICULA) document.getElementById('inputMatricula').value = String(st.MATRICULA).toUpperCase();
-            if (st.GRADO) document.getElementById('inputGrado').value = String(st.GRADO).toUpperCase();
-            detectGenderFromName();
+        function applyImportedStudent(idxStr) {
+            const row = importedStudentsList[parseInt(idxStr, 10)];
+            if (!row) return;
+            const nombre = row.ALUMNO || row.Nombre || row.NOMBRE || '';
+            const mat = row.MATRICULA || row.Matricula || '';
+            if (nombre) {
+                document.getElementById('inputAlumno').value = String(nombre).toUpperCase();
+                detectGenderFromName();
+            }
+            if (mat) document.getElementById('inputMatricula').value = String(mat).toUpperCase();
             updateDocument();
-            closeDatabaseVaultModal();
-            showToast('Datos del alumno aplicados.');
         }
 
         function exportHistoryToExcel() {
-            if (!window.XLSX) return;
-            const ws = window.XLSX.utils.json_to_sheet(vaultState.history);
-            const wb = window.XLSX.utils.book_new();
-            window.XLSX.utils.book_append_sheet(wb, ws, 'Historial_Constancias');
-            window.XLSX.writeFile(wb, 'Historial_Constancias_UAP.xlsx');
-        }
-
-        function saveCurrentWorkspaceCheckpoint(notify = true) {
-            try {
-                localStorage.setItem(STORAGE_KEY_CHECKPOINT, JSON.stringify({
-                    savedAt: new Date().toISOString(),
-                    vaultState,
-                    currentDocType
-                }));
-                if (notify) showToast('Estado actual de la página guardado.');
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        function recoverPageEmergencyState() {
-            try {
-                const raw = localStorage.getItem(STORAGE_KEY_CHECKPOINT);
-                if (!raw) {
-                    showToast('No hay ningún punto de guardado previo.');
-                    return;
-                }
-                const cp = JSON.parse(raw);
-                if (cp.vaultState) {
-                    vaultState = cp.vaultState;
-                    persistVaultData(true);
-                    populateMajorsSelect();
-                    populatePeriodsSelect();
-                    selectDocType(cp.currentDocType || 'simple');
-                    showToast('Página recuperada al último punto guardado.');
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        function restoreFullDatabaseCatalogs(ask = true) {
-            const runRestore = () => {
-                localStorage.removeItem(STORAGE_KEY_VAULT);
-                loadEmbeddedVaultData();
-                populateMajorsSelect();
-                populatePeriodsSelect();
-                selectDocType('simple');
-                showToast('Base de datos oficial restaurada.');
-            };
-            if (ask) {
-                askCustomConfirm('Restaurar Base de Datos', '¿Deseas restaurar los catálogos y plantillas al estado base del código?', runRestore);
-            } else {
-                runRestore();
-            }
+            if (typeof XLSX === 'undefined') return;
+            const ws = XLSX.utils.json_to_sheet(vaultState.history);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Historial_Constancias');
+            XLSX.writeFile(wb, 'Historial_Constancias_UAP.xlsx');
         }
 
         function openSourceCodeSyncModal() {
             const editor = document.getElementById('sourceVaultJsonEditor');
             const badge = document.getElementById('sourceProfilesSummaryBadge');
             if (editor) editor.value = JSON.stringify(vaultState, null, 2);
-            if (badge) badge.textContent = `${vaultState.profiles.length} Perfiles • ${vaultState.majors.length} Licenciaturas`;
+            if (badge) badge.textContent = `${vaultState.profiles.length} perfiles activos`;
             document.getElementById('sourceCodeSyncModal')?.classList.remove('hidden');
         }
 
@@ -2747,122 +2778,36 @@
 
         function applyEditedSourceVaultJson() {
             try {
-                const raw = document.getElementById('sourceVaultJsonEditor')?.value || '';
-                const parsed = JSON.parse(raw);
-                vaultState = parsed;
-                persistVaultData(true);
+                const parsed = JSON.parse(document.getElementById('sourceVaultJsonEditor')?.value || '{}');
+                vaultState = { ...vaultState, ...parsed };
+                persistVaultData(false);
+                renderProfilesManagerGrid();
                 populateMajorsSelect();
                 populatePeriodsSelect();
-                renderProfilesManagerGrid();
-                updateDocument();
                 closeSourceCodeSyncModal();
-                showToast('JSON aplicado correctamente.');
             } catch (e) {
-                showToast('Error de sintaxis en el JSON.');
+                showToast('El JSON contiene un error de sintaxis.');
             }
         }
 
         function downloadSelfContainedPageWithData() {
             persistVaultData(true);
-            const htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+            const clone = document.documentElement.cloneNode(true);
+            const dataTag = clone.querySelector('#embeddedInternalVaultData');
+            if (dataTag) dataTag.textContent = JSON.stringify(vaultState);
+            const htmlContent = '<!DOCTYPE html>\n' + clone.outerHTML;
             const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = 'Generador_Constancias_UAP_Actualizado.html';
-            document.body.appendChild(a);
             a.click();
-            document.body.removeChild(a);
             URL.revokeObjectURL(url);
             showToast('Código base HTML descargado con todos los cambios.');
         }
 
         // ==========================================
-        // BARRA FLOTANTE AL SELECCIONAR TEXTO EN CONSTANCIA
-        // ==========================================
-        let savedPreviewSelectionRange = null;
-
-        function hideFloatingTextToolbar() {
-            document.getElementById('floatingTextFormatToolbar')?.classList.add('hidden');
-        }
-
-        function showFloatingToolbarForPreviewSelection() {
-            const toolbar = document.getElementById('floatingTextFormatToolbar');
-            const bodyEl = document.getElementById('documentRenderedBody');
-            if (!toolbar || !bodyEl) return;
-
-            const sel = window.getSelection();
-            if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
-                hideFloatingTextToolbar();
-                return;
-            }
-
-            const range = sel.getRangeAt(0);
-            if (!bodyEl.contains(range.commonAncestorContainer) || !sel.toString().trim()) {
-                hideFloatingTextToolbar();
-                return;
-            }
-
-            savedPreviewSelectionRange = range.cloneRange();
-            const rect = range.getBoundingClientRect();
-            if (!rect || (rect.width === 0 && rect.height === 0)) {
-                hideFloatingTextToolbar();
-                return;
-            }
-
-            toolbar.classList.remove('hidden');
-            const tbWidth = toolbar.offsetWidth || 280;
-            const tbHeight = toolbar.offsetHeight || 38;
-            const leftPos = Math.min(window.innerWidth - tbWidth - 12, Math.max(12, rect.left + (rect.width / 2) - (tbWidth / 2)));
-            const topPos = rect.top > tbHeight + 14 ? rect.top - tbHeight - 8 : rect.bottom + 8;
-
-            toolbar.style.left = `${leftPos}px`;
-            toolbar.style.top = `${topPos}px`;
-        }
-
-        function applyFloatingSelectionStyle(styleProp, styleValue) {
-            const bodyEl = document.getElementById('documentRenderedBody');
-            if (!bodyEl) return;
-
-            const sel = window.getSelection();
-            if ((!sel || sel.isCollapsed) && savedPreviewSelectionRange) {
-                sel.removeAllRanges();
-                sel.addRange(savedPreviewSelectionRange);
-            }
-
-            const applied = wrapPreviewSelectionSafely(() => {
-                const span = document.createElement('span');
-                span.style[styleProp] = styleValue;
-                return span;
-            });
-
-            if (applied) {
-                savedPreviewSelectionRange = null;
-                hideFloatingTextToolbar();
-                showToast(styleProp === 'fontFamily' ? 'Tipo de letra aplicado a la selección.' : `Tamaño ${styleValue} aplicado a la selección.`);
-            }
-        }
-
-        document.addEventListener('mouseup', () => {
-            setTimeout(showFloatingToolbarForPreviewSelection, 10);
-        });
-        document.addEventListener('keyup', () => {
-            setTimeout(showFloatingToolbarForPreviewSelection, 10);
-        });
-        document.addEventListener('mousedown', (e) => {
-            const toolbar = document.getElementById('floatingTextFormatToolbar');
-            const bodyEl = document.getElementById('documentRenderedBody');
-            if (toolbar && !toolbar.contains(e.target) && bodyEl && !bodyEl.contains(e.target)) {
-                hideFloatingTextToolbar();
-            }
-            const toolsContainer = document.getElementById('headerToolsContainer');
-            if (toolsContainer && !toolsContainer.contains(e.target)) {
-                closeHeaderToolsDropdown();
-            }
-        });
-
-        // ==========================================
-        // ARRANQUE DE LA APLICACIÓN
+        // ARRANQUE INICIAL DE LA APLICACIÓN
         // ==========================================
         window.addEventListener('DOMContentLoaded', () => {
             loadEmbeddedVaultData();
@@ -2872,9 +2817,16 @@
             updateHistoryBadge();
             selectDocType('simple');
             syncSessionUI();
-            if (window.lucide && typeof window.lucide.createIcons === 'function') {
-                window.lucide.createIcons();
-            }
+
+            document.addEventListener('mouseup', () => setTimeout(handlePreviewTextSelectionToolbar, 10));
+            document.addEventListener('keyup', () => setTimeout(handlePreviewTextSelectionToolbar, 10));
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && isPreviewFullscreen) togglePreviewFullscreen();
+            });
+            document.addEventListener('click', (e) => {
+                const tools = document.getElementById('headerToolsContainer');
+                if (tools && !tools.contains(e.target)) closeHeaderToolsDropdown();
+            });
         });
     </script>
 </body>
