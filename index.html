@@ -209,6 +209,17 @@
                     <!-- DATOS DEL ALUMNO Y FOLIO -->
                     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
                         <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-700">2. Datos Generales y Control</h2>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div data-field-wrap="folio">
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Folio / Control (Arriba de Asunto)</label>
+                                <input type="text" id="inpFolio" value="DIR.C.E. 552/2025" placeholder="Ej. DIR.C.E. 552/2025" oninput="updateDocument()" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-blue-300 bg-blue-50/30 text-xs font-extrabold text-blue-950 focus:ring-2 focus:ring-blue-800 outline-none">
+                            </div>
+                            <div data-field-wrap="fecha_expedicion">
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Fecha de Expedición</label>
+                                <input type="date" id="inpFechaExpedicion" oninput="updateDocument()" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
+                            </div>
+                        </div>
+
                         <div data-field-wrap="licenciatura" class="space-y-2">
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1">Licenciatura / Programa Académico</label>
@@ -241,11 +252,6 @@
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1">CURP</label>
                                 <input type="text" id="inpCurp" value="GOAE010412HPLRND09" oninput="updateDocument()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
                             </div>
-                        </div>
-
-                        <div data-field-wrap="licenciatura">
-                            <label class="block text-[11px] font-bold text-slate-600 mb-1">Plan / Licenciatura / Programa Académico</label>
-                            <select id="selLicenciatura" onchange="updateDocument()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 bg-white focus:ring-2 focus:ring-blue-800 outline-none"></select>
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -281,6 +287,167 @@
                                 <div class="space-y-1.5">
                                     <select id="selPeriodoEscolar" onchange="syncAcademicPeriodInputFromSelect();updateDocument();" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 bg-white focus:ring-2 focus:ring-blue-800 outline-none"></select>
                                     <input type="text" id="inpPeriodoEscolarEditable" placeholder="Edita o personaliza el periodo escolar..." oninput="updateActiveAcademicPeriodFromInput();updateDocument();" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50/30 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CONTROLES ESPECÍFICOS POR MODALIDAD -->
+                        <div id="periodoVacacionalControls" data-field-wrap="periodo_vacacional" class="hidden pt-2 border-t border-slate-100 space-y-2">
+                            <label class="block text-[11px] font-extrabold uppercase text-blue-900">Periodo Vacacional (Editable)</label>
+                            <select id="selPeriodoVacacionalPreset" onchange="if(this.value){document.getElementById('inpPeriodoVacacional').value=this.value;updateDocument();}" class="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-semibold bg-slate-50 text-slate-800"></select>
+                            <textarea id="inpPeriodoVacacional" rows="2" oninput="updateDocument()" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-blue-300 bg-blue-50/30 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">Con un periodo vacacional del 22 de enero de 2026 al 08 de febrero de 2026.</textarea>
+                        </div>
+
+                        <div id="periodosAnterioresControls" data-field-wrap="verbo_cursado" class="hidden pt-2 border-t border-slate-100">
+                            <label class="block text-[11px] font-extrabold uppercase text-blue-900 mb-1">Estatus en Periodos Anteriores</label>
+                            <select id="selVerboCursado" onchange="updateDocument()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-800 bg-white">
+                                <option value="cursó">cursó</option>
+                                <option value="cursó hasta">cursó hasta</option>
+                                <option value="cursará">cursará</option>
+                                <option value="cursará hasta">cursará hasta</option>
+                            </select>
+                        </div>
+
+                        <div id="calificacionesControls" data-field-wrap="tabla_calificaciones" class="hidden pt-2 border-t border-slate-100 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <label class="text-[11px] font-extrabold uppercase text-blue-900">Tabla de Calificaciones</label>
+                                <button type="button" onclick="addGradeRow()" class="px-2.5 py-1 rounded-lg bg-blue-900 text-white text-[11px] font-bold">+ Materia</button>
+                            </div>
+                            <textarea id="txtGradesBulkInput" rows="2" placeholder="Pega filas (Grupo | Código | Materia | Calificación)..." class="w-full px-2.5 py-1.5 rounded-xl border border-slate-300 text-[11px]"></textarea>
+                            <button type="button" onclick="parseGradesBulkInput()" class="w-full py-1 rounded-lg bg-slate-800 text-white text-[11px] font-bold">Separar Pegado Rápido</button>
+                            <div id="gradesRowsContainer" class="space-y-1.5"></div>
+                        </div>
+
+                        <div id="montosControls" data-field-wrap="tabla_montos" class="hidden pt-2 border-t border-slate-100 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <label class="text-[11px] font-extrabold uppercase text-blue-900">Tabla de Montos y Cuotas</label>
+                                <button type="button" onclick="addMontoRow()" class="px-2.5 py-1 rounded-lg bg-blue-900 text-white text-[11px] font-bold">+ Concepto</button>
+                            </div>
+                            <div id="montosRowsContainer" class="space-y-1.5"></div>
+                        </div>
+
+                        <div id="kardexControls" data-field-wrap="tabla_kardex" class="hidden pt-2 border-t border-slate-100 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <label class="text-[11px] font-extrabold uppercase text-blue-900">Tabla de Kardex Académico</label>
+                                <button type="button" onclick="addKardexRow()" class="px-2.5 py-1 rounded-lg bg-blue-900 text-white text-[11px] font-bold">+ Asignatura</button>
+                            </div>
+                            <div id="kardexRowsContainer" class="space-y-1.5"></div>
+                        </div>
+
+                        <div id="resguardoControls" data-field-wrap="tabla_resguardo" class="hidden pt-2 border-t border-slate-100 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <label class="text-[11px] font-extrabold uppercase text-blue-900">Tabla de Resguardo</label>
+                                <button type="button" onclick="addResguardoRow()" class="px-2.5 py-1 rounded-lg bg-blue-900 text-white text-[11px] font-bold">+ Documento/Bien</button>
+                            </div>
+                            <div id="resguardoRowsContainer" class="space-y-1.5"></div>
+                        </div>
+                    </div>
+
+                    <!-- BLOQUE 3: NOTA, FIRMANTE Y EDITOR DE FORMATO -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
+                        <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-700">3. Nota Final, Firma y Formato</h2>
+                        <div data-field-wrap="observaciones">
+                            <label class="block text-[11px] font-bold text-slate-600 mb-1">Nota / A petición</label>
+                            <textarea id="inpDestinoNota" rows="2" oninput="updateDocument()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">Sin más por el momento y para los fines del interesado se extiende la presente.</textarea>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div data-field-wrap="firmante_nombre">
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Nombre de la Responsable</label>
+                                <input type="text" id="inpFirmanteNombre" value="Lic. Luis Enrique Hernández Melgarejo" oninput="updateDocument()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-800">
+                            </div>
+                            <div data-field-wrap="firmante_cargo">
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Cargo de la Responsable</label>
+                                <input type="text" id="inpFirmanteCargo" value="Control Escolar" oninput="updateDocument()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2 pt-1">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Tipografía</label>
+                                <select id="selDocFontFamily" onchange="updateDocument()" class="w-full px-2 py-1.5 rounded-xl border border-slate-300 text-xs font-semibold bg-white">
+                                    <option value="Arial, Helvetica, sans-serif" selected>Arial</option>
+                                    <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Tamaño (pt)</label>
+                                <input type="number" id="inpDocFontSize" value="12" min="8" max="16" step="0.5" oninput="updateDocument()" class="w-full px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-center">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Interlineado</label>
+                                <input type="number" id="inpDocLineHeight" value="1.3" min="1.0" max="2.0" step="0.05" oninput="updateDocument()" class="w-full px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-center">
+                            </div>
+                        </div>
+
+                        <div data-field-wrap="editor_formato" class="mt-3 p-3.5 rounded-2xl bg-blue-50/60 border border-blue-200 space-y-2.5">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] font-black uppercase tracking-wider text-blue-950">Cuadro Editor de Formato (Plantilla)</span>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white text-blue-900 border border-blue-200">Editable</span>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-600 mb-1">Asunto / Título de la Constancia</label>
+                                <input type="text" id="inpCustomFormatTitle" oninput="previewCustomFormatLive()" placeholder="Asunto / Título de constancia" class="w-full px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-600 mb-1">Cuerpo Base del Documento (HTML / Etiquetas)</label>
+                                <textarea id="txtCustomFormatBody" rows="5" oninput="previewCustomFormatLive()" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-[11px] font-mono text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none"></textarea>
+                            </div>
+                            <div class="flex flex-wrap gap-1">
+                                <button type="button" onclick="insertTagIntoFormatBody('{NOMBRE}')" class="px-2 py-0.5 rounded bg-white border border-blue-200 text-[10px] font-mono font-bold text-blue-900 hover:bg-blue-100">{NOMBRE}</button>
+                                <button type="button" onclick="insertTagIntoFormatBody('{MATRICULA}')" class="px-2 py-0.5 rounded bg-white border border-blue-200 text-[10px] font-mono font-bold text-blue-900 hover:bg-blue-100">{MATRICULA}</button>
+                                <button type="button" onclick="insertTagIntoFormatBody('{LICENCIATURA}')" class="px-2 py-0.5 rounded bg-white border border-blue-200 text-[10px] font-mono font-bold text-blue-900 hover:bg-blue-100">{LICENCIATURA}</button>
+                                <button type="button" onclick="insertTagIntoFormatBody('{RVOE}')" class="px-2 py-0.5 rounded bg-white border border-blue-200 text-[10px] font-mono font-bold text-blue-900 hover:bg-blue-100">{RVOE}</button>
+                                <button type="button" onclick="insertTagIntoFormatBody('{GRADO}')" class="px-2 py-0.5 rounded bg-white border border-blue-200 text-[10px] font-mono font-bold text-blue-900 hover:bg-blue-100">{GRADO}</button>
+                                <button type="button" onclick="insertTagIntoFormatBody('{PERIODO}')" class="px-2 py-0.5 rounded bg-white border border-blue-200 text-[10px] font-mono font-bold text-blue-900 hover:bg-blue-100">{PERIODO}</button>
+                                <button type="button" onclick="insertTagIntoFormatBody('{PERIODO_VACACIONAL}')" class="px-2 py-0.5 rounded bg-white border border-blue-200 text-[10px] font-mono font-bold text-blue-900 hover:bg-blue-100">{PERIODO_VACACIONAL}</button>
+                                <button type="button" onclick="insertTagIntoFormatBody('{NOTA}')" class="px-2 py-0.5 rounded bg-white border border-blue-200 text-[10px] font-mono font-bold text-blue-900 hover:bg-blue-100">{NOTA}</button>
+                            </div>
+                            <div class="flex flex-wrap gap-2 pt-1">
+                                <button type="button" onclick="saveCurrentFormatTemplate()" class="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow transition">
+                                    Guardar Formato
+                                </button>
+                                <button type="button" onclick="resetCurrentFormatTemplate()" class="py-2 px-3.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold transition">
+                                    Restablecer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- COLUMNA DERECHA: VISUALIZACIÓN EN VIVO DEL FORMATO DE CONSTANCIA (HOJA TAMAÑO CARTA) -->
+                <section class="lg:col-span-7 xl:col-span-7 flex flex-col items-center">
+                    <div class="no-print w-full max-w-[215.9mm] mb-2.5 px-3 py-2 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span class="font-extrabold text-slate-700">Vista Previa Oficial · Hoja Tamaño Carta (Margen 2.5 cm)</span>
+                        <span class="text-[11px] font-semibold text-blue-900 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">Arial 12 pt · Interlineado 1.3</span>
+                    </div>
+
+                    <div class="w-full overflow-x-auto pb-4 flex justify-center">
+                        <div id="constanciaPaper" class="letter-page bg-white text-black shadow-2xl border border-slate-300 relative flex flex-col justify-start" style="font-family: Arial, Helvetica, sans-serif; font-size: 12pt; line-height: 1.3;">
+                            <div id="constanciaInnerContent" class="w-full">
+                                <!-- ENCABEZADO DERECHO (FOLIO, ASUNTO Y FECHA) -->
+                                <div class="text-right mb-6 space-y-0.5">
+                                    <div id="docPreviewFolio" class="font-normal">DIR.C.E. 552/2025</div>
+                                    <div>Asunto: <span id="docPreviewTitle" class="font-normal">Constancia de Estudios</span></div>
+                                    <div id="docPreviewHeaderDate">Teziutlán, Puebla, 24 de Noviembre de 2026</div>
+                                </div>
+
+                                <!-- DESTINATARIO -->
+                                <div class="mb-6">
+                                    <div class="font-bold">A QUIEN CORRESPONDA</div>
+                                    <div class="tracking-[0.22em]">PRESENTE</div>
+                                </div>
+
+                                <!-- CUERPO DINÁMICO DE LA CONSTANCIA -->
+                                <div id="docDynamicBody" class="text-justify space-y-4"></div>
+
+                                <!-- FIRMA DE LA RESPONSABLE (SIEMPRE 4 RENGLONES ABAJO DEL CUERPO) -->
+                                <div id="docSignatureBlock" class="text-center" style="margin-top: calc(4 * 1.3em);">
+                                    <div class="font-bold">ATENTAMENTE</div>
+                                    <div class="mx-auto border-t border-black w-72 pt-1.5" style="margin-top: 5.5em;">
+                                        <div id="docPreviewFirmanteNombre" class="font-bold">Lic. Luis Enrique Hernández Melgarejo</div>
+                                        <div id="docPreviewFirmanteCargo" class="font-bold">Control Escolar</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1414,6 +1581,18 @@
             const bodyTxt = document.getElementById('txtCustomFormatBody');
             if (titleInp && tpl) titleInp.value = tpl.title;
             if (bodyTxt && tpl) bodyTxt.value = tpl.body;
+        }
+
+        function insertTagIntoFormatBody(tag) {
+            const textarea = document.getElementById('txtCustomFormatBody');
+            if (!textarea) return;
+            const start = textarea.selectionStart || 0;
+            const end = textarea.selectionEnd || 0;
+            const val = textarea.value;
+            textarea.value = val.slice(0, start) + tag + val.slice(end);
+            textarea.focus();
+            textarea.selectionStart = textarea.selectionEnd = start + tag.length;
+            previewCustomFormatLive();
         }
 
         function previewCustomFormatLive() {
