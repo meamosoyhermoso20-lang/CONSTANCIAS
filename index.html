@@ -1164,7 +1164,9 @@
             profiles: [],
             deletedProfileIds: [],
             majors: [],
+            deletedMajorIds: [],
             periods: [],
+            deletedPeriodIds: [],
             customTemplates: { ...DEFAULT_TEMPLATES },
             savedVisualLayouts: {},
             globalDefaults: {},
@@ -1173,90 +1175,15 @@
                 fontSize: 12,
                 lineHeight: 1.48
             },
-            history: []
+            history: [],
+            deletedHistoryIds: []
         };
-
-        let activeSession = {
-            unlocked: true,
-            role: 'admin',
-            profileId: 'admin',
-            name: 'Administrador',
-            code: ADMIN_MASTER_CODE
-        };
-
-        let currentDocType = 'simple';
-        let previewZoom = 0.78;
-        let isPreviewFullscreen = false;
-        let importedStudentsList = [];
-        let montosItemsList = [
-            { concepto: 'Inscripción', monto: 2450.00 },
-            { concepto: 'Colegiatura mensual', monto: 2890.00 }
-        ];
-        let gradesList = [
-            { grupo: '5A', codigo: 'DER-501', materia: 'DERECHO CONSTITUCIONAL', calificacion: '9.5' },
-            { grupo: '5A', codigo: 'DER-502', materia: 'DERECHO PENAL II', calificacion: '9.2' },
-            { grupo: '5A', codigo: 'DER-503', materia: 'DERECHO CIVIL: OBLIGACIONES', calificacion: '9.8' },
-            { grupo: '5A', codigo: 'DER-504', materia: 'TEORÍA GENERAL DEL PROCESO', calificacion: '9.0' }
-        ];
-        let confirmCallback = null;
-        let currentEditingPermProfileId = null;
-        let hasDirectBodyEdits = false;
-
+// ... existing code ... -->
         // ==========================================
-        // UTILIDADES BASE Y NOTIFICACIONES
+        // CARGA Y PERSISTENCIA PERMANENTE Y ELIMINACIÓN DEFINITIVA
         // ==========================================
-        function escapeHtml(str) {
-            if (str === null || str === undefined) return '';
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
-        }
+        const PERMANENT_STORAGE_KEY = 'UAP_PERMANENT_VAULT_V1';
 
-        function showToast(msg) {
-            const toast = document.getElementById('toastNotification');
-            const textEl = document.getElementById('toastMessageText');
-            if (!toast || !textEl) return;
-            textEl.textContent = msg;
-            toast.classList.remove('hidden');
-            clearTimeout(window.__uapToastTimer);
-            window.__uapToastTimer = setTimeout(() => {
-                toast.classList.add('hidden');
-            }, 3200);
-        }
-
-        function openCustomConfirmModal(title, message, onConfirm) {
-            const modal = document.getElementById('customConfirmModal');
-            const titleEl = document.getElementById('customConfirmTitle');
-            const msgEl = document.getElementById('customConfirmMessage');
-            if (!modal || !titleEl || !msgEl) {
-                if (typeof onConfirm === 'function') onConfirm();
-                return;
-            }
-            titleEl.textContent = title || 'Confirmar Acción';
-            msgEl.textContent = message || '';
-            confirmCallback = onConfirm;
-            modal.classList.remove('hidden');
-        }
-
-        function closeCustomConfirmModal(accepted) {
-            const modal = document.getElementById('customConfirmModal');
-            if (modal) modal.classList.add('hidden');
-            const cb = confirmCallback;
-            confirmCallback = null;
-            if (accepted && typeof cb === 'function') cb();
-        }
-
-        function updateSyncStatusBadge(text = 'Sincronizado') {
-            const txtEl = document.getElementById('liveSaveStatusText');
-            if (txtEl) txtEl.textContent = text;
-        }
-
-        // ==========================================
-        // CARGA Y PERSISTENCIA EN MEMORIA Y HTML EMBEBIDO
-        // ==========================================
         function loadEmbeddedVaultData() {
             let baseData = {};
             try {
@@ -1268,6 +1195,16 @@
                 baseData = {};
             }
 
+            let permanentSaved = {};
+            try {
+                const rawLocal = localStorage.getItem(PERMANENT_STORAGE_KEY);
+                if (rawLocal) {
+                    permanentSaved = JSON.parse(rawLocal);
+                }
+            } catch (e) {
+                permanentSaved = {};
+            }
+
             let savedMem = {};
             try {
                 if (window.name && window.name.startsWith('UAP_STATE:')) {
@@ -1277,15 +1214,42 @@
                 savedMem = {};
             }
 
-            const merged = { ...baseData, ...savedMem };
-            const deletedIds = Array.isArray(merged.deletedProfileIds) ? merged.deletedProfileIds : (baseData.deletedProfileIds || []);
+            // Prioridad: localStorage permanente > window.name > código embebido
+            const activeStore = Object.keys(permanentSaved).length
+                ? permanentSaved
+                : (Object.keys(savedMem).length ? savedMem : baseData);
+
+            const deletedProfileIds = [...new Set([
+                ...(Array.isArray(baseData.deletedProfileIds) ? baseData.deletedProfileIds : []),
+                ...(Array.isArray(savedMem.deletedProfileIds) ? savedMem.deletedProfileIds : []),
+                ...(Array.isArray(permanentSaved.deletedProfileIds) ? permanentSaved.deletedProfileIds : [])
+            ])];
+
+            const deletedMajorIds = [...new Set([
+                ...(Array.isArray(baseData.deletedMajorIds) ? baseData.deletedMajorIds : []),
+                ...(Array.isArray(savedMem.deletedMajorIds) ? savedMem.deletedMajorIds : []),
+                ...(Array.isArray(permanentSaved.deletedMajorIds) ? permanentSaved.deletedMajorIds : [])
+            ])];
+
+            const deletedPeriodIds = [...new Set([
+                ...(Array.isArray(baseData.deletedPeriodIds) ? baseData.deletedPeriodIds : []),
+                ...(Array.isArray(savedMem.deletedPeriodIds) ? savedMem.deletedPeriodIds : []),
+                ...(Array.isArray(permanentSaved.deletedPeriodIds) ? permanentSaved.deletedPeriodIds : [])
+            ])];
+
+            const deletedHistoryIds = [...new Set([
+                ...(Array.isArray(baseData.deletedHistoryIds) ? baseData.deletedHistoryIds : []),
+                ...(Array.isArray(savedMem.deletedHistoryIds) ? savedMem.deletedHistoryIds : []),
+                ...(Array.isArray(permanentSaved.deletedHistoryIds) ? permanentSaved.deletedHistoryIds : [])
+            ])];
+
             const rawTemplates = {
                 ...DEFAULT_TEMPLATES,
                 ...(baseData.customTemplates || {}),
-                ...(merged.customTemplates || {})
+                ...(savedMem.customTemplates || {}),
+                ...(permanentSaved.customTemplates || {})
             };
 
-            // Asegurar que Kardex no conserve tabla y que Anteriores/Montos usen las nuevas variables si tenían las anteriores por defecto
             if (rawTemplates.kardex && rawTemplates.kardex.includes('{TABLA}')) {
                 rawTemplates.kardex = DEFAULT_TEMPLATES.kardex;
             }
@@ -1296,54 +1260,82 @@
                 rawTemplates.montos = DEFAULT_TEMPLATES.montos;
             }
 
+            const sourceProfiles = Array.isArray(activeStore.profiles) ? activeStore.profiles : (baseData.profiles || []);
+            const sourceMajors = Array.isArray(activeStore.majors) ? activeStore.majors : (baseData.majors || []);
+            const sourcePeriods = Array.isArray(activeStore.periods) ? activeStore.periods : (baseData.periods || []);
+            const sourceHistory = Array.isArray(activeStore.history) ? activeStore.history : (baseData.history || []);
+
             vaultState = {
-                updatedAt: merged.updatedAt || new Date().toISOString(),
-                profiles: (Array.isArray(merged.profiles) ? merged.profiles : (baseData.profiles || [])).filter(p => !deletedIds.includes(p.id)),
-                deletedProfileIds: deletedIds,
-                majors: Array.isArray(merged.majors) && merged.majors.length ? merged.majors : (baseData.majors || []),
-                periods: (Array.isArray(merged.periods) && merged.periods.length ? merged.periods : (baseData.periods || [])).map(p => ({
-                    ...p,
-                    vacStart: p.vacStart || '21 DE DICIEMBRE DE 2026',
-                    vacEnd: p.vacEnd || '07 DE ENERO DE 2027'
-                })),
+                updatedAt: activeStore.updatedAt || new Date().toISOString(),
+                profiles: sourceProfiles.filter(p => p && !deletedProfileIds.includes(p.id)),
+                deletedProfileIds,
+                majors: sourceMajors.filter(m => m && !deletedMajorIds.includes(m.id)),
+                deletedMajorIds,
+                periods: sourcePeriods
+                    .filter(p => p && !deletedPeriodIds.includes(p.id))
+                    .map(p => ({
+                        ...p,
+                        vacStart: p.vacStart || '21 DE DICIEMBRE DE 2026',
+                        vacEnd: p.vacEnd || '07 DE ENERO DE 2027'
+                    })),
+                deletedPeriodIds,
                 customTemplates: rawTemplates,
-                savedVisualLayouts: { ...(baseData.savedVisualLayouts || {}), ...(merged.savedVisualLayouts || {}) },
+                savedVisualLayouts: {
+                    ...(baseData.savedVisualLayouts || {}),
+                    ...(savedMem.savedVisualLayouts || {}),
+                    ...(permanentSaved.savedVisualLayouts || {})
+                },
                 globalDefaults: {
                     ...DEFAULT_SIGNATURE_INFO,
                     ...(baseData.globalDefaults || {}),
-                    ...(merged.globalDefaults || {})
+                    ...(savedMem.globalDefaults || {}),
+                    ...(permanentSaved.globalDefaults || {})
                 },
                 typography: {
                     fontFamily: 'Arial, Helvetica, sans-serif',
                     fontSize: 12,
                     lineHeight: 1.48,
                     ...(baseData.typography || {}),
-                    ...(merged.typography || {})
+                    ...(savedMem.typography || {}),
+                    ...(permanentSaved.typography || {})
                 },
-                history: Array.isArray(merged.history) ? merged.history : (baseData.history || [])
+                history: sourceHistory.filter(h => h && !deletedHistoryIds.includes(h.id)),
+                deletedHistoryIds
             };
+
+            // Sincronizar inmediatamente el bloque embebido en el DOM con el estado limpio
+            const embeddedEl = document.getElementById('embeddedInternalVaultData');
+            if (embeddedEl) {
+                embeddedEl.textContent = JSON.stringify(vaultState);
+            }
         }
 
         function persistVaultData(silent = false) {
             vaultState.updatedAt = new Date().toISOString();
+            const serialized = JSON.stringify(vaultState);
+            try {
+                localStorage.setItem(PERMANENT_STORAGE_KEY, serialized);
+            } catch (e) {
+                // Ignorar si el almacenamiento local está restringido
+            }
             try {
                 const embeddedEl = document.getElementById('embeddedInternalVaultData');
                 if (embeddedEl) {
-                    embeddedEl.textContent = JSON.stringify(vaultState);
+                    embeddedEl.textContent = serialized;
                 }
-                window.name = 'UAP_STATE:' + JSON.stringify(vaultState);
+                window.name = 'UAP_STATE:' + serialized;
             } catch (e) {
                 // Ignorar límite de window.name
             }
-            updateSyncStatusBadge('Guardado • ' + new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }));
+            updateSyncStatusBadge('Guardado permanente • ' + new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }));
             if (!silent) {
-                showToast('Cambios guardados correctamente.');
+                showToast('Guardado permanentemente en el código.');
             }
         }
 
         function saveCurrentWorkspaceCheckpoint(notify = true) {
             persistVaultData(true);
-            if (notify) showToast('Estado actual de la página guardado en sesión.');
+            if (notify) showToast('Todo lo modificado quedó guardado permanentemente.');
         }
 
         function recoverPageEmergencyState() {
@@ -1353,7 +1345,7 @@
             populatePeriodsSelect();
             updateHistoryBadge();
             selectDocType(currentDocType);
-            showToast('Página restaurada al último punto guardado.');
+            showToast('Página sincronizada con el último guardado permanente.');
         }
 
         function restoreFullDatabaseCatalogs(confirmFirst = true) {
@@ -1365,1772 +1357,87 @@
                 applySavedSignatureDefaultsToInputs();
                 persistVaultData(true);
                 selectDocType(currentDocType);
-                showToast('Catálogos y plantillas base restaurados.');
+                showToast('Plantillas y firma restablecidas y guardadas.');
             };
             if (confirmFirst) {
-                openCustomConfirmModal('Restaurar Base de Datos', '¿Deseas restablecer todas las plantillas y configuraciones a sus valores originales?', doRestore);
+                openCustomConfirmModal('Restaurar Plantillas Base', '¿Deseas restablecer las plantillas y firma a sus valores iniciales? Los elementos eliminados definitivamente permanecerán borrados.', doRestore);
             } else {
                 doRestore();
             }
         }
-
-        // ==========================================
-        // MENÚ SUPERIOR, PESTAÑAS Y SESIÓN / PERFILES
-        // ==========================================
-        function toggleHeaderToolsDropdown() {
-            const dd = document.getElementById('headerSystemToolsDropdown');
-            if (dd) dd.classList.toggle('hidden');
-        }
-
-        function closeHeaderToolsDropdown() {
-            const dd = document.getElementById('headerSystemToolsDropdown');
-            if (dd) dd.classList.add('hidden');
-        }
-
-        function switchMainWorkspaceTab(tabName) {
-            const constanciasCols = [document.getElementById('editorFormColumn'), document.getElementById('previewSection')];
-            const majorsTab = document.getElementById('majorsRvoeTabContainer');
-            const rolesTab = document.getElementById('rolesAdminTabContainer');
-
-            const btns = {
-                constancias: document.getElementById('mainTabBtn-constancias'),
-                licenciaturas: document.getElementById('mainTabBtn-licenciaturas'),
-                roles: document.getElementById('mainTabBtn-roles')
-            };
-
-            Object.entries(btns).forEach(([key, btn]) => {
-                if (!btn) return;
-                if (key === tabName) {
-                    btn.className = 'px-3.5 py-1.5 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5 bg-white text-blue-950 shadow-sm transition shrink-0';
-                } else {
-                    btn.className = 'px-3.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 bg-white/5 hover:bg-white/15 text-slate-200 transition shrink-0';
-                }
-            });
-
-            if (tabName === 'constancias') {
-                constanciasCols.forEach(el => el && el.classList.remove('hidden'));
-                if (majorsTab) majorsTab.classList.add('hidden');
-                if (rolesTab) rolesTab.classList.add('hidden');
-                fitDocumentToSingleLetterSheet();
-            } else if (tabName === 'licenciaturas') {
-                constanciasCols.forEach(el => el && el.classList.add('hidden'));
-                if (majorsTab) majorsTab.classList.remove('hidden');
-                if (rolesTab) rolesTab.classList.add('hidden');
-                renderMajorsCatalogList();
-            } else if (tabName === 'roles') {
-                constanciasCols.forEach(el => el && el.classList.add('hidden'));
-                if (majorsTab) majorsTab.classList.add('hidden');
-                if (rolesTab) rolesTab.classList.remove('hidden');
-                renderProfilesManagerGrid();
-            }
-        }
-
-        function unlockProfileByQuickAccessCode(event) {
-            if (event) event.preventDefault();
-            const input = document.getElementById('quickAccessCodeInput');
-            const code = (input?.value || '').trim().toUpperCase();
-            if (!code) {
-                showToast('Ingresa un código de acceso.');
-                return;
-            }
-            if (code === ADMIN_MASTER_CODE) {
-                activeSession = { unlocked: true, role: 'admin', profileId: 'admin', name: 'Administrador', code };
-                if (input) input.value = '';
-                syncSessionUI();
-                showToast('Acceso concedido: Administrador.');
-                return;
-            }
-            const found = vaultState.profiles.find(p => (p.code || '').trim().toUpperCase() === code);
-            if (!found) {
-                showToast('Código de acceso incorrecto.');
-                return;
-            }
-            activeSession = { unlocked: true, role: 'user', profileId: found.id, name: found.name, code };
-            if (input) input.value = '';
-            syncSessionUI();
-            showToast(`Bienvenido(a), ${found.name}.`);
-        }
-
-        function lockProfileQuickAccess() {
-            activeSession.unlocked = false;
-            syncSessionUI();
-            showToast('Sesión bloqueada.');
-        }
-
-        function syncSessionUI() {
-            const mainEl = document.getElementById('appMainContainer');
-            const lockNotice = document.getElementById('lockedHeaderNotice');
-            const userLabel = document.getElementById('headerActiveUsername');
-            const roleBadge = document.getElementById('headerActiveRoleName');
-            const statusDot = document.getElementById('sessionStatusDot');
-            const tabLic = document.getElementById('mainTabBtn-licenciaturas');
-            const tabRoles = document.getElementById('mainTabBtn-roles');
-            const toolsContainer = document.getElementById('headerToolsContainer');
-            const readOnlyAlert = document.getElementById('readOnlyRoleAlert');
-
-            if (!activeSession.unlocked) {
-                if (mainEl) mainEl.classList.add('hidden');
-                if (lockNotice) lockNotice.classList.remove('hidden');
-                if (statusDot) statusDot.className = 'w-2 h-2 rounded-full bg-rose-500';
-                return;
-            }
-
-            if (mainEl) mainEl.classList.remove('hidden');
-            if (lockNotice) lockNotice.classList.add('hidden');
-            if (statusDot) statusDot.className = 'w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-emerald-400/30';
-            if (userLabel) userLabel.textContent = activeSession.name || 'Administrador';
-
-            const isAdmin = activeSession.role === 'admin';
-            if (roleBadge) roleBadge.textContent = isAdmin ? 'ADMIN' : 'OPERADOR';
-            if (tabLic) tabLic.classList.toggle('hidden', !isAdmin);
-            if (tabRoles) tabRoles.classList.toggle('hidden', !isAdmin);
-            if (toolsContainer) toolsContainer.classList.toggle('hidden', !isAdmin);
-            if (readOnlyAlert) readOnlyAlert.classList.toggle('hidden', isAdmin);
-
-            if (!isAdmin) {
-                switchMainWorkspaceTab('constancias');
-            }
-        }
-
-        // ==========================================
-        // SELECTOR DE MODALIDAD, ESTRUCTURA Y ENTER ESTABLE
-        // ==========================================
-        function selectDocType(type) {
-            if (!DOC_TYPE_META[type]) type = 'simple';
-            currentDocType = type;
-
-            Object.keys(DOC_TYPE_META).forEach(key => {
-                const btn = document.getElementById(`btn-type-${key}`);
-                if (!btn) return;
-                const colors = DOC_TYPE_BTN_COLORS[key] || DOC_TYPE_BTN_COLORS.simple;
-                btn.className = key === type ? colors.active : colors.inactive;
-            });
-
-            const badge = document.getElementById('currentFormatLabelBadge');
-            if (badge) badge.textContent = DOC_TYPE_META[type].label;
-
-            const customTa = document.getElementById('customDocFormatText');
-            if (customTa) {
-                customTa.value = vaultState.customTemplates[type] || DEFAULT_TEMPLATES[type] || '';
-            }
-
-            const specificMap = {
-                vacaciones: 'fields-vacaciones',
-                anteriores: 'fields-anteriores',
-                montos: 'fields-montos',
-                resguardo: 'fields-resguardo',
-                promedio: 'fields-promedio'
-            };
-
-            Object.entries(specificMap).forEach(([key, id]) => {
-                const el = document.getElementById(id);
-                if (el) el.classList.toggle('hidden', type !== key);
-            });
-
-            const tableEl = document.getElementById('fields-tabla-materias');
-            if (tableEl) {
-                tableEl.classList.toggle('hidden', type !== 'calificaciones');
-                if (type === 'calificaciones') {
-                    renderGradesEditorRows();
-                }
-            }
-
-            if (type === 'montos') {
-                renderMontosEditorRows();
-            }
-
-            hasDirectBodyEdits = false;
-            updateDocument();
-        }
-
-        function insertFormatToken(token) {
-            const ta = document.getElementById('customDocFormatText');
-            if (!ta) return;
-            const start = ta.selectionStart || 0;
-            const end = ta.selectionEnd || 0;
-            ta.value = ta.value.slice(0, start) + token + ta.value.slice(end);
-            ta.focus();
-            ta.selectionStart = ta.selectionEnd = start + token.length;
-            onCustomFormatTextareaInput();
-        }
-
-        function handleCustomFormatKeydown(event) {
-            if (event.key === 'Enter') {
-                event.stopPropagation();
-                const ta = event.target;
-                if (!ta) return;
-                event.preventDefault();
-                const start = ta.selectionStart || 0;
-                const end = ta.selectionEnd || 0;
-                ta.value = ta.value.slice(0, start) + '\n' + ta.value.slice(end);
-                ta.selectionStart = ta.selectionEnd = start + 1;
-                onCustomFormatTextareaInput();
-            }
-        }
-
-        function onCustomFormatTextareaInput() {
-            const customTa = document.getElementById('customDocFormatText');
-            if (!customTa) return;
-            vaultState.customTemplates[currentDocType] = customTa.value;
-            if (vaultState.savedVisualLayouts && vaultState.savedVisualLayouts[currentDocType]) {
-                delete vaultState.savedVisualLayouts[currentDocType];
-            }
-            hasDirectBodyEdits = false;
-            updateDocument();
-        }
-
-        function onDirectSheetVisualInput() {
-            hasDirectBodyEdits = true;
-            enforceJustifiedBodyAlignment();
-            fitDocumentToSingleLetterSheet();
-        }
-
-        function handleDirectSheetKeydown(event) {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                const sel = window.getSelection();
-                if (!sel || sel.rangeCount === 0) return;
-                const range = sel.getRangeAt(0);
-                const bodyEl = document.getElementById('documentRenderedBody');
-                if (!bodyEl || !bodyEl.contains(range.commonAncestorContainer)) return;
-
-                range.deleteContents();
-                const blankDiv = document.createElement('div');
-                blankDiv.className = 'doc-blank';
-
-                let anchorBlock = range.startContainer.nodeType === Node.ELEMENT_NODE
-                    ? range.startContainer
-                    : range.startContainer.parentElement;
-
-                while (anchorBlock && anchorBlock.parentElement !== bodyEl && anchorBlock !== bodyEl) {
-                    anchorBlock = anchorBlock.parentElement;
-                }
-
-                if (anchorBlock && anchorBlock !== bodyEl && anchorBlock.parentElement === bodyEl) {
-                    const tailRange = document.createRange();
-                    tailRange.setStart(range.startContainer, range.startOffset);
-                    tailRange.setEndAfter(anchorBlock.lastChild || anchorBlock);
-                    const tailFrag = tailRange.extractContents();
-
-                    const hasTailText = (tailFrag.textContent || '').trim().length > 0;
-                    anchorBlock.after(blankDiv);
-
-                    if (hasTailText) {
-                        const nextPara = document.createElement('div');
-                        nextPara.className = anchorBlock.className || 'doc-para';
-                        nextPara.appendChild(tailFrag);
-                        blankDiv.after(nextPara);
-
-                        const newRange = document.createRange();
-                        newRange.setStart(nextPara, 0);
-                        newRange.collapse(true);
-                        sel.removeAllRanges();
-                        sel.addRange(newRange);
-                    } else {
-                        const afterBlank = blankDiv.nextElementSibling;
-                        if (afterBlank && !afterBlank.classList.contains('doc-signature-block')) {
-                            const newRange = document.createRange();
-                            newRange.setStart(afterBlank, 0);
-                            newRange.collapse(true);
-                            sel.removeAllRanges();
-                            sel.addRange(newRange);
-                        } else {
-                            const newPara = document.createElement('div');
-                            newPara.className = 'doc-para';
-                            newPara.appendChild(document.createElement('br'));
-                            blankDiv.after(newPara);
-                            const newRange = document.createRange();
-                            newRange.setStart(newPara, 0);
-                            newRange.collapse(true);
-                            sel.removeAllRanges();
-                            sel.addRange(newRange);
-                        }
-                    }
-                } else {
-                    range.insertNode(blankDiv);
-                    const newRange = document.createRange();
-                    newRange.setStartAfter(blankDiv);
-                    newRange.collapse(true);
-                    sel.removeAllRanges();
-                    sel.addRange(newRange);
-                }
-
-                onDirectSheetVisualInput();
-            }
-        }
-
-        function formatDateToSpanishUpper(isoDateStr) {
-            const months = [
-                'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
-                'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
-            ];
-            if (!isoDateStr || !isoDateStr.includes('-')) {
-                const now = new Date();
-                return `${String(now.getDate()).padStart(2, '0')} DE ${months[now.getMonth()]} DE ${now.getFullYear()}`;
-            }
-            const [y, m, d] = isoDateStr.split('-').map(Number);
-            if (!y || !m || !d) return isoDateStr.toUpperCase();
-            return `${String(d).padStart(2, '0')} DE ${months[m - 1] || 'ENERO'} DE ${y}`;
-        }
-
-        function setTodayExpeditionDate(shouldRender = true) {
-            const dateInput = document.getElementById('inputFecha');
-            if (!dateInput) return;
-            const now = new Date();
-            const yyyy = now.getFullYear();
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            const dd = String(now.getDate()).padStart(2, '0');
-            dateInput.value = `${yyyy}-${mm}-${dd}`;
-            if (shouldRender) updateDocument();
-        }
-
-        function detectGenderFromName() {
-            const nameVal = (document.getElementById('inputAlumno')?.value || '').trim().toUpperCase();
-            const selectGen = document.getElementById('selectGenero');
-            if (!nameVal || !selectGen) return;
-            const firstName = nameVal.split(/\s+/)[0] || '';
-            const maleExceptions = ['JOSÉ', 'JOSE', 'JESÚS', 'JESUS', 'LUIS', 'CARLOS', 'JUAN', 'PEDRO', 'MIGUEL', 'ANGEL', 'ÁNGEL', 'DANIEL', 'DAVID', 'ALEJANDRO', 'FERNANDO', 'JORGE', 'RICARDO', 'EDUARDO', 'ROBERTO', 'DIEGO', 'ABRAHAM', 'ANDRÉS', 'ANDRES', 'EMMANUEL', 'OMAR', 'OSCAR', 'ÓSCAR', 'RAÚL', 'RAUL', 'HÉCTOR', 'HECTOR', 'VÍCTOR', 'VICTOR', 'MARCO', 'ANTONIO', 'FRANCISCO', 'JAVIER', 'MANUEL', 'ARTURO', 'SERGIO', 'ALBERTO', 'ENRIQUE', 'RAFAEL', 'ADRIÁN', 'ADRIAN', 'IVÁN', 'IVAN', 'RUBÉN', 'RUBEN', 'CÉSAR', 'CESAR', 'EDGAR', 'ERIK', 'ERICK', 'CHRISTIAN', 'CRISTIAN', 'KEVIN', 'BRAYAN', 'BRANDON', 'ALAN', 'AXEL', 'IAN', 'LIAM', 'NOAH', 'MATEO', 'SANTIAGO', 'SEBASTIÁN', 'SEBASTIAN', 'LEONARDO', 'EMILIANO', 'MATÍAS', 'MATIAS', 'GAEL', 'DYLAN', 'IÑAKI', 'URIEL', 'SAÚL', 'SAUL', 'JOEL', 'NOÉ', 'NOE', 'MOISÉS', 'MOISES', 'ELÍAS', 'ELIAS', 'ISAAC', 'JACOBO', 'SAMUEL', 'GABRIEL', 'AARÓN', 'AARON', 'ESTEBAN', 'RODRIGO', 'PABLO', 'TOMÁS', 'TOMAS', 'NICOLÁS', 'NICOLAS', 'AGUSTÍN', 'AGUSTIN', 'MARTÍN', 'MARTIN', 'IGNACIO', 'PATRICIO', 'MAURICIO', 'GUILLERMO', 'ALFONSO', 'ARMANDO', 'GERARDO', 'GILBERTO', 'HUMBERTO', 'JAIME', 'JULIO', 'LORENZO', 'MARIO', 'OCTAVIO', 'ORLANDO', 'RAMÓN', 'RAMON', 'RENÉ', 'RENE', 'RODOLFO', 'SALVADOR', 'VICENTE'];
-            const femaleExceptions = ['MARÍA', 'MARIA', 'FERNANDA', 'GUADALUPE', 'CARMEN', 'ROCÍO', 'ROCIO', 'BEATRIZ', 'LIZBETH', 'JAZMÍN', 'JAZMIN', 'ABIGAIL', 'ESTHER', 'RUTH', 'RAQUEL', 'MIRIAM', 'BELÉN', 'BELEN', 'PILAR', 'CONSUELO', 'ROSARIO', 'SOLEDAD', 'MERCEDES', 'DOLORES', 'LOURDES', 'INÉS', 'INES', 'IRENE', 'NOEMÍ', 'NOEMI', 'SARAHÍ', 'SARAHI', 'ITZEL', 'ARACELI', 'NAYELI', 'CITLALI', 'XIMENA', 'VALERIA', 'CAMILA', 'SOFÍA', 'SOFIA', 'ANDREA', 'PAOLA', 'DANIELA', 'ALEJANDRA', 'GABRIELA', 'KARLA', 'CARLA', 'LAURA', 'ANA', 'DIANA', 'PATRICIA', 'VERÓNICA', 'VERONICA', 'MÓNICA', 'MONICA', 'CLAUDIA', 'SILVIA', 'ADRIANA', 'NATALY', 'GISELLE', 'KARINA', 'MARIANA', 'FÁTIMA', 'FATIMA', 'ELIZABETH', 'BRENDA', 'JESSICA', 'YESENIA', 'STEPHANIE', 'ESTEFANÍA', 'ESTEFANIA', 'MONTSERRAT', 'DULCE', 'PERLA', 'ESMERALDA', 'RUBÍ', 'RUBI', 'LUCÍA', 'LUCIA', 'ELENA', 'ISABEL', 'TERESA', 'ROSA', 'MARTHA', 'ALMA', 'BLANCA', 'LETICIA', 'NORMA', 'GLORIA', 'SUSANA', 'ERIKA', 'CECILIA', 'LORENA', 'EDITH', 'JUDITH', 'LILIANA', 'NANCY', 'WENDY', 'CYNTHIA', 'CINTHIA', 'PAMELA', 'TANIA', 'VANESSA', 'SANDRA', 'SONIA', 'VIRGINIA', 'YOLANDA', 'ZULEMA', 'MICHELLE', 'NICOLE', 'REGINA', 'RENATA', 'VICTORIA', 'JIMENA', 'NATALIA', 'PAULINA', 'ROMINA', 'SAMANTHA', 'MELISSA', 'ALONDRA'];
-
-            if (maleExceptions.includes(firstName)) {
-                selectGen.value = 'M';
-            } else if (femaleExceptions.includes(firstName)) {
-                selectGen.value = 'F';
-            } else if (firstName.endsWith('A')) {
-                selectGen.value = 'F';
-            } else if (firstName.endsWith('O')) {
-                selectGen.value = 'M';
-            }
-        }
-
-        function getCurrentDocumentTokenValues() {
-            const folio = (document.getElementById('inputFolio')?.value || '').trim();
-            const asunto = DOC_TYPE_META[currentDocType]?.asunto || 'CONSTANCIA DE ESTUDIOS';
-            const ciudad = (document.getElementById('inputCiudad')?.value || '').trim();
-            const fechaIso = document.getElementById('inputFecha')?.value || '';
-            const fechaMayus = formatDateToSpanishUpper(fechaIso);
-            const destinatario = (document.getElementById('inputDestinatario')?.value || '').trim();
-
-            const alumno = (document.getElementById('inputAlumno')?.value || '').trim();
-            const genero = document.getElementById('selectGenero')?.value || 'F';
-            const tratamiento = genero === 'M' ? 'el alumno' : 'la alumna';
-            const inscrito = genero === 'M' ? 'inscrito' : 'inscrita';
-
-            const matricula = (document.getElementById('inputMatricula')?.value || '').trim();
-            const grado = (document.getElementById('inputGrado')?.value || '').trim();
-
-            const licSelect = document.getElementById('selectLicenciatura');
-            const majorObj = vaultState.majors.find(m => m.id === licSelect?.value);
-            const licenciatura = majorObj ? majorObj.name : (licSelect?.options[licSelect.selectedIndex]?.text || '').trim();
-
-            const rvoe = (document.getElementById('inputRvoe')?.value || '').trim();
-
-            const perSelect = document.getElementById('selectPeriodo');
-            const periodObj = vaultState.periods.find(p => p.id === perSelect?.value);
-            const periodo = periodObj ? periodObj.name : (perSelect?.options[perSelect.selectedIndex]?.text || '').trim();
-
-            const inicioPeriodo = (document.getElementById('inputInicioPeriodo')?.value || '').trim();
-            const finPeriodo = (document.getElementById('inputFinPeriodo')?.value || '').trim();
-            const vacInicio = (document.getElementById('inputVacInicio')?.value || '').trim();
-            const vacFin = (document.getElementById('inputVacFin')?.value || '').trim();
-            const estatusCursamiento = (document.getElementById('selectEstatusPeriodosAnteriores')?.value || 'cursó').trim();
-            const periodosAnteriores = (document.getElementById('inputPeriodosAnteriores')?.value || '').trim();
-            const montosSummary = getMontosComputedSummary();
-            const documentosResguardo = (document.getElementById('inputDocumentosResguardo')?.value || '').trim();
-            const promedioGeneral = (document.getElementById('inputPromedioGeneral')?.value || '').trim();
-            const periodosPromedio = (document.getElementById('inputPeriodosPromedio')?.value || '').trim();
-            const firmante = (document.getElementById('inputFirmante')?.value || '').trim();
-            const cargoFirmante = (document.getElementById('inputCargoFirmante')?.value || '').trim();
-
-            return {
-                map: {
-                    '{FOLIO}': folio,
-                    '{ASUNTO}': asunto,
-                    '{CIUDAD_MAYUS}': ciudad,
-                    '{FECHA_MAYUS}': fechaMayus,
-                    '{DESTINATARIO}': destinatario,
-                    '{TRATAMIENTO}': tratamiento,
-                    '{ALUMNO}': alumno,
-                    '{MATRICULA}': matricula,
-                    '{INSCRITO}': inscrito,
-                    '{GRADO}': grado,
-                    '{LICENCIATURA}': licenciatura,
-                    '{RVOE}': rvoe,
-                    '{PERIODO}': periodo,
-                    '{INICIO_PERIODO}': inicioPeriodo,
-                    '{FIN_PERIODO}': finPeriodo,
-                    '{VAC_INICIO}': vacInicio,
-                    '{VAC_FIN}': vacFin,
-                    '{ESTATUS_CURSAMIENTO}': estatusCursamiento,
-                    '{PERIODOS_ANTERIORES}': periodosAnteriores,
-                    '{DESGLOSE_MONTOS}': montosSummary.desgloseTexto,
-                    '{TOTAL_MONTOS}': montosSummary.totalTexto,
-                    '{MONTO_INSCRIPCION}': montosSummary.firstMonto,
-                    '{MONTO_COLEGIATURA}': montosSummary.secondMonto,
-                    '{DOCUMENTOS_RESGUARDO}': documentosResguardo,
-                    '{PROMEDIO_GENERAL}': promedioGeneral,
-                    '{PERIODOS_PROMEDIO}': periodosPromedio,
-                    '{FIRMANTE}': firmante,
-                    '{CARGO_FIRMANTE}': cargoFirmante
-                }
-            };
-        }
-
-        function saveSignatureDefaults(silent = false) {
-            const firmante = (document.getElementById('inputFirmante')?.value || '').trim() || DEFAULT_SIGNATURE_INFO.firmante;
-            const cargoFirmante = (document.getElementById('inputCargoFirmante')?.value || '').trim() || DEFAULT_SIGNATURE_INFO.cargoFirmante;
-            vaultState.globalDefaults = {
-                ...(vaultState.globalDefaults || {}),
-                firmante,
-                cargoFirmante
-            };
-            persistVaultData(true);
-            updateDocument();
-            if (!silent) {
-                showToast('Firma y cargo guardados como predeterminados.');
-            }
-        }
-
-        function resetSignatureDefaults() {
-            vaultState.globalDefaults = {
-                ...(vaultState.globalDefaults || {}),
-                firmante: DEFAULT_SIGNATURE_INFO.firmante,
-                cargoFirmante: DEFAULT_SIGNATURE_INFO.cargoFirmante
-            };
-            applySavedSignatureDefaultsToInputs();
-            persistVaultData(true);
-            updateDocument();
-            showToast('Firma y cargo restablecidos a valores oficiales.');
-        }
-
-        function applySavedSignatureDefaultsToInputs() {
-            const fEl = document.getElementById('inputFirmante');
-            const cEl = document.getElementById('inputCargoFirmante');
-            if (fEl) fEl.value = vaultState.globalDefaults?.firmante || DEFAULT_SIGNATURE_INFO.firmante;
-            if (cEl) cEl.value = vaultState.globalDefaults?.cargoFirmante || DEFAULT_SIGNATURE_INFO.cargoFirmante;
-        }
-
-        function saveCurrentDocTypeFormat() {
-            const customTa = document.getElementById('customDocFormatText');
-            if (customTa) {
-                vaultState.customTemplates[currentDocType] = customTa.value;
-            }
-            const bodyEl = document.getElementById('documentRenderedBody');
-            if (bodyEl && hasDirectBodyEdits) {
-                enforceJustifiedBodyAlignment();
-                vaultState.savedVisualLayouts[currentDocType] = bodyEl.innerHTML;
-            }
-            saveSignatureDefaults(true);
-            persistVaultData(true);
-            showToast(`Formato "${DOC_TYPE_META[currentDocType]?.label || currentDocType}" guardado con vínculos activos.`);
-        }
-
-        function resetCurrentDocTypeFormat() {
-            const baseTpl = DEFAULT_TEMPLATES[currentDocType] || '';
-            vaultState.customTemplates[currentDocType] = baseTpl;
-            if (vaultState.savedVisualLayouts) {
-                delete vaultState.savedVisualLayouts[currentDocType];
-            }
-            const customTa = document.getElementById('customDocFormatText');
-            if (customTa) customTa.value = baseTpl;
-            hasDirectBodyEdits = false;
-            persistVaultData(true);
-            updateDocument();
-            showToast('Formato restaurado a su estructura base.');
-        }
-
-        function syncGenderTermsInDocumentDOM(containerEl, genero) {
-            if (!containerEl) return;
-            const isMale = genero === 'M';
-            const walker = document.createTreeWalker(containerEl, NodeFilter.SHOW_TEXT, null);
-            let node;
-            while ((node = walker.nextNode())) {
-                if (!node.nodeValue) continue;
-                let txt = node.nodeValue
-                    .replace(/\{\s*(inscrit[oa])\s*\}/gi, '$1')
-                    .replace(/\{\s*(el alumno|la alumna)\s*\}/gi, '$1');
-                if (isMale) {
-                    txt = txt
-                        .replace(/\bla alumna\b/gi, (m) => (m[0] === 'L' ? 'El alumno' : 'el alumno'))
-                        .replace(/\binscrita\b/gi, (m) => (m[0] === 'I' ? 'Inscrito' : 'inscrito'))
-                        .replace(/\bdel interesado\b/gi, 'del alumno')
-                        .replace(/\bde la interesada\b/gi, 'del alumno');
-                } else {
-                    txt = txt
-                        .replace(/\bel alumno\b/gi, (m) => (m[0] === 'E' ? 'La alumna' : 'la alumna'))
-                        .replace(/\binscrito\b/gi, (m) => (m[0] === 'I' ? 'Inscrita' : 'inscrita'));
-                }
-                if (txt !== node.nodeValue) {
-                    node.nodeValue = txt;
-                }
-            }
-        }
-
-        function enforceJustifiedBodyAlignment() {
-            const bodyEl = document.getElementById('documentRenderedBody');
-            if (!bodyEl) return;
-            bodyEl.style.textAlign = 'justify';
-            bodyEl.querySelectorAll('.doc-para, p').forEach(el => {
-                el.style.textAlign = 'justify';
-                el.style.textJustify = 'inter-word';
-            });
-        }
-
-        function updateDocument() {
-            const bodyEl = document.getElementById('documentRenderedBody');
-            if (!bodyEl) return;
-
-            applyGlobalTypographyVariables();
-            const tokenObj = getCurrentDocumentTokenValues();
-            const map = tokenObj.map;
-            const genero = document.getElementById('selectGenero')?.value || 'F';
-
-            const tokenToField = {
-                '{FOLIO}': 'folio',
-                '{ASUNTO}': 'asunto',
-                '{CIUDAD_MAYUS}': 'ciudad',
-                '{FECHA_MAYUS}': 'fecha',
-                '{DESTINATARIO}': 'destinatario',
-                '{TRATAMIENTO}': 'tratamiento',
-                '{ALUMNO}': 'alumno',
-                '{MATRICULA}': 'matricula',
-                '{INSCRITO}': 'inscrito',
-                '{GRADO}': 'grado',
-                '{LICENCIATURA}': 'licenciatura',
-                '{RVOE}': 'rvoe',
-                '{PERIODO}': 'periodo',
-                '{INICIO_PERIODO}': 'inicioPeriodo',
-                '{FIN_PERIODO}': 'finPeriodo',
-                '{VAC_INICIO}': 'vacInicio',
-                '{VAC_FIN}': 'vacFin',
-                '{ESTATUS_CURSAMIENTO}': 'estatusCursamiento',
-                '{PERIODOS_ANTERIORES}': 'periodosAnteriores',
-                '{DESGLOSE_MONTOS}': 'desgloseMontos',
-                '{TOTAL_MONTOS}': 'totalMontos',
-                '{MONTO_INSCRIPCION}': 'montoInscripcion',
-                '{MONTO_COLEGIATURA}': 'montoColegiatura',
-                '{DOCUMENTOS_RESGUARDO}': 'documentosResguardo',
-                '{PROMEDIO_GENERAL}': 'promedioGeneral',
-                '{PERIODOS_PROMEDIO}': 'periodosPromedio',
-                '{FIRMANTE}': 'firmante',
-                '{CARGO_FIRMANTE}': 'cargoFirmante'
-            };
-
-            const boldTokens = new Set(['{ALUMNO}', '{MATRICULA}', '{LICENCIATURA}', '{GRADO}', '{PERIODO}', '{PROMEDIO_GENERAL}']);
-
-            if (vaultState.savedVisualLayouts && vaultState.savedVisualLayouts[currentDocType]) {
-                bodyEl.innerHTML = vaultState.savedVisualLayouts[currentDocType];
-                Object.entries(tokenToField).forEach(([tok, fieldKey]) => {
-                    const val = map[tok] ?? '';
-                    bodyEl.querySelectorAll(`[data-bound-field="${fieldKey}"]`).forEach(el => {
-                        el.textContent = val;
-                    });
-                });
-                const tableSlot = bodyEl.querySelector('[data-bound-table="true"]');
-                if (tableSlot) {
-                    tableSlot.innerHTML = buildGradesTableHtml(currentDocType === 'kardex');
-                }
-                const montosTableSlot = bodyEl.querySelector('[data-bound-montos-table="true"]');
-                if (montosTableSlot) {
-                    montosTableSlot.innerHTML = buildMontosTableHtml();
-                }
-                syncGenderTermsInDocumentDOM(bodyEl, genero);
-                enforceJustifiedBodyAlignment();
-                fitDocumentToSingleLetterSheet();
-                return;
-            }
-
-            const rawTemplate = (document.getElementById('customDocFormatText')?.value || vaultState.customTemplates[currentDocType] || DEFAULT_TEMPLATES[currentDocType] || '');
-            const lines = rawTemplate.split('\n');
-            const htmlParts = [];
-            let inSignatureBlock = false;
-            let sigLines = [];
-
-            const renderLineWithTokens = (lineStr) => {
-                let processed = escapeHtml(lineStr);
-
-                Object.entries(tokenToField).forEach(([tok, fieldKey]) => {
-                    const val = escapeHtml(map[tok] ?? '');
-                    const spanHtml = boldTokens.has(tok)
-                        ? `<strong data-bound-field="${fieldKey}">${val}</strong>`
-                        : `<span data-bound-field="${fieldKey}">${val}</span>`;
-                    processed = processed.split(tok).join(spanHtml);
-                });
-
-                processed = processed
-                    .replace(/\{\s*(inscrit[oa])\s*\}/gi, '$1')
-                    .replace(/\{\s*(el alumno|la alumna)\s*\}/gi, '$1');
-
-                if (genero === 'M') {
-                    processed = processed.replace(/\bla alumna\b/gi, 'el alumno').replace(/\binscrita\b/gi, 'inscrito');
-                } else {
-                    processed = processed.replace(/\bel alumno\b/gi, 'la alumna').replace(/\binscrito\b/gi, 'inscrita');
-                }
-
-                return processed;
-            };
-
-            for (let i = 0; i < lines.length; i++) {
-                const rawLine = lines[i];
-                const trimmed = rawLine.trim();
-
-                if (trimmed === 'ATENTAMENTE') {
-                    inSignatureBlock = true;
-                    sigLines = [];
-                    continue;
-                }
-
-                if (inSignatureBlock) {
-                    if (trimmed) sigLines.push(renderLineWithTokens(trimmed));
-                    continue;
-                }
-
-                if (!trimmed) {
-                    htmlParts.push('<div class="doc-blank"></div>');
-                    continue;
-                }
-
-                if (trimmed === '{TABLA}') {
-                    if (currentDocType === 'calificaciones') {
-                        htmlParts.push(`<div data-bound-table="true">${buildGradesTableHtml(false)}</div>`);
-                    }
-                    continue;
-                }
-
-                if (trimmed === '{TABLA_MONTOS}' || trimmed === '{DESGLOSE_MONTOS}') {
-                    htmlParts.push(`<div data-bound-montos-table="true">${buildMontosTableHtml()}</div>`);
-                    continue;
-                }
-
-                if (trimmed.startsWith('{FOLIO}') || trimmed.startsWith('ASUNTO:') || trimmed.startsWith('{CIUDAD_MAYUS}')) {
-                    htmlParts.push(`<div class="doc-para-right">${renderLineWithTokens(trimmed)}</div>`);
-                } else if (trimmed === '{DESTINATARIO}' || trimmed === 'PRESENTE') {
-                    htmlParts.push(`<div class="doc-para-left-bold">${renderLineWithTokens(trimmed)}</div>`);
-                } else {
-                    htmlParts.push(`<div class="doc-para">${renderLineWithTokens(trimmed)}</div>`);
-                }
-            }
-
-            if (inSignatureBlock) {
-                const sigTitle = sigLines[0] || `<span data-bound-field="firmante">${escapeHtml(map['{FIRMANTE}'])}</span>`;
-                const sigRole = sigLines[1] || `<span data-bound-field="cargoFirmante">${escapeHtml(map['{CARGO_FIRMANTE}'])}</span>`;
-                const extraSigLines = sigLines.slice(2).map(l => `<div style="font-weight:700;">${l}</div>`).join('');
-                htmlParts.push(`
-                    <div class="doc-signature-block">
-                        <div class="doc-signature-atentamente">ATENTAMENTE</div>
-                        <div class="doc-signature-line"></div>
-                        <div style="font-weight:700;">${sigTitle}</div>
-                        <div style="font-weight:700;">${sigRole}</div>
-                        ${extraSigLines}
-                    </div>
-                `);
-            }
-
-            bodyEl.innerHTML = htmlParts.join('');
-            syncGenderTermsInDocumentDOM(bodyEl, genero);
-            enforceJustifiedBodyAlignment();
-            fitDocumentToSingleLetterSheet();
-        }
-
-        function fitDocumentToSingleLetterSheet() {
-            const sheet = document.getElementById('officialLetterSheet');
-            const smart = document.getElementById('docSmartContent');
-            const body = document.getElementById('documentRenderedBody');
-            if (!sheet || !smart || !body) return;
-
-            smart.style.transform = 'none';
-            smart.style.width = '100%';
-
-            const plainText = (body.innerText || '').trim();
-            const plainLength = plainText.length;
-            const lineBreaksCount = (plainText.match(/\n/g) || []).length;
-            const blankBlocksCount = body.querySelectorAll('.doc-blank').length;
-            const hasTable = Boolean(body.querySelector('table'));
-            const tableRows = body.querySelectorAll('tbody tr').length;
-
-            const sheetStyle = window.getComputedStyle(sheet);
-            const padTop = parseFloat(sheetStyle.paddingTop) || 94;
-            const padBottom = parseFloat(sheetStyle.paddingBottom) || 83;
-            const availableHeight = Math.max(400, sheet.clientHeight - padTop - padBottom - 6);
-
-            let smartLineHeight = 1.48;
-            let smartParaMb = 11;
-            let smartBlankH = 9.5;
-            let smartSigMt = 15;
-            let smartAtentamenteGap = 13;
-            let smartSigRuleMt = 32;
-            let smartCellPy = 5;
-
-            if (hasTable) {
-                if (tableRows >= 10) {
-                    smartLineHeight = 1.26;
-                    smartParaMb = 7;
-                    smartBlankH = 5.5;
-                    smartSigMt = 10;
-                    smartAtentamenteGap = 10;
-                    smartSigRuleMt = 22;
-                    smartCellPy = 3;
-                } else if (tableRows >= 6) {
-                    smartLineHeight = 1.34;
-                    smartParaMb = 8.5;
-                    smartBlankH = 7;
-                    smartSigMt = 12;
-                    smartAtentamenteGap = 12;
-                    smartSigRuleMt = 26;
-                    smartCellPy = 4;
-                } else {
-                    smartLineHeight = 1.40;
-                    smartParaMb = 9.5;
-                    smartBlankH = 8;
-                    smartSigMt = 13;
-                    smartAtentamenteGap = 12;
-                    smartSigRuleMt = 29;
-                    smartCellPy = 4.5;
-                }
-            } else if (plainLength > 1050 || lineBreaksCount > 24 || blankBlocksCount > 7) {
-                smartLineHeight = 1.35;
-                smartParaMb = 8.5;
-                smartBlankH = 7;
-                smartSigMt = 12;
-                smartAtentamenteGap = 12;
-                smartSigRuleMt = 26;
-            } else if (plainLength > 750 || lineBreaksCount > 18 || blankBlocksCount > 5) {
-                smartLineHeight = 1.42;
-                smartParaMb = 10;
-                smartBlankH = 8.5;
-                smartSigMt = 13;
-                smartAtentamenteGap = 12;
-                smartSigRuleMt = 29;
-            }
-
-            const applySmartSpacingVars = () => {
-                body.style.setProperty('--doc-line-height', `${smartLineHeight}`);
-                body.style.setProperty('--doc-para-mb', `${smartParaMb}pt`);
-                body.style.setProperty('--doc-blank-h', `${smartBlankH}pt`);
-                body.style.setProperty('--doc-sig-mt', `${smartSigMt}pt`);
-                body.style.setProperty('--doc-atentamente-gap', `${smartAtentamenteGap}pt`);
-                body.style.setProperty('--doc-sig-rule-mt', `${smartSigRuleMt}pt`);
-                body.style.setProperty('--doc-cell-py', `${smartCellPy}pt`);
-            };
-
-            applySmartSpacingVars();
-
-            let iter = 0;
-            while (smart.scrollHeight > availableHeight && iter < 4) {
-                iter++;
-                smartLineHeight = Math.max(1.12, +(smartLineHeight - 0.09).toFixed(2));
-                smartParaMb = Math.max(4.5, +(smartParaMb * 0.78).toFixed(1));
-                smartBlankH = Math.max(3.5, +(smartBlankH * 0.72).toFixed(1));
-                smartSigMt = Math.max(7, +(smartSigMt * 0.75).toFixed(1));
-                smartSigRuleMt = Math.max(18, +(smartSigRuleMt * 0.78).toFixed(1));
-                smartCellPy = Math.max(2.5, +(smartCellPy * 0.8).toFixed(1));
-                applySmartSpacingVars();
-            }
-
-            const finalContentH = smart.scrollHeight;
-            if (finalContentH > availableHeight && finalContentH > 0) {
-                const ratio = Math.max(0.55, +(availableHeight / finalContentH).toFixed(3));
-                smart.style.transform = `scale(${ratio})`;
-                smart.style.width = `${(100 / ratio).toFixed(2)}%`;
-            }
-        }
-
-        // ==========================================
-        // DESGLOSE Y SUMA AUTOMÁTICA DE MONTOS
-        // ==========================================
-        function formatCurrencyMXN(amount) {
-            const num = Number(amount) || 0;
-            return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' M.N.';
-        }
-
-        function getMontosComputedSummary() {
-            let total = 0;
-            const lines = [];
-            montosItemsList.forEach(item => {
-                const concept = (item.concepto || '').trim() || 'Concepto';
-                const val = parseFloat(item.monto) || 0;
-                total += val;
-                lines.push(`${concept}: ${formatCurrencyMXN(val)}`);
-            });
-            const totalTexto = formatCurrencyMXN(total);
-            const badge = document.getElementById('montosTotalPreviewBadge');
-            if (badge) badge.textContent = totalTexto;
-
-            return {
-                desgloseTexto: lines.length ? lines.join('\n') : 'Sin conceptos registrados.',
-                totalTexto,
-                firstMonto: montosItemsList[0] ? formatCurrencyMXN(montosItemsList[0].monto) : '$0.00 M.N.',
-                secondMonto: montosItemsList[1] ? formatCurrencyMXN(montosItemsList[1].monto) : '$0.00 M.N.'
-            };
-        }
-
-        function buildMontosTableHtml() {
-            const summary = getMontosComputedSummary();
-            const rowsHtml = montosItemsList.length
-                ? montosItemsList.map(item => `
-                    <tr>
-                        <td>${escapeHtml((item.concepto || '').trim() || 'Concepto')}</td>
-                        <td style="text-align:right;font-weight:600;white-space:nowrap;">${escapeHtml(formatCurrencyMXN(item.monto))}</td>
-                    </tr>
-                `).join('')
-                : `<tr><td colspan="2" style="text-align:center;">Sin conceptos registrados</td></tr>`;
-
-            return `
-                <table class="doc-montos-table">
-                    <thead>
-                        <tr>
-                            <th style="width:68%;text-align:left;">CONCEPTO</th>
-                            <th style="width:32%;text-align:right;">MONTO</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${rowsHtml}
-                        <tr class="doc-montos-total-row">
-                            <td style="text-align:right;">TOTAL</td>
-                            <td style="text-align:right;white-space:nowrap;">${escapeHtml(summary.totalTexto)}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            `;
-        }
-
-        function renderMontosEditorRows() {
-            const container = document.getElementById('montosEditorRows');
-            if (!container) return;
-            container.innerHTML = montosItemsList.map((item, idx) => `
-                <div class="grid grid-cols-12 gap-1.5 items-center bg-white p-2 rounded-xl border border-teal-200/80">
-                    <input type="text" value="${escapeHtml(item.concepto)}" oninput="updateMontoItemRow(${idx}, 'concepto', this.value)" placeholder="Concepto (ej. Inscripción)" class="col-span-7 rounded-lg border border-slate-300 px-2.5 py-1.5 text-[11px] font-bold text-slate-800">
-                    <div class="col-span-4 relative flex items-center">
-                        <span class="absolute left-2 text-[11px] font-bold text-slate-500">$</span>
-                        <input type="number" step="0.01" min="0" value="${item.monto}" oninput="updateMontoItemRow(${idx}, 'monto', this.value)" placeholder="0.00" class="w-full rounded-lg border border-slate-300 pl-5 pr-2 py-1.5 text-[11px] font-extrabold text-right text-teal-950">
-                    </div>
-                    <button type="button" onclick="removeMontoItemRow(${idx})" title="Eliminar concepto" class="col-span-1 text-rose-600 hover:bg-rose-100 rounded-lg py-1 font-bold text-xs">✕</button>
-                </div>
-            `).join('');
-            getMontosComputedSummary();
-        }
-
-        function updateMontoItemRow(index, field, value) {
-            if (!montosItemsList[index]) return;
-            montosItemsList[index][field] = field === 'monto' ? (parseFloat(value) || 0) : value;
-            getMontosComputedSummary();
-            updateDocument();
-        }
-
-        function addMontoItemRow() {
-            montosItemsList.push({ concepto: 'Nuevo concepto', monto: 0 });
-            renderMontosEditorRows();
-            updateDocument();
-        }
-
-        function removeMontoItemRow(index) {
-            montosItemsList.splice(index, 1);
-            renderMontosEditorRows();
-            updateDocument();
-        }
-
-        // ==========================================
-        // TABLA DE CALIFICACIONES
-        // ==========================================
-        function populateMajorsSelect() {
-            const sel = document.getElementById('selectLicenciatura');
-            if (!sel) return;
-            const prev = sel.value;
-            sel.innerHTML = vaultState.majors.map(m => `<option value="${escapeHtml(m.id)}">${escapeHtml(m.name)}</option>`).join('');
-            if (prev && vaultState.majors.some(m => m.id === prev)) {
-                sel.value = prev;
-            }
-            onSelectMajor(false);
-        }
-
-        function onSelectMajor(shouldUpdate = true) {
-            const sel = document.getElementById('selectLicenciatura');
-            const rvoeEl = document.getElementById('inputRvoe');
-            if (!sel || !rvoeEl) return;
-            const found = vaultState.majors.find(m => m.id === sel.value);
-            if (found) {
-                const rvoeFull = found.rvoeDate ? `${found.rvoe} de fecha ${found.rvoeDate}` : found.rvoe;
-                rvoeEl.value = rvoeFull;
-            }
-            if (shouldUpdate) updateDocument();
-        }
-
-        function populatePeriodsSelect() {
-            const sel = document.getElementById('selectPeriodo');
-            if (!sel) return;
-            const prev = sel.value;
-            sel.innerHTML = vaultState.periods.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join('');
-            if (prev && vaultState.periods.some(p => p.id === prev)) {
-                sel.value = prev;
-            }
-            onSelectPeriod(false);
-        }
-
-        function onSelectPeriod(shouldUpdate = true) {
-            const sel = document.getElementById('selectPeriodo');
-            if (!sel) return;
-            const found = vaultState.periods.find(p => p.id === sel.value);
-            if (found) {
-                const startEl = document.getElementById('inputInicioPeriodo');
-                const endEl = document.getElementById('inputFinPeriodo');
-                const vacStartEl = document.getElementById('inputVacInicio');
-                const vacEndEl = document.getElementById('inputVacFin');
-                const vacBadge = document.getElementById('vacLinkedPeriodBadge');
-
-                if (startEl && found.start) startEl.value = found.start;
-                if (endEl && found.end) endEl.value = found.end;
-                if (vacStartEl && found.vacStart) vacStartEl.value = found.vacStart;
-                if (vacEndEl && found.vacEnd) vacEndEl.value = found.vacEnd;
-                if (vacBadge) vacBadge.textContent = found.name;
-            }
-            if (shouldUpdate) updateDocument();
-        }
-
-        function syncVacationDatesFromActivePeriod(notify = false) {
-            onSelectPeriod(true);
-            if (notify) showToast('Fechas vacacionales sincronizadas con el periodo escolar activo.');
-        }
-
-        function onChangeTipoPeriodoGrado() {
-            const tipo = document.getElementById('selectTipoPeriodoGrado')?.value || 'Cuatrimestre';
-            const gradoSel = document.getElementById('inputGrado');
-            if (!gradoSel) return;
-            const numMatch = (gradoSel.value || '1°').match(/^(\d+°)/);
-            const prefix = numMatch ? numMatch[1] : '1°';
-            const targetVal = `${prefix} ${tipo}`;
-            if ([...gradoSel.options].some(o => o.value === targetVal)) {
-                gradoSel.value = targetVal;
-            }
-            updateDocument();
-        }
-
-        function syncTipoPeriodoFromGrado() {
-            const gradoVal = document.getElementById('inputGrado')?.value || '';
-            const tipoSel = document.getElementById('selectTipoPeriodoGrado');
-            if (!tipoSel) return;
-            if (gradoVal.includes('Semestre')) {
-                tipoSel.value = 'Semestre';
-            } else if (gradoVal.includes('Cuatrimestre')) {
-                tipoSel.value = 'Cuatrimestre';
-            }
-        }
-
-        // ==========================================
-        // TABLA DE CALIFICACIONES Y KARDEX
-        // ==========================================
-        function buildGradesTableHtml(isKardex = false) {
-            const rowsHtml = gradesList.map(item => `
-                <tr>
-                    <td>${escapeHtml(item.grupo || '')}</td>
-                    <td>${escapeHtml(item.codigo || '')}</td>
-                    <td>${escapeHtml(item.materia || '')}</td>
-                    <td style="text-align:center;font-weight:700;">${escapeHtml(item.calificacion || '')}</td>
-                </tr>
-            `).join('');
-
-            return `
-                <table class="doc-grades-table ${isKardex ? 'doc-kardex-table' : ''}">
-                    <thead>
-                        <tr>
-                            <th style="width:14%;">GRUPO</th>
-                            <th style="width:18%;">CLAVE</th>
-                            <th>ASIGNATURA</th>
-                            <th style="width:16%;text-align:center;">CALIF.</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${rowsHtml}
-                    </tbody>
-                </table>
-            `;
-        }
-
-        function renderGradesEditorRows() {
-            const container = document.getElementById('gradesEditorRows');
-            if (!container) return;
-            container.innerHTML = gradesList.map((row, idx) => `
-                <div class="grid grid-cols-12 gap-1.5 items-center bg-slate-50 p-2 rounded-xl border border-slate-200">
-                    <input type="text" value="${escapeHtml(row.grupo)}" oninput="updateGradeRow(${idx}, 'grupo', this.value)" placeholder="Grupo" class="col-span-2 rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-bold">
-                    <input type="text" value="${escapeHtml(row.codigo)}" oninput="updateGradeRow(${idx}, 'codigo', this.value)" placeholder="Clave" class="col-span-3 rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-semibold">
-                    <input type="text" value="${escapeHtml(row.materia)}" oninput="updateGradeRow(${idx}, 'materia', this.value)" placeholder="Asignatura" class="col-span-5 rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-bold">
-                    <input type="text" value="${escapeHtml(row.calificacion)}" oninput="updateGradeRow(${idx}, 'calificacion', this.value)" placeholder="Cal." class="col-span-1 rounded-lg border border-slate-300 px-1.5 py-1 text-[11px] font-extrabold text-center">
-                    <button type="button" onclick="removeGradeRow(${idx})" class="col-span-1 text-rose-600 hover:bg-rose-100 rounded-lg py-1 font-bold text-xs">✕</button>
-                </div>
-            `).join('');
-        }
-
-        function updateGradeRow(index, field, value) {
-            if (!gradesList[index]) return;
-            gradesList[index][field] = value;
-            updateDocument();
-        }
-
-        function addGradeRow() {
-            gradesList.push({ grupo: '5A', codigo: 'UAP-000', materia: 'NUEVA ASIGNATURA', calificacion: '9.0' });
-            renderGradesEditorRows();
-            updateDocument();
-        }
-
-        function removeGradeRow(index) {
-            gradesList.splice(index, 1);
-            renderGradesEditorRows();
-            updateDocument();
-        }
-
-        function parseAndReplaceCalificaciones() {
-            const raw = (document.getElementById('bulkCalificacionesInput')?.value || '').trim();
-            if (!raw) {
-                showToast('Pega o escribe al menos una asignatura primero.');
-                return;
-            }
-            const parsed = [];
-            raw.split('\n').forEach(line => {
-                const clean = line.trim();
-                if (!clean) return;
-                const parts = clean.includes('\t') ? clean.split('\t') : clean.split('|');
-                if (parts.length >= 4) {
-                    parsed.push({
-                        grupo: parts[0].trim(),
-                        codigo: parts[1].trim(),
-                        materia: parts[2].trim(),
-                        calificacion: parts[3].trim()
-                    });
-                } else if (parts.length === 2) {
-                    parsed.push({
-                        grupo: '5A',
-                        codigo: 'UAP',
-                        materia: parts[0].trim(),
-                        calificacion: parts[1].trim()
-                    });
-                }
-            });
-            if (!parsed.length) {
-                showToast('Formato no reconocido. Usa: GRUPO | CÓDIGO | MATERIA | CALIFICACIÓN');
-                return;
-            }
-            gradesList = parsed;
-            renderGradesEditorRows();
-            updateDocument();
-            showToast(`${parsed.length} asignaturas cargadas en la constancia.`);
-        }
-
-        // ==========================================
-        // ZOOM, PANTALLA COMPLETA Y COMANDOS RÁPIDOS
-        // ==========================================
-        function adjustPreviewZoom(delta, reset = false) {
-            if (reset) {
-                previewZoom = 0.78;
-            } else {
-                previewZoom = Math.min(1.35, Math.max(0.45, +(previewZoom + delta).toFixed(2)));
-            }
-            const scaleBox = document.getElementById('previewScaleBox');
-            const label = document.getElementById('previewZoomLabel');
-            if (scaleBox) scaleBox.style.transform = `scale(${previewZoom})`;
-            if (label) label.textContent = `${Math.round(previewZoom * 100)}%`;
-        }
-
-        function togglePreviewFullscreen() {
-            const sec = document.getElementById('previewSection');
-            const lbl = document.getElementById('labelFullscreenPreview');
-            if (!sec) return;
-            isPreviewFullscreen = !isPreviewFullscreen;
-            sec.classList.toggle('preview-fullscreen', isPreviewFullscreen);
-            if (lbl) lbl.textContent = isPreviewFullscreen ? 'Salir Pantalla Completa' : 'Pantalla Completa';
-        }
-
-        function incrementFolioByOne() {
-            const el = document.getElementById('inputFolio');
-            if (!el) return;
-            const val = el.value.trim();
-            const match = val.match(/(\d+)(?!.*\d)/);
-            if (match) {
-                const num = parseInt(match[1], 10) + 1;
-                const padded = String(num).padStart(match[1].length, '0');
-                el.value = val.slice(0, match.index) + padded + val.slice(match.index + match[1].length);
-            } else {
-                el.value = val + ' 1';
-            }
-            updateDocument();
-            showToast(`Folio incrementado: ${el.value}`);
-        }
-
-        function clearStudentQuickCommand() {
-            const alumnoEl = document.getElementById('inputAlumno');
-            const matEl = document.getElementById('inputMatricula');
-            if (alumnoEl) alumnoEl.value = '';
-            if (matEl) matEl.value = '';
-            updateDocument();
-            if (alumnoEl) alumnoEl.focus();
-            showToast('Campos de alumno y matrícula limpiados.');
-        }
-
-        function copyDocumentTextCommand() {
-            const bodyEl = document.getElementById('documentRenderedBody');
-            if (!bodyEl) return;
-            const temp = document.createElement('textarea');
-            temp.value = bodyEl.innerText;
-            document.body.appendChild(temp);
-            temp.select();
-            document.execCommand('copy');
-            document.body.removeChild(temp);
-            showToast('Texto de la constancia copiado al portapapeles.');
-        }
-
-        // ==========================================
-        // HISTORIAL, PDF, IMPRESIÓN Y EXCEL
-        // ==========================================
-        function recordConstanciaInHistory() {
-            const data = getCurrentDocumentTokenValues().map;
-            const entry = {
-                id: 'hist_' + Date.now(),
-                timestamp: new Date().toISOString(),
-                monthKey: new Date().toISOString().slice(0, 7),
-                docType: currentDocType,
-                docLabel: DOC_TYPE_META[currentDocType]?.label || currentDocType,
-                folio: data['{FOLIO}'],
-                alumno: data['{ALUMNO}'],
-                matricula: data['{MATRICULA}'],
-                licenciatura: data['{LICENCIATURA}'],
-                grado: data['{GRADO}'],
-                issuedBy: activeSession.name || 'Administrador'
-            };
-            vaultState.history.unshift(entry);
-            persistVaultData(true);
-            updateHistoryBadge();
-        }
-
-        function updateHistoryBadge() {
-            const badge = document.getElementById('historyCountBadge');
-            if (badge) badge.textContent = String(vaultState.history.length || 0);
-        }
-
-        async function saveAndDownloadConstanciaPDF() {
-            fitDocumentToSingleLetterSheet();
-            recordConstanciaInHistory();
-            const sheet = document.getElementById('officialLetterSheet');
-            const scaleBox = document.getElementById('previewScaleBox');
-            if (!sheet || typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
-                window.print();
-                return;
-            }
-            showToast('Generando PDF oficial tamaño carta...');
-            const prevTransform = scaleBox ? scaleBox.style.transform : '';
-            try {
-                if (scaleBox) scaleBox.style.transform = 'scale(1)';
-                if (document.fonts && document.fonts.ready) {
-                    await document.fonts.ready;
-                }
-                const canvas = await html2canvas(sheet, {
-                    scale: 2.5,
-                    useCORS: true,
-                    backgroundColor: '#ffffff',
-                    logging: false,
-                    onclone: (clonedDoc) => {
-                        const clonedScale = clonedDoc.getElementById('previewScaleBox');
-                        if (clonedScale) clonedScale.style.transform = 'none';
-                        const clonedBody = clonedDoc.getElementById('documentRenderedBody');
-                        const activeFont = (vaultState.typography?.fontFamily || 'Arial, Helvetica, sans-serif');
-                        if (clonedBody) {
-                            clonedBody.style.fontFamily = activeFont;
-                            clonedBody.querySelectorAll('*').forEach(el => {
-                                if (!el.style.fontFamily) {
-                                    el.style.fontFamily = activeFont;
-                                }
-                            });
-                        }
-                    }
-                });
-                const imgData = canvas.toDataURL('image/png');
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
-                pdf.addImage(imgData, 'PNG', 0, 0, 215.9, 279.4, undefined, 'FAST');
-                const data = getCurrentDocumentTokenValues().map;
-                const safeName = (data['{ALUMNO}'] || 'CONSTANCIA').replace(/[^a-zA-Z0-9ÁÉÍÓÚÑáéíóúñ\s_-]/g, '').trim().replace(/\s+/g, '_');
-                pdf.save(`Constancia_${safeName || 'UAP'}.pdf`);
-                showToast('Constancia guardada en historial y descargada en PDF.');
-            } catch (e) {
-                window.print();
-            } finally {
-                if (scaleBox) scaleBox.style.transform = prevTransform;
-            }
-        }
-
-        function printOfficialConstancia() {
-            fitDocumentToSingleLetterSheet();
-            recordConstanciaInHistory();
-            window.print();
-        }
-
-        function openHistoryModal() {
-            const modal = document.getElementById('historyModal');
-            if (!modal) return;
-            const filterSel = document.getElementById('historyMonthFilter');
-            if (filterSel) {
-                const months = [...new Set(vaultState.history.map(h => h.monthKey).filter(Boolean))];
-                filterSel.innerHTML = '<option value="ALL">Todos los meses</option>' +
-                    months.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('');
-            }
-            renderHistoryModalContent();
-            modal.classList.remove('hidden');
-        }
-
-        function closeHistoryModal() {
-            const modal = document.getElementById('historyModal');
-            if (modal) modal.classList.add('hidden');
-        }
-
-        function renderHistoryModalContent() {
-            const filterVal = document.getElementById('historyMonthFilter')?.value || 'ALL';
-            const filtered = filterVal === 'ALL'
-                ? vaultState.history
-                : vaultState.history.filter(h => h.monthKey === filterVal);
-
-            const totalBadge = document.getElementById('historyTotalMonthBadge');
-            if (totalBadge) totalBadge.textContent = `Total: ${filtered.length}`;
-
-            const breakdownGrid = document.getElementById('historyModalityBreakdownGrid');
-            if (breakdownGrid) {
-                breakdownGrid.innerHTML = Object.entries(DOC_TYPE_META).map(([key, meta]) => {
-                    const count = filtered.filter(h => h.docType === key).length;
-                    return `
-                        <div class="bg-white border border-slate-200 rounded-xl px-3 py-2 flex items-center justify-between">
-                            <span class="text-[11px] font-bold text-slate-600">${escapeHtml(meta.label)}</span>
-                            <span class="text-xs font-extrabold text-blue-950">${count}</span>
-                        </div>
-                    `;
-                }).join('');
-            }
-
-            const listEl = document.getElementById('historyModalList');
-            if (!listEl) return;
-            if (!filtered.length) {
-                listEl.innerHTML = '<div class="text-center text-xs text-slate-500 py-8">No hay constancias registradas en este periodo.</div>';
-                return;
-            }
+// ... existing code ... -->
             listEl.innerHTML = filtered.map(h => `
                 <div class="border border-slate-200 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2 bg-slate-50/70">
                     <div>
                         <div class="text-xs font-extrabold text-blue-950">${escapeHtml(h.alumno || 'SIN NOMBRE')} <span class="text-slate-500 font-semibold">(${escapeHtml(h.matricula || '')})</span></div>
                         <div class="text-[11px] text-slate-600">${escapeHtml(h.docLabel)} • Folio: <strong>${escapeHtml(h.folio)}</strong> • ${escapeHtml(h.licenciatura || '')}</div>
                     </div>
-                    <div class="text-right text-[10px] text-slate-500">
-                        <div>Emitido por: <strong>${escapeHtml(h.issuedBy || 'Admin')}</strong></div>
-                        <div>${new Date(h.timestamp).toLocaleString('es-MX')}</div>
+                    <div class="flex items-center gap-3">
+                        <div class="text-right text-[10px] text-slate-500">
+                            <div>Emitido por: <strong>${escapeHtml(h.issuedBy || 'Admin')}</strong></div>
+                            <div>${new Date(h.timestamp).toLocaleString('es-MX')}</div>
+                        </div>
+                        <button type="button" onclick="deleteHistoryEntryPermanently('${escapeHtml(h.id)}')" title="Eliminar definitivamente" class="px-2.5 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-900 font-bold text-[10px] transition">Eliminar</button>
                     </div>
                 </div>
             `).join('');
         }
 
-        function exportHistoryToExcel() {
-            if (typeof XLSX === 'undefined') {
-                showToast('Librería Excel no disponible.');
-                return;
+        function deleteHistoryEntryPermanently(id) {
+            vaultState.history = vaultState.history.filter(h => h.id !== id);
+            if (!vaultState.deletedHistoryIds.includes(id)) {
+                vaultState.deletedHistoryIds.push(id);
             }
-            const rows = vaultState.history.map(h => ({
-                FOLIO: h.folio,
-                TIPO: h.docLabel,
-                ALUMNO: h.alumno,
-                MATRICULA: h.matricula,
-                LICENCIATURA: h.licenciatura,
-                GRADO: h.grado,
-                USUARIO: h.issuedBy,
-                FECHA: new Date(h.timestamp).toLocaleString('es-MX')
-            }));
-            const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ MENSAJE: 'Sin registros aún' }]);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Historial_Constancias');
-            XLSX.writeFile(wb, 'Historial_Constancias_UAP.xlsx');
-            showToast('Historial exportado a Excel.');
-        }
-
-        function openDatabaseVaultModal() {
-            const modal = document.getElementById('databaseVaultModal');
-            if (modal) modal.classList.remove('hidden');
-        }
-
-        function closeDatabaseVaultModal() {
-            const modal = document.getElementById('databaseVaultModal');
-            if (modal) modal.classList.add('hidden');
-        }
-
-        function importStudentsExcel(event) {
-            const file = event.target?.files?.[0];
-            if (!file || typeof XLSX === 'undefined') return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const wb = XLSX.read(e.target.result, { type: 'array' });
-                    const sheet = wb.Sheets[wb.SheetNames[0]];
-                    const json = XLSX.utils.sheet_to_json(sheet);
-                    importedStudentsList = json;
-                    const box = document.getElementById('loadedStudentsBox');
-                    const sel = document.getElementById('selectImportedStudent');
-                    if (box && sel && json.length) {
-                        box.classList.remove('hidden');
-                        sel.innerHTML = '<option value="">-- Selecciona un alumno --</option>' +
-                            json.map((row, idx) => {
-                                const name = row.ALUMNO || row.Nombre || row.NOMBRE || `Registro ${idx + 1}`;
-                                const mat = row.MATRICULA || row.Matricula || '';
-                                return `<option value="${idx}">${escapeHtml(name)} (${escapeHtml(mat)})</option>`;
-                            }).join('');
-                        showToast(`${json.length} alumnos cargados desde Excel.`);
-                    }
-                } catch (err) {
-                    showToast('Error al leer el archivo Excel.');
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function applyImportedStudent(idxStr) {
-            const idx = parseInt(idxStr, 10);
-            const row = importedStudentsList[idx];
-            if (!row) return;
-            const alumno = row.ALUMNO || row.Nombre || row.NOMBRE || '';
-            const mat = row.MATRICULA || row.Matricula || '';
-            const lic = (row.LICENCIATURA || row.Licenciatura || '').toString().trim().toUpperCase();
-            const grado = (row.GRADO || row.Grado || '').toString().trim();
-
-            if (alumno) document.getElementById('inputAlumno').value = alumno;
-            if (mat) document.getElementById('inputMatricula').value = mat;
-            detectGenderFromName();
-
-            if (lic) {
-                const foundMajor = vaultState.majors.find(m => m.name.toUpperCase().includes(lic) || lic.includes(m.name.toUpperCase()));
-                if (foundMajor) {
-                    document.getElementById('selectLicenciatura').value = foundMajor.id;
-                    onSelectMajor(false);
-                }
-            }
-            if (grado) {
-                const gradoSel = document.getElementById('inputGrado');
-                const opt = [...gradoSel.options].find(o => o.value.toUpperCase() === grado.toUpperCase());
-                if (opt) {
-                    gradoSel.value = opt.value;
-                    syncTipoPeriodoFromGrado();
-                }
-            }
-            updateDocument();
-            closeDatabaseVaultModal();
-            showToast(`Datos aplicados para ${alumno}.`);
-        }
-
-        // ==========================================
-        // GESTIÓN DE PERIODOS, LICENCIATURAS Y PERFILES
-        // ==========================================
-        function openPeriodsModal() {
-            const modal = document.getElementById('periodsModal');
-            if (!modal) return;
-            renderPeriodsModalList();
-            modal.classList.remove('hidden');
-        }
-
-        function closePeriodsModal() {
-            const modal = document.getElementById('periodsModal');
-            if (modal) modal.classList.add('hidden');
-        }
-
-        function renderPeriodsModalList() {
-            const list = document.getElementById('periodsModalList');
-            if (!list) return;
-            list.innerHTML = vaultState.periods.map(p => `
-                <div class="border border-slate-200 rounded-xl p-3 flex items-center justify-between gap-2 bg-slate-50">
-                    <div>
-                        <div class="text-xs font-extrabold text-blue-950">${escapeHtml(p.name)}</div>
-                        <div class="text-[10px] text-slate-600">Clases: ${escapeHtml(p.start || '-')} al ${escapeHtml(p.end || '-')} | Vacaciones: ${escapeHtml(p.vacStart || '-')} al ${escapeHtml(p.vacEnd || '-')}</div>
-                    </div>
-                    <div class="flex gap-1.5">
-                        <button type="button" onclick="editAcademicPeriod('${escapeHtml(p.id)}')" class="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-900 font-bold text-[10px]">Editar</button>
-                        <button type="button" onclick="deleteAcademicPeriod('${escapeHtml(p.id)}')" class="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-900 font-bold text-[10px]">Eliminar</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function saveCustomAcademicPeriod(event) {
-            event.preventDefault();
-            const id = document.getElementById('editPeriodIdInput').value || ('per_' + Date.now());
-            const name = document.getElementById('periodNameInput').value.trim();
-            const start = document.getElementById('periodStartInput').value.trim();
-            const end = document.getElementById('periodEndInput').value.trim();
-            const vacStart = document.getElementById('periodVacStartInput').value.trim();
-            const vacEnd = document.getElementById('periodVacEndInput').value.trim();
-
-            const idx = vaultState.periods.findIndex(p => p.id === id);
-            const obj = { id, name, start, end, vacStart, vacEnd };
-            if (idx >= 0) vaultState.periods[idx] = obj;
-            else vaultState.periods.push(obj);
-
-            cancelEditAcademicPeriod();
             persistVaultData(true);
-            populatePeriodsSelect();
-            renderPeriodsModalList();
-            showToast('Periodo escolar guardado.');
+            updateHistoryBadge();
+            renderHistoryModalContent();
+            showToast('Registro eliminado para siempre.');
         }
-
-        function editAcademicPeriod(id) {
-            const p = vaultState.periods.find(x => x.id === id);
-            if (!p) return;
-            document.getElementById('editPeriodIdInput').value = p.id;
-            document.getElementById('periodNameInput').value = p.name || '';
-            document.getElementById('periodStartInput').value = p.start || '';
-            document.getElementById('periodEndInput').value = p.end || '';
-            document.getElementById('periodVacStartInput').value = p.vacStart || '';
-            document.getElementById('periodVacEndInput').value = p.vacEnd || '';
-            document.getElementById('btnCancelEditPeriod').classList.remove('hidden');
-        }
-
-        function cancelEditAcademicPeriod() {
-            document.getElementById('editPeriodIdInput').value = '';
-            document.getElementById('periodNameInput').value = '';
-            document.getElementById('periodStartInput').value = '';
-            document.getElementById('periodEndInput').value = '';
-            document.getElementById('periodVacStartInput').value = '';
-            document.getElementById('periodVacEndInput').value = '';
-            document.getElementById('btnCancelEditPeriod').classList.add('hidden');
-        }
-
+// ... existing code ... -->
         function deleteAcademicPeriod(id) {
             vaultState.periods = vaultState.periods.filter(p => p.id !== id);
+            if (!vaultState.deletedPeriodIds.includes(id)) {
+                vaultState.deletedPeriodIds.push(id);
+            }
             persistVaultData(true);
             populatePeriodsSelect();
             renderPeriodsModalList();
-            showToast('Periodo eliminado.');
+            showToast('Periodo eliminado para siempre.');
         }
-
-        function renderMajorsCatalogList() {
-            const list = document.getElementById('majorsCatalogList');
-            if (!list) return;
-            list.innerHTML = vaultState.majors.map(m => `
-                <div class="border border-slate-200 rounded-2xl p-4 flex items-center justify-between gap-3 bg-slate-50/70">
-                    <div>
-                        <div class="text-xs font-extrabold text-blue-950">${escapeHtml(m.name)}</div>
-                        <div class="text-[11px] text-slate-600">${escapeHtml(m.rvoe)} ${m.rvoeDate ? '• ' + escapeHtml(m.rvoeDate) : ''}</div>
-                    </div>
-                    <div class="flex gap-1.5 shrink-0">
-                        <button type="button" onclick="editMajorRvoe('${escapeHtml(m.id)}')" class="px-2.5 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-[11px]">Editar</button>
-                        <button type="button" onclick="deleteMajorRvoe('${escapeHtml(m.id)}')" class="px-2.5 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-900 font-bold text-[11px]">Eliminar</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function saveMajorRvoeForm(event) {
-            event.preventDefault();
-            const id = document.getElementById('editMajorIdInput').value || ('maj_' + Date.now());
-            const name = document.getElementById('newMajorNameInput').value.trim();
-            const rvoe = document.getElementById('newMajorRvoeInput').value.trim();
-            const rvoeDate = document.getElementById('newMajorRvoeDateInput').value.trim();
-            const idx = vaultState.majors.findIndex(m => m.id === id);
-            const obj = { id, name, rvoe, rvoeDate };
-            if (idx >= 0) vaultState.majors[idx] = obj;
-            else vaultState.majors.push(obj);
-            cancelEditMajorRvoe();
-            persistVaultData(true);
-            populateMajorsSelect();
-            renderMajorsCatalogList();
-            showToast('Licenciatura y RVOE guardados.');
-        }
-
-        function editMajorRvoe(id) {
-            const m = vaultState.majors.find(x => x.id === id);
-            if (!m) return;
-            document.getElementById('editMajorIdInput').value = m.id;
-            document.getElementById('newMajorNameInput').value = m.name || '';
-            document.getElementById('newMajorRvoeInput').value = m.rvoe || '';
-            document.getElementById('newMajorRvoeDateInput').value = m.rvoeDate || '';
-            document.getElementById('btnCancelEditMajor').classList.remove('hidden');
-        }
-
-        function cancelEditMajorRvoe() {
-            document.getElementById('editMajorIdInput').value = '';
-            document.getElementById('newMajorNameInput').value = '';
-            document.getElementById('newMajorRvoeInput').value = '';
-            document.getElementById('newMajorRvoeDateInput').value = '';
-            document.getElementById('btnCancelEditMajor').classList.add('hidden');
-        }
-
+// ... existing code ... -->
         function deleteMajorRvoe(id) {
             vaultState.majors = vaultState.majors.filter(m => m.id !== id);
+            if (!vaultState.deletedMajorIds.includes(id)) {
+                vaultState.deletedMajorIds.push(id);
+            }
             persistVaultData(true);
             populateMajorsSelect();
             renderMajorsCatalogList();
-            showToast('Oferta académica eliminada.');
+            showToast('Oferta académica eliminada para siempre.');
         }
-
-        function renderProfilesManagerGrid() {
-            const grid = document.getElementById('profilesManagerGrid');
-            const badge = document.getElementById('profilesCountIndicator');
-            if (badge) badge.textContent = `${vaultState.profiles.length} Perfiles`;
-            if (!grid) return;
-            grid.innerHTML = vaultState.profiles.map((p, idx) => `
-                <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50/80 space-y-3">
-                    <div class="grid grid-cols-12 gap-2 items-center">
-                        <div class="col-span-7">
-                            <label class="block text-[10px] font-bold text-slate-500">Nombre del Perfil</label>
-                            <input type="text" value="${escapeHtml(p.name)}" onchange="updateProfileBasic(${idx}, 'name', this.value)" class="w-full rounded-xl border border-slate-300 px-2.5 py-1.5 text-xs font-extrabold text-blue-950 bg-white">
-                        </div>
-                        <div class="col-span-5">
-                            <label class="block text-[10px] font-bold text-slate-500">Código Acceso</label>
-                            <input type="text" value="${escapeHtml(p.code)}" onchange="updateProfileBasic(${idx}, 'code', this.value)" class="w-full rounded-xl border border-slate-300 px-2.5 py-1.5 text-xs font-mono font-bold text-amber-900 bg-white uppercase">
-                        </div>
-                    </div>
-                    <div class="flex justify-end gap-2">
-                        <button type="button" onclick="openUserPermissionsModal('${escapeHtml(p.id)}')" class="px-3 py-1.5 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-[11px] font-bold">Permisos</button>
-                        <button type="button" onclick="deleteUserProfile('${escapeHtml(p.id)}')" class="px-3 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-900 text-[11px] font-bold">Eliminar</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function updateProfileBasic(idx, field, val) {
-            if (!vaultState.profiles[idx]) return;
-            vaultState.profiles[idx][field] = field === 'code' ? val.trim().toUpperCase() : val.trim();
-            persistVaultData(false);
-        }
-
-        function addNewUserProfile() {
-            const num = vaultState.profiles.length + 1;
-            vaultState.profiles.push({
-                id: 'prof_' + Date.now(),
-                name: `Nuevo Perfil ${num}`,
-                code: `UAP${String(num).padStart(2, '0')}`,
-                permissions: { headerButtons: { downloadPdf: true, print: true, history: true } }
-            });
-            persistVaultData(true);
-            renderProfilesManagerGrid();
-            showToast('Nuevo perfil creado.');
-        }
-
-        function deleteUserProfile(id) {
-            vaultState.profiles = vaultState.profiles.filter(p => p.id !== id);
-            if (!vaultState.deletedProfileIds.includes(id)) vaultState.deletedProfileIds.push(id);
-            persistVaultData(true);
-            renderProfilesManagerGrid();
-            showToast('Perfil eliminado.');
-        }
-
-        function openUserPermissionsModal(profileId) {
-            const p = vaultState.profiles.find(x => x.id === profileId);
-            if (!p) return;
-            currentEditingPermProfileId = profileId;
-            document.getElementById('permModalUserName').textContent = `${p.name} (${p.code})`;
-            const hb = p.permissions?.headerButtons || {};
-            document.getElementById('permChecklistBody').innerHTML = `
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-bold">
-                        <input type="checkbox" id="permChk_downloadPdf" ${hb.downloadPdf !== false ? 'checked' : ''}> Descargar Constancia en PDF
-                    </label>
-                    <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-bold">
-                        <input type="checkbox" id="permChk_print" ${hb.print !== false ? 'checked' : ''}> Imprimir Constancia
-                    </label>
-                    <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-bold">
-                        <input type="checkbox" id="permChk_history" ${hb.history !== false ? 'checked' : ''}> Consultar Historial
-                    </label>
-                    <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-bold">
-                        <input type="checkbox" id="permChk_saveFormat" ${hb.saveFormat === true ? 'checked' : ''}> Guardar Formatos y Firma
-                    </label>
-                </div>
-            `;
-            document.getElementById('userPermissionsChecklistModal').classList.remove('hidden');
-        }
-
-        function closeUserPermissionsModal() {
-            document.getElementById('userPermissionsChecklistModal').classList.add('hidden');
-            currentEditingPermProfileId = null;
-        }
-
-        function saveUserPermissionsChecklist() {
-            const p = vaultState.profiles.find(x => x.id === currentEditingPermProfileId);
-            if (!p) return;
-            if (!p.permissions) p.permissions = {};
-            p.permissions.headerButtons = {
-                ...(p.permissions.headerButtons || {}),
-                downloadPdf: document.getElementById('permChk_downloadPdf')?.checked || false,
-                print: document.getElementById('permChk_print')?.checked || false,
-                history: document.getElementById('permChk_history')?.checked || false,
-                saveFormat: document.getElementById('permChk_saveFormat')?.checked || false
-            };
-            persistVaultData(false);
-            closeUserPermissionsModal();
-        }
-
-        function openSourceCodeSyncModal() {
-            const modal = document.getElementById('sourceCodeSyncModal');
-            const ta = document.getElementById('sourceVaultJsonEditor');
-            const badge = document.getElementById('sourceProfilesSummaryBadge');
-            if (ta) ta.value = JSON.stringify(vaultState, null, 2);
-            if (badge) badge.textContent = `${vaultState.profiles.length} perfiles • ${vaultState.majors.length} licenciaturas`;
-            if (modal) modal.classList.remove('hidden');
-        }
-
-        function closeSourceCodeSyncModal() {
-            const modal = document.getElementById('sourceCodeSyncModal');
-            if (modal) modal.classList.add('hidden');
-        }
-
+// ... existing code ... -->
         function applyEditedSourceVaultJson() {
             try {
                 const raw = document.getElementById('sourceVaultJsonEditor')?.value || '';
                 const parsed = JSON.parse(raw);
-                vaultState = { ...vaultState, ...parsed };
+                vaultState = {
+                    ...vaultState,
+                    ...parsed,
+                    deletedProfileIds: Array.isArray(parsed.deletedProfileIds) ? parsed.deletedProfileIds : vaultState.deletedProfileIds,
+                    deletedMajorIds: Array.isArray(parsed.deletedMajorIds) ? parsed.deletedMajorIds : vaultState.deletedMajorIds,
+                    deletedPeriodIds: Array.isArray(parsed.deletedPeriodIds) ? parsed.deletedPeriodIds : vaultState.deletedPeriodIds,
+                    deletedHistoryIds: Array.isArray(parsed.deletedHistoryIds) ? parsed.deletedHistoryIds : vaultState.deletedHistoryIds
+                };
                 persistVaultData(true);
                 populateMajorsSelect();
                 populatePeriodsSelect();
                 renderProfilesManagerGrid();
+                updateHistoryBadge();
                 selectDocType(currentDocType);
                 closeSourceCodeSyncModal();
-                showToast('Configuración JSON aplicada correctamente.');
+                showToast('Configuración JSON guardada permanentemente.');
             } catch (e) {
                 showToast('Error de sintaxis en el JSON.');
             }
         }
-
-        function downloadSelfContainedPageWithData() {
-            persistVaultData(true);
-            const htmlDoc = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
-            const blob = new Blob([htmlDoc], { type: 'text/html;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'Constancias_UAP_Base.html';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showToast('Código base HTML descargado con todos los datos.');
-        }
-
-        // ==========================================
-        // TIPOGRAFÍA POR ESPACIOS, NEGRITAS Y SUBRAYADOS
-        // ==========================================
-        function applyGlobalTypographyVariables() {
-            const body = document.getElementById('documentRenderedBody');
-            if (!body) return;
-            const t = vaultState.typography;
-            body.style.setProperty('--doc-font-family', t.fontFamily || 'Arial, Helvetica, sans-serif');
-            body.style.setProperty('--doc-font-size', `${t.fontSize || 12}pt`);
-            const lh = t.lineHeight !== undefined && t.lineHeight !== null ? t.lineHeight : 1.48;
-            body.style.setProperty('--doc-line-height', `${lh}`);
-        }
-
-        function wrapPreviewSelectionSafely(tagName, styleObj = {}) {
-            const sel = window.getSelection();
-            if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return false;
-            const range = sel.getRangeAt(0);
-            const bodyEl = document.getElementById('documentRenderedBody');
-            if (!bodyEl || !bodyEl.contains(range.commonAncestorContainer)) return false;
-
-            const wrapper = document.createElement(tagName);
-            Object.entries(styleObj).forEach(([k, v]) => {
-                if (v) wrapper.style[k] = v;
-            });
-
-            try {
-                range.surroundContents(wrapper);
-            } catch (e) {
-                const frag = range.extractContents();
-                wrapper.appendChild(frag);
-                range.insertNode(wrapper);
-            }
-            sel.removeAllRanges();
-            hasDirectBodyEdits = true;
-            enforceJustifiedBodyAlignment();
-            fitDocumentToSingleLetterSheet();
-            return true;
-        }
-
-        function applyFloatingSelectionStyle(prop, val) {
-            wrapPreviewSelectionSafely('span', { [prop]: val });
-            hideFloatingTextToolbar();
-        }
-
-        function toggleSelectedTextBold() {
-            document.execCommand('bold', false, null);
-            hasDirectBodyEdits = true;
-            enforceJustifiedBodyAlignment();
-            fitDocumentToSingleLetterSheet();
-        }
-
-        function toggleSelectedTextUnderline() {
-            document.execCommand('underline', false, null);
-            hasDirectBodyEdits = true;
-            enforceJustifiedBodyAlignment();
-            fitDocumentToSingleLetterSheet();
-        }
-
-        function hideFloatingTextToolbar() {
-            const tb = document.getElementById('floatingTextFormatToolbar');
-            if (tb) tb.classList.add('hidden');
-        }
-
-        function updateFloatingTextToolbarPosition() {
-            const tb = document.getElementById('floatingTextFormatToolbar');
-            const bodyEl = document.getElementById('documentRenderedBody');
-            if (!tb || !bodyEl) return;
-
-            const sel = window.getSelection();
-            if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
-                tb.classList.add('hidden');
-                return;
-            }
-            const range = sel.getRangeAt(0);
-            if (!bodyEl.contains(range.commonAncestorContainer)) {
-                tb.classList.add('hidden');
-                return;
-            }
-            const rect = range.getBoundingClientRect();
-            if (!rect || (rect.width === 0 && rect.height === 0)) {
-                tb.classList.add('hidden');
-                return;
-            }
-
-            tb.classList.remove('hidden');
-            const topPos = Math.max(10, rect.top - 48);
-            const leftPos = Math.min(window.innerWidth - 360, Math.max(10, rect.left));
-            tb.style.top = `${topPos}px`;
-            tb.style.left = `${leftPos}px`;
-        }
-
-        // ==========================================
-        // COMANDOS RÁPIDOS Y ATAJOS DE TECLADO
-        // ==========================================
-        function registerGlobalCommandsAndShortcuts() {
-            document.addEventListener('mouseup', () => setTimeout(updateFloatingTextToolbarPosition, 10));
-            document.addEventListener('keyup', () => setTimeout(updateFloatingTextToolbarPosition, 10));
-            window.addEventListener('resize', () => fitDocumentToSingleLetterSheet());
-
-            document.addEventListener('keydown', (e) => {
-                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-                    e.preventDefault();
-                    saveCurrentDocTypeFormat();
-                } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                    e.preventDefault();
-                    saveAndDownloadConstanciaPDF();
-                } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
-                    e.preventDefault();
-                    printOfficialConstancia();
-                }
-            });
-        }
-
-        // ==========================================
-        // ARRANQUE INICIAL DE LA APLICACIÓN
-        // ==========================================
-        window.addEventListener('DOMContentLoaded', () => {
-            loadEmbeddedVaultData();
-            applySavedSignatureDefaultsToInputs();
-            populateMajorsSelect();
-            populatePeriodsSelect();
-            setTodayExpeditionDate(false);
-            updateHistoryBadge();
-            selectDocType('simple');
-            syncSessionUI();
-            registerGlobalCommandsAndShortcuts();
-            if (typeof lucide !== 'undefined' && lucide.createIcons) {
-                lucide.createIcons();
-            }
-        });
-    </script>
-</body>
-</html>
+// ... existing code ... -->
