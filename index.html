@@ -1368,7 +1368,9 @@
                 hdrQuickFolioBtn: isAdmin || hb.quickFolio !== false,
                 hdrQuickClearBtn: isAdmin || hb.quickClear !== false,
                 hdrQuickCopyBtn: isAdmin || hb.quickCopy !== false,
-                hdrQuickTodayBtn: isAdmin || hb.quickToday !== false
+                hdrQuickTodayBtn: isAdmin || hb.quickToday !== false,
+                btnResetFormat: isAdmin || hb.resetFormat === true,
+                btnSaveFormat: isAdmin || hb.saveFormat === true
             };
 
             Object.entries(btnMap).forEach(([id, allowed]) => {
@@ -2436,6 +2438,8 @@
                 { key: 'print', label: 'Botón: Imprimir Constancia' },
                 { key: 'history', label: 'Botón: Historial de Constancias' },
                 { key: 'periods', label: 'Botón: Gestión de Periodos' },
+                { key: 'resetFormat', label: 'Botón: Restaurar Base (Plantilla)' },
+                { key: 'saveFormat', label: 'Botón: Guardar Formato (Plantilla)' },
                 { key: 'quickFolio', label: 'Comando Rápido: +1 Folio' },
                 { key: 'quickClear', label: 'Comando Rápido: Limpiar Alumno' },
                 { key: 'quickCopy', label: 'Comando Rápido: Copiar Texto' },
@@ -2511,7 +2515,7 @@
             if (!prof.permissions) prof.permissions = {};
             if (!prof.permissions.headerButtons) prof.permissions.headerButtons = {};
 
-            ['downloadPdf', 'print', 'history', 'periods', 'quickFolio', 'quickClear', 'quickCopy', 'quickToday'].forEach(k => {
+            ['downloadPdf', 'print', 'history', 'periods', 'resetFormat', 'saveFormat', 'quickFolio', 'quickClear', 'quickCopy', 'quickToday'].forEach(k => {
                 const el = document.getElementById(`chk_hb_${k}`);
                 if (el) prof.permissions.headerButtons[k] = el.checked;
             });
