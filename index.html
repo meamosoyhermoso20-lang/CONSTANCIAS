@@ -1758,6 +1758,41 @@
             showToast('Formato restaurado a su estructura base.');
         }
 
+        function syncGenderTermsInDocumentDOM(containerEl, genero) {
+            if (!containerEl) return;
+            const isMale = genero === 'M';
+            const walker = document.createTreeWalker(containerEl, NodeFilter.SHOW_TEXT, null);
+            let node;
+            while ((node = walker.nextNode())) {
+                if (!node.nodeValue) continue;
+                let txt = node.nodeValue;
+                if (isMale) {
+                    txt = txt
+                        .replace(/\bla alumna\b/gi, (m) => (m[0] === 'L' ? 'El alumno' : 'el alumno'))
+                        .replace(/\binscrita\b/gi, (m) => (m[0] === 'I' ? 'Inscrito' : 'inscrito'))
+                        .replace(/\bdel interesado\b/gi, 'del alumno')
+                        .replace(/\bde la interesada\b/gi, 'del alumno');
+                } else {
+                    txt = txt
+                        .replace(/\bel alumno\b/gi, (m) => (m[0] === 'E' ? 'La alumna' : 'la alumna'))
+                        .replace(/\binscrito\b/gi, (m) => (m[0] === 'I' ? 'Inscrita' : 'inscrita'));
+                }
+                if (txt !== node.nodeValue) {
+                    node.nodeValue = txt;
+                }
+            }
+        }
+
+        function enforceJustifiedBodyAlignment() {
+            const bodyEl = document.getElementById('documentRenderedBody');
+            if (!bodyEl) return;
+            bodyEl.style.textAlign = 'justify';
+            bodyEl.querySelectorAll('.doc-para, p').forEach(el => {
+                el.style.textAlign = 'justify';
+                el.style.textJustify = 'inter-word';
+            });
+        }
+
         function updateDocument() {
             const bodyEl = document.getElementById('documentRenderedBody');
             if (!bodyEl) return;
@@ -1823,11 +1858,6 @@
 
             const renderLineWithTokens = (lineStr) => {
                 let processed = escapeHtml(lineStr);
-                if (genero === 'M') {
-                    processed = processed.replace(/\bla alumna\b/gi, 'el alumno').replace(/\binscrita\b/gi, 'inscrito');
-                } else {
-                    processed = processed.replace(/\bel alumno\b/gi, 'la alumna').replace(/\binscrito\b/gi, 'inscrita');
-                }
 
                 Object.entries(tokenToField).forEach(([tok, fieldKey]) => {
                     const val = escapeHtml(map[tok] ?? '');
@@ -1836,6 +1866,18 @@
                         : `<span data-bound-field="${fieldKey}">${val}</span>`;
                     processed = processed.split(tok).join(spanHtml);
                 });
+
+                // Eliminar llaves residuales alrededor de inscrita/inscrito o alumno/alumna
+                processed = processed
+                    .replace(/\{\s*(inscrit[oa])\s*\}/gi, '$1')
+                    .replace(/\{\s*(el alumno|la alumna)\s*\}/gi, '$1');
+
+                if (genero === 'M') {
+                    processed = processed.replace(/\bla alumna\b/gi, 'el alumno').replace(/\binscrita\b/gi, 'inscrito');
+                } else {
+                    processed = processed.replace(/\bel alumno\b/gi, 'la alumna').replace(/\binscrito\b/gi, 'inscrita');
+                }
+
                 return processed;
             };
 
@@ -1974,25 +2016,47 @@
 
             applySmartSpacingVars();
 
-            // Paso 1: Si el contenido rebasa la hoja carta, ajusta gradualmente espacios e interlineado
-            let guard = 0;
-            while (smart.scrollHeight > availableHeight && guard < 26) {
-                guard++;
-                if (smartBlankH > 4.5) smartBlankH = +(smartBlankH - 1).toFixed(1);
-                if (smartParaMb > 6.5) smartParaMb = +(smartParaMb - 0.8).toFixed(1);
-                if (smartSigRuleMt > 20) smartSigRuleMt = +(smartSigRuleMt - 2).toFixed(1);
-                if (smartAtentamenteGap > 10) smartAtentamenteGap = +(smartAtentamenteGap - 0.6).toFixed(1);
-                if (smartSigMt > 8) smartSigMt = +(smartSigMt - 1).toFixed(1);
-                if (smartLineHeight > 1.24) smartLineHeight = +(smartLineHeight - 0.03).toFixed(2);
+            if (smart.scrollHeight > availableHeight) {
+                smartLineHeight = Math.max(1.15, +(smartLineHeight - 0.12).toFixed(2));
+                smartParaMb = Math.max(5.5, +(smartParaMb * 0.72).toFixed(1));
+                smartBlankH = Math.max(4, +(smartBlankH * 0.6).toFixed(1));
+                smartSigMt = Math.max(8, +(smartSigMt * 0.65).toFixed(1));
+                smartSigRuleMt = Math.max(20, +(smartSigRuleMt * 0.72).toFixed(1));
                 applySmartSpacingVars();
             }
 
-            // Paso 2: Si aún con el espaciado mínimo excede 1 hoja carta, escala proporcionalmente el contenido
-            const contentH = smart.scrollHeight;
-            if (contentH > availableHeight && contentH > 0) {
-                const ratio = Math.max(0.56, +((availableHeight - 2) / contentH).toFixed(4));
+            const finalContentH = smart.scrollHeight;
+            if (finalContentH > availableHeight && finalContentH > 0) {
+                const ratio = Math.max(0.58, +(availableHeight / finalContentH).toFixed(3));
                 smart.style.transform = `scale(${ratio})`;
-                smart.style.width = `${(100 / ratio).toFixed(3)}%`;
+                smart.style.width = `${(100 / ratio).toFixed(2)}%`;
+            }
+        }
+
+        function syncGenderTermsInDocumentDOM(containerEl, genero) {
+            if (!containerEl) return;
+            const isMale = genero === 'M';
+            const walker = document.createTreeWalker(containerEl, NodeFilter.SHOW_TEXT, null);
+            let node;
+            while ((node = walker.nextNode())) {
+                if (!node.nodeValue) continue;
+                let txt = node.nodeValue
+                    .replace(/\{\s*(inscrit[oa])\s*\}/gi, '$1')
+                    .replace(/\{\s*(el alumno|la alumna)\s*\}/gi, '$1');
+                if (isMale) {
+                    txt = txt
+                        .replace(/\bla alumna\b/gi, (m) => (m[0] === 'L' ? 'El alumno' : 'el alumno'))
+                        .replace(/\binscrita\b/gi, (m) => (m[0] === 'I' ? 'Inscrito' : 'inscrito'))
+                        .replace(/\bdel interesado\b/gi, 'del alumno')
+                        .replace(/\bde la interesada\b/gi, 'del alumno');
+                } else {
+                    txt = txt
+                        .replace(/\bel alumno\b/gi, (m) => (m[0] === 'E' ? 'La alumna' : 'la alumna'))
+                        .replace(/\binscrito\b/gi, (m) => (m[0] === 'I' ? 'Inscrita' : 'inscrita'));
+                }
+                if (txt !== node.nodeValue) {
+                    node.nodeValue = txt;
+                }
             }
         }
 
