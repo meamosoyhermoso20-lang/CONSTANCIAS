@@ -529,7 +529,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
                     <div class="sm:col-span-8">
                         <label class="block text-[11px] font-bold text-slate-600 mb-1">Nombre Completo del Alumno(a)</label>
-                        <input type="text" id="inputAlumno" value="MARÍA FERNANDA GONZÁLEZ HERNÁNDEZ" oninput="detectGenderFromName(); updateDocument();" placeholder="Ej. JUAN CARLOS PÉREZ LÓPEZ" class="uap-input w-full rounded-xl border border-slate-300 bg-slate-50/40 focus:bg-white px-3 py-2 text-xs font-bold text-slate-800 uppercase outline-none">
+                        <input type="text" id="inputAlumno" value="MARÍA FERNANDA GONZÁLEZ HERNÁNDEZ" oninput="detectGenderFromName(); updateDocument();" placeholder="Ej. Juan Carlos Pérez López" class="uap-input w-full rounded-xl border border-slate-300 bg-slate-50/40 focus:bg-white px-3 py-2 text-xs font-bold text-slate-800 outline-none">
                     </div>
                     <div class="sm:col-span-4">
                         <label class="block text-[11px] font-bold text-slate-600 mb-1">Género</label>
@@ -540,16 +540,16 @@
                     </div>
                     <div class="sm:col-span-5">
                         <label class="block text-[11px] font-bold text-slate-600 mb-1">Matrícula Institucional</label>
-                        <input type="text" id="inputMatricula" value="2024UAP0894" oninput="updateDocument()" class="uap-input w-full rounded-xl border border-slate-300 bg-slate-50/40 focus:bg-white px-3 py-2 text-xs font-bold text-slate-800 uppercase outline-none">
+                        <input type="text" id="inputMatricula" value="2024UAP0894" oninput="updateDocument()" class="uap-input w-full rounded-xl border border-slate-300 bg-slate-50/40 focus:bg-white px-3 py-2 text-xs font-bold text-slate-800 outline-none">
                     </div>
                     <div class="sm:col-span-7">
                         <label class="block text-[11px] font-bold text-slate-600 mb-1">Modalidad y Grado (Desplegable)</label>
                         <div class="grid grid-cols-12 gap-1.5">
-                            <select id="selectTipoPeriodoGrado" onchange="onChangeTipoPeriodoGrado()" class="uap-input col-span-5 rounded-xl border border-slate-300 px-2.5 py-2 text-xs font-bold text-blue-950 bg-blue-50/50 uppercase outline-none">
+                            <select id="selectTipoPeriodoGrado" onchange="onChangeTipoPeriodoGrado()" class="uap-input col-span-5 rounded-xl border border-slate-300 px-2.5 py-2 text-xs font-bold text-blue-950 bg-blue-50/50 outline-none">
                                 <option value="CUATRIMESTRE" selected>Cuatrimestre</option>
                                 <option value="SEMESTRE">Semestre</option>
                             </select>
-                            <select id="inputGrado" onchange="syncTipoPeriodoFromGrado(); updateDocument();" class="uap-input col-span-7 rounded-xl border border-slate-300 px-2.5 py-2 text-xs font-bold text-slate-800 bg-white uppercase outline-none">
+                            <select id="inputGrado" onchange="syncTipoPeriodoFromGrado(); updateDocument();" class="uap-input col-span-7 rounded-xl border border-slate-300 px-2.5 py-2 text-xs font-bold text-slate-800 bg-white outline-none">
                                 <optgroup label="Modalidad Cuatrimestral">
                                     <option value="1° CUATRIMESTRE">1° CUATRIMESTRE</option>
                                     <option value="2° CUATRIMESTRE">2° CUATRIMESTRE</option>
@@ -657,11 +657,11 @@
                 <div id="fields-promedio" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-[11px] font-bold text-cyan-900 mb-1">Promedio General Acumulado</label>
-                        <input type="text" id="inputPromedioGeneral" value="9.4 (NUEVE PUNTO CUATRO)" oninput="updateDocument()" class="uap-input w-full rounded-xl border border-cyan-300 bg-cyan-50/40 px-3 py-2 text-xs font-bold text-slate-800 uppercase">
+                        <input type="text" id="inputPromedioGeneral" value="9.4 (NUEVE PUNTO CUATRO)" oninput="updateDocument()" class="uap-input w-full rounded-xl border border-cyan-300 bg-cyan-50/40 px-3 py-2 text-xs font-bold text-slate-800">
                     </div>
                     <div>
                         <label class="block text-[11px] font-bold text-slate-600 mb-1">Periodos Evaluados en el Promedio</label>
-                        <input type="text" id="inputPeriodosPromedio" value="PRIMERO AL CUARTO CUATRIMESTRE" oninput="updateDocument()" class="uap-input w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-800 uppercase">
+                        <input type="text" id="inputPeriodosPromedio" value="PRIMERO AL CUARTO CUATRIMESTRE" oninput="updateDocument()" class="uap-input w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-800">
                     </div>
                 </div>
 
@@ -797,15 +797,15 @@
                 <input type="hidden" id="editMajorIdInput">
                 <div class="md:col-span-4">
                     <label class="block text-[11px] font-bold text-slate-600 mb-1">Nombre de la Licenciatura / Carrera</label>
-                    <input type="text" id="newMajorNameInput" required placeholder="Ej. LICENCIATURA EN DERECHO" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold uppercase">
+                    <input type="text" id="newMajorNameInput" required placeholder="Ej. Licenciatura en Derecho" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold">
                 </div>
                 <div class="md:col-span-3">
                     <label class="block text-[11px] font-bold text-slate-600 mb-1">Acuerdo RVOE</label>
-                    <input type="text" id="newMajorRvoeInput" required placeholder="Ej. RVOE SEP-SES/21/114/01/1234" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold uppercase">
+                    <input type="text" id="newMajorRvoeInput" required placeholder="Ej. RVOE SEP-SES/21/114/01/1234" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold">
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-[11px] font-bold text-slate-600 mb-1">Fecha del RVOE</label>
-                    <input type="text" id="newMajorRvoeDateInput" required placeholder="Ej. 15 DE OCTUBRE DE 2020" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold uppercase">
+                    <input type="text" id="newMajorRvoeDateInput" required placeholder="Ej. 15 de octubre de 2020" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold">
                 </div>
                 <div class="md:col-span-3 flex items-end gap-2">
                     <button type="submit" id="btnSubmitMajorForm" class="flex-1 bg-blue-950 hover:bg-blue-900 text-white font-extrabold py-2 px-4 rounded-xl text-xs transition">
@@ -864,7 +864,23 @@
                 <input type="hidden" id="editPeriodIdInput">
                 <div class="sm:col-span-12">
                     <label class="block text-[10px] font-bold text-slate-600 mb-1">Nombre del Periodo Escolar</label>
-                    <input type="text" id="periodNameInput" required placeholder="Ej. OTOÑO 2026 (SEPTIEMBRE - DICIEMBRE 2026)" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold uppercase">
+                    <input type="text" id="periodNameInput" required placeholder="Ej. OTOÑO 2026 (SEPTIEMBRE - DICIEMBRE 2026)" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold">
+                </div>
+                <div class="sm:col-span-6">
+                    <label class="block text-[10px] font-bold text-slate-600 mb-1">Inicio de Periodo Escolar</label>
+                    <input type="text" id="periodStartInput" required placeholder="Ej. 04 de septiembre de 2026" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold">
+                </div>
+                <div class="sm:col-span-6">
+                    <label class="block text-[10px] font-bold text-slate-600 mb-1">Término de Periodo Escolar</label>
+                    <input type="text" id="periodEndInput" required placeholder="Ej. 18 de diciembre de 2026" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold">
+                </div>
+                <div class="sm:col-span-6">
+                    <label class="block text-[10px] font-bold text-amber-800 mb-1">Inicio Periodo Vacacional Vinculado</label>
+                    <input type="text" id="periodVacStartInput" required placeholder="Ej. 21 de diciembre de 2026" class="w-full rounded-xl border border-amber-300 bg-amber-50/40 px-3 py-2 text-xs font-semibold">
+                </div>
+                <div class="sm:col-span-6">
+                    <label class="block text-[10px] font-bold text-amber-800 mb-1">Reanudación de Clases Vinculada</label>
+                    <input type="text" id="periodVacEndInput" required placeholder="Ej. 07 de enero de 2027" class="w-full rounded-xl border border-amber-300 bg-amber-50/40 px-3 py-2 text-xs font-semibold">
                 </div>
                 <div class="sm:col-span-6">
                     <label class="block text-[10px] font-bold text-slate-600 mb-1">Inicio de Periodo Escolar</label>
@@ -1711,35 +1727,35 @@
             if (!bodyEl) return;
 
             const folio = (document.getElementById('inputFolio')?.value || '').trim();
-            const ciudad = (document.getElementById('inputCiudad')?.value || '').trim().toUpperCase();
+            const ciudad = (document.getElementById('inputCiudad')?.value || '').trim();
             const fechaIso = document.getElementById('inputFecha')?.value || '';
             const fechaMayus = formatExpeditionDateSpanish(fechaIso);
-            const destinatario = (document.getElementById('inputDestinatario')?.value || '').trim().toUpperCase();
-            const alumno = (document.getElementById('inputAlumno')?.value || '').trim().toUpperCase();
+            const destinatario = (document.getElementById('inputDestinatario')?.value || '').trim();
+            const alumno = (document.getElementById('inputAlumno')?.value || '').trim();
             const genero = document.getElementById('selectGenero')?.value || 'F';
-            const matricula = (document.getElementById('inputMatricula')?.value || '').trim().toUpperCase();
-            const grado = (document.getElementById('inputGrado')?.value || '').trim().toUpperCase();
+            const matricula = (document.getElementById('inputMatricula')?.value || '').trim();
+            const grado = (document.getElementById('inputGrado')?.value || '').trim();
 
             const licSel = document.getElementById('selectLicenciatura');
-            const licText = licSel && licSel.selectedIndex >= 0 ? licSel.options[licSel.selectedIndex].text.toUpperCase() : '';
-            const rvoe = (document.getElementById('inputRvoe')?.value || '').trim().toUpperCase();
+            const licText = licSel && licSel.selectedIndex >= 0 ? licSel.options[licSel.selectedIndex].text : '';
+            const rvoe = (document.getElementById('inputRvoe')?.value || '').trim();
 
             const perSel = document.getElementById('selectPeriodo');
-            const perText = perSel && perSel.selectedIndex >= 0 ? perSel.options[perSel.selectedIndex].text.toUpperCase() : '';
-            const inicioPeriodo = (document.getElementById('inputInicioPeriodo')?.value || '').trim().toUpperCase();
-            const finPeriodo = (document.getElementById('inputFinPeriodo')?.value || '').trim().toUpperCase();
+            const perText = perSel && perSel.selectedIndex >= 0 ? perSel.options[perSel.selectedIndex].text : '';
+            const inicioPeriodo = (document.getElementById('inputInicioPeriodo')?.value || '').trim();
+            const finPeriodo = (document.getElementById('inputFinPeriodo')?.value || '').trim();
 
-            const firmante = (document.getElementById('inputFirmante')?.value || '').trim().toUpperCase();
-            const cargoFirmante = (document.getElementById('inputCargoFirmante')?.value || '').trim().toUpperCase();
+            const firmante = (document.getElementById('inputFirmante')?.value || '').trim();
+            const cargoFirmante = (document.getElementById('inputCargoFirmante')?.value || '').trim();
 
-            const vacInicio = (document.getElementById('inputVacInicio')?.value || '').trim().toUpperCase();
-            const vacFin = (document.getElementById('inputVacFin')?.value || '').trim().toUpperCase();
+            const vacInicio = (document.getElementById('inputVacInicio')?.value || '').trim();
+            const vacFin = (document.getElementById('inputVacFin')?.value || '').trim();
             const periodosAnteriores = (document.getElementById('inputPeriodosAnteriores')?.value || '').trim();
             const montoInscripcion = (document.getElementById('inputMontoInscripcion')?.value || '').trim();
             const montoColegiatura = (document.getElementById('inputMontoColegiatura')?.value || '').trim();
             const documentosResguardo = (document.getElementById('inputDocumentosResguardo')?.value || '').trim();
-            const promedioGeneral = (document.getElementById('inputPromedioGeneral')?.value || '').trim().toUpperCase();
-            const periodosPromedio = (document.getElementById('inputPeriodosPromedio')?.value || '').trim().toUpperCase();
+            const promedioGeneral = (document.getElementById('inputPromedioGeneral')?.value || '').trim();
+            const periodosPromedio = (document.getElementById('inputPeriodosPromedio')?.value || '').trim();
 
             const tratamiento = genero === 'M' ? 'el alumno' : 'la alumna';
             const inscrito = genero === 'M' ? 'inscrito' : 'inscrita';
@@ -2196,9 +2212,9 @@
             if (!container) return;
             container.innerHTML = gradesRowsData.map((row, idx) => `
                 <div class="grid grid-cols-12 gap-1.5 items-center bg-slate-50 p-2 rounded-xl border border-slate-200">
-                    <input type="text" value="${escapeHtml(row.grupo)}" oninput="updateGradeCell(${idx}, 'grupo', this.value)" placeholder="Grupo" class="col-span-2 rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-bold uppercase">
-                    <input type="text" value="${escapeHtml(row.codigo)}" oninput="updateGradeCell(${idx}, 'codigo', this.value)" placeholder="Clave" class="col-span-3 rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-mono uppercase">
-                    <input type="text" value="${escapeHtml(row.materia)}" oninput="updateGradeCell(${idx}, 'materia', this.value)" placeholder="Materia" class="col-span-4 rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-semibold uppercase">
+                    <input type="text" value="${escapeHtml(row.grupo)}" oninput="updateGradeCell(${idx}, 'grupo', this.value)" placeholder="Grupo" class="col-span-2 rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-bold">
+                    <input type="text" value="${escapeHtml(row.codigo)}" oninput="updateGradeCell(${idx}, 'codigo', this.value)" placeholder="Clave" class="col-span-3 rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-mono">
+                    <input type="text" value="${escapeHtml(row.materia)}" oninput="updateGradeCell(${idx}, 'materia', this.value)" placeholder="Materia" class="col-span-4 rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-semibold">
                     <input type="text" value="${escapeHtml(row.calificacion)}" oninput="updateGradeCell(${idx}, 'calificacion', this.value)" placeholder="Cal." class="col-span-2 rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-bold text-center">
                     <button type="button" onclick="removeGradeRow(${idx})" class="col-span-1 text-rose-600 hover:bg-rose-50 rounded-lg py-1 font-extrabold text-xs">✕</button>
                 </div>
@@ -2275,9 +2291,9 @@
         function saveMajorRvoeForm(e) {
             e.preventDefault();
             const editId = document.getElementById('editMajorIdInput')?.value || '';
-            const name = (document.getElementById('newMajorNameInput')?.value || '').trim().toUpperCase();
-            const rvoe = (document.getElementById('newMajorRvoeInput')?.value || '').trim().toUpperCase();
-            const rvoeDate = (document.getElementById('newMajorRvoeDateInput')?.value || '').trim().toUpperCase();
+            const name = (document.getElementById('newMajorNameInput')?.value || '').trim();
+            const rvoe = (document.getElementById('newMajorRvoeInput')?.value || '').trim();
+            const rvoeDate = (document.getElementById('newMajorRvoeDateInput')?.value || '').trim();
             if (!name || !rvoe || !rvoeDate) return;
 
             if (editId) {
@@ -2359,11 +2375,11 @@
         function saveCustomAcademicPeriod(e) {
             e.preventDefault();
             const editId = document.getElementById('editPeriodIdInput')?.value || '';
-            const name = (document.getElementById('periodNameInput')?.value || '').trim().toUpperCase();
-            const start = (document.getElementById('periodStartInput')?.value || '').trim().toUpperCase();
-            const end = (document.getElementById('periodEndInput')?.value || '').trim().toUpperCase();
-            const vacStart = (document.getElementById('periodVacStartInput')?.value || '').trim().toUpperCase();
-            const vacEnd = (document.getElementById('periodVacEndInput')?.value || '').trim().toUpperCase();
+            const name = (document.getElementById('periodNameInput')?.value || '').trim();
+            const start = (document.getElementById('periodStartInput')?.value || '').trim();
+            const end = (document.getElementById('periodEndInput')?.value || '').trim();
+            const vacStart = (document.getElementById('periodVacStartInput')?.value || '').trim();
+            const vacEnd = (document.getElementById('periodVacEndInput')?.value || '').trim();
 
             if (editId) {
                 const idx = vaultState.periods.findIndex(p => p.id === editId);
@@ -2995,10 +3011,10 @@
             const nombre = row.ALUMNO || row.Nombre || row.NOMBRE || '';
             const mat = row.MATRICULA || row.Matricula || '';
             if (nombre) {
-                document.getElementById('inputAlumno').value = String(nombre).toUpperCase();
+                document.getElementById('inputAlumno').value = String(nombre);
                 detectGenderFromName();
             }
-            if (mat) document.getElementById('inputMatricula').value = String(mat).toUpperCase();
+            if (mat) document.getElementById('inputMatricula').value = String(mat);
             updateDocument();
         }
 
