@@ -890,12 +890,40 @@
 
     <!-- MODAL: HISTORIAL DE CONSTANCIAS -->
     <div id="historyModal" class="no-print hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
-                <h3 class="text-sm font-extrabold text-blue-950">Historial de Constancias Emitidas</h3>
-                <button type="button" onclick="closeHistoryModal()" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 font-bold text-xs">✕</button>
+        <div class="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] flex flex-col">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3 shrink-0">
+                <div>
+                    <h3 class="text-base font-extrabold text-blue-950">Historial y Estadísticas Mensuales de Constancias</h3>
+                    <p class="text-[11px] text-slate-500">Consulta las constancias emitidas, el usuario responsable y el desglose estadístico mensual por modalidad.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                        <label for="historyMonthFilter" class="text-[11px] font-bold text-slate-600">Mes:</label>
+                        <select id="historyMonthFilter" onchange="renderHistoryModalContent()" class="bg-transparent text-xs font-extrabold text-blue-950 outline-none cursor-pointer">
+                            <option value="ALL">Todos los meses</option>
+                        </select>
+                    </div>
+                    <button type="button" onclick="exportHistoryToExcel()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-extrabold shadow-xs transition">
+                        Exportar Excel
+                    </button>
+                    <button type="button" onclick="closeHistoryModal()" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 font-bold text-xs">✕</button>
+                </div>
             </div>
-            <div id="historyModalList" class="space-y-2 max-h-80 overflow-y-auto"></div>
+
+            <!-- RESUMEN ESTADÍSTICO MENSUAL -->
+            <div id="historyStatsSummary" class="bg-gradient-to-br from-slate-50 to-blue-50/60 border border-blue-200/80 rounded-2xl p-4 space-y-3 shrink-0">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-1 rounded-xl bg-blue-950 text-amber-300 font-extrabold text-xs" id="historyTotalMonthBadge">Total del Mes: 0</span>
+                        <span class="text-[11px] font-bold text-slate-600" id="historySelectedMonthLabel">Desglose por tipo de constancia</span>
+                    </div>
+                    <span class="text-[11px] font-semibold text-slate-500" id="historyUsersSummaryText"></span>
+                </div>
+                <div id="historyModalityBreakdownGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
+            </div>
+
+            <!-- LISTADO DETALLADO DE CONSTANCIAS -->
+            <div id="historyModalList" class="space-y-2 overflow-y-auto flex-1 pr-1"></div>
         </div>
     </div>
 
@@ -2517,17 +2545,26 @@
             const alumno = (document.getElementById('inputAlumno')?.value || 'CONSTANCIA').trim().toUpperCase();
             const folio = (document.getElementById('inputFolio')?.value || 'S-N').trim();
             const matricula = (document.getElementById('inputMatricula')?.value || '').trim().toUpperCase();
+            const now = new Date();
+            const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const issuerName = activeSession.unlocked
+                ? `${activeSession.name} (${activeSession.role === 'admin' ? 'ADMIN' : activeSession.code})`
+                : 'Usuario No Identificado';
 
-            // Registrar en historial
+            // Registrar en historial con usuario responsable y clave de mes
             vaultState.history.unshift({
                 id: 'hist_' + Date.now(),
-                date: new Date().toLocaleString('es-MX'),
+                date: now.toLocaleString('es-MX'),
+                monthKey,
                 folio,
+                typeKey: currentDocType,
                 type: DOC_TYPE_META[currentDocType]?.label || currentDocType,
                 alumno,
-                matricula
+                matricula,
+                issuedBy: issuerName,
+                issuedById: activeSession.profileId || 'guest'
             });
-            if (vaultState.history.length > 200) vaultState.history.length = 200;
+            if (vaultState.history.length > 500) vaultState.history.length = 500;
             persistVaultData(true);
             updateHistoryBadge();
 
@@ -2603,23 +2640,139 @@
             if (badge) badge.textContent = String(vaultState.history.length || 0);
         }
 
+        function getHistoryEntryMonthKey(entry) {
+            if (entry.monthKey && /^\d{4}-\d{2}$/.test(entry.monthKey)) return entry.monthKey;
+            const dStr = String(entry.date || '');
+            const slashMatch = dStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+            if (slashMatch) {
+                return `${slashMatch[3]}-${slashMatch[2].padStart(2, '0')}`;
+            }
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        function formatMonthKeySpanish(mKey) {
+            if (!mKey || mKey === 'ALL') return 'Todos los meses registrados';
+            const [y, m] = mKey.split('-');
+            const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            const idx = parseInt(m, 10) - 1;
+            return `${months[idx] || m} ${y}`;
+        }
+
         function openHistoryModal() {
+            const monthSel = document.getElementById('historyMonthFilter');
+            if (monthSel) {
+                const now = new Date();
+                const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                const keysSet = new Set([currentMonthKey]);
+                vaultState.history.forEach(h => keysSet.add(getHistoryEntryMonthKey(h)));
+                const sortedKeys = Array.from(keysSet).sort().reverse();
+
+                monthSel.innerHTML =
+                    sortedKeys.map(k => `<option value="${k}">${formatMonthKeySpanish(k)}</option>`).join('') +
+                    '<option value="ALL">Todos los meses</option>';
+                monthSel.value = currentMonthKey;
+            }
+            renderHistoryModalContent();
+            document.getElementById('historyModal')?.classList.remove('hidden');
+        }
+
+        function renderHistoryModalContent() {
+            const monthSel = document.getElementById('historyMonthFilter');
+            const selectedMonth = monthSel?.value || 'ALL';
+
+            const filtered = selectedMonth === 'ALL'
+                ? vaultState.history
+                : vaultState.history.filter(h => getHistoryEntryMonthKey(h) === selectedMonth);
+
+            // Actualizar cabecera estadística
+            const totalBadge = document.getElementById('historyTotalMonthBadge');
+            const monthLabel = document.getElementById('historySelectedMonthLabel');
+            const usersSummary = document.getElementById('historyUsersSummaryText');
+            const breakdownGrid = document.getElementById('historyModalityBreakdownGrid');
+
+            if (totalBadge) {
+                totalBadge.textContent = selectedMonth === 'ALL'
+                    ? `Total Histórico: ${filtered.length}`
+                    : `Total del Mes: ${filtered.length}`;
+            }
+            if (monthLabel) {
+                monthLabel.textContent = `Periodo: ${formatMonthKeySpanish(selectedMonth)}`;
+            }
+
+            // Conteo por modalidad y porcentaje
+            const countsByType = {};
+            Object.keys(DOC_TYPE_META).forEach(k => { countsByType[k] = 0; });
+            const countsByUser = {};
+
+            filtered.forEach(item => {
+                let matchedKey = item.typeKey;
+                if (!matchedKey) {
+                    const found = Object.entries(DOC_TYPE_META).find(([, meta]) => meta.label.toLowerCase() === String(item.type || '').toLowerCase());
+                    matchedKey = found ? found[0] : 'simple';
+                }
+                countsByType[matchedKey] = (countsByType[matchedKey] || 0) + 1;
+
+                const issuer = item.issuedBy || 'Usuario No Registrado';
+                countsByUser[issuer] = (countsByUser[issuer] || 0) + 1;
+            });
+
+            if (usersSummary) {
+                const userEntries = Object.entries(countsByUser).sort((a, b) => b[1] - a[1]);
+                usersSummary.textContent = userEntries.length
+                    ? 'Por usuario: ' + userEntries.map(([u, c]) => `${u} (${c})`).join(' • ')
+                    : 'Sin emisiones en este periodo';
+            }
+
+            if (breakdownGrid) {
+                const total = filtered.length || 0;
+                breakdownGrid.innerHTML = Object.entries(DOC_TYPE_META).map(([key, meta]) => {
+                    const count = countsByType[key] || 0;
+                    const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                    return `
+                        <div class="bg-white rounded-xl border border-slate-200/90 p-2.5 shadow-2xs flex flex-col justify-between gap-1.5">
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="text-[11px] font-bold text-slate-700 truncate">${escapeHtml(meta.label)}</span>
+                                <span class="text-xs font-extrabold text-blue-950 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-lg">${count}</span>
+                            </div>
+                            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                                <div class="bg-blue-900 h-full rounded-full transition-all" style="width: ${pct}%"></div>
+                            </div>
+                            <div class="text-[10px] font-semibold text-slate-400 text-right">${pct}% del total</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Listado detallado de constancias emitidas
             const list = document.getElementById('historyModalList');
             if (list) {
-                if (!vaultState.history.length) {
-                    list.innerHTML = '<p class="text-xs text-slate-500 text-center py-6">Aún no hay constancias guardadas en el historial.</p>';
+                if (!filtered.length) {
+                    list.innerHTML = '<p class="text-xs text-slate-500 text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200">No hay constancias registradas en el mes seleccionado.</p>';
                 } else {
-                    list.innerHTML = vaultState.history.map(h => `
-                        <div class="p-3 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-2 text-xs">
-                            <div>
-                                <div class="font-extrabold text-blue-950">${escapeHtml(h.alumno)} <span class="text-slate-500 font-mono">(${escapeHtml(h.matricula)})</span></div>
-                                <div class="text-[11px] text-slate-600">${escapeHtml(h.folio)} • ${escapeHtml(h.type)} • ${escapeHtml(h.date)}</div>
+                    list.innerHTML = filtered.map(h => {
+                        const issuerDisplay = h.issuedBy || 'Usuario No Registrado';
+                        return `
+                            <div class="p-3.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50/90 transition flex flex-wrap items-center justify-between gap-2 text-xs shadow-2xs">
+                                <div class="space-y-0.5">
+                                    <div class="font-extrabold text-blue-950 flex flex-wrap items-center gap-1.5">
+                                        <span>${escapeHtml(h.alumno)}</span>
+                                        <span class="text-slate-500 font-mono text-[11px]">(${escapeHtml(h.matricula || 'S/M')})</span>
+                                        <span class="px-2 py-0.5 rounded-md bg-blue-100 text-blue-900 font-bold text-[10px]">${escapeHtml(h.type)}</span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-600">
+                                        Folio: <strong class="text-slate-800">${escapeHtml(h.folio)}</strong> • Fecha: ${escapeHtml(h.date)}
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-1.5 bg-amber-50 border border-amber-200/90 px-2.5 py-1 rounded-xl text-[11px] font-bold text-amber-950 shrink-0">
+                                    <span>Elaboró:</span>
+                                    <span class="font-extrabold text-blue-950">${escapeHtml(issuerDisplay)}</span>
+                                </div>
                             </div>
-                        </div>
-                    `).join('');
+                        `;
+                    }).join('');
                 }
             }
-            document.getElementById('historyModal')?.classList.remove('hidden');
         }
 
         function closeHistoryModal() {
