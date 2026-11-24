@@ -272,18 +272,29 @@
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1">Grado / Semestre ({GRADO})</label>
                                 <input type="text" id="inpPeriodoGrado" value="7° semestre" placeholder="Ej. 7° semestre" oninput="updateDocument()" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
                             </div>
-                            <div data-field-wrap="periodo_escolar" class="sm:col-span-2 space-y-1">
-                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Periodo Escolar y Ciclo ({PERIODO})</label>
-                                <select id="selPeriodoEscolar" onchange="syncAcademicPeriodInputFromSelect();updateDocument();" class="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 bg-white focus:ring-2 focus:ring-blue-800 outline-none"><option value="" data-idx="0"></option></select>
-                                <input type="text" id="inpPeriodoEscolarEditable" placeholder="Edita directamente el periodo escolar..." oninput="updateActiveAcademicPeriodFromInput();updateDocument();" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50/30 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
+                            <div data-field-wrap="periodo_escolar" class="sm:col-span-2 space-y-1.5">
+                                <label class="block text-[11px] font-bold text-slate-600">Seleccionar Periodo Guardado</label>
+                                <select id="selPeriodoEscolar" onchange="syncAcademicPeriodInputFromSelect();updateDocument();" class="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-blue-950 bg-white focus:ring-2 focus:ring-blue-800 outline-none"></select>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Nombre del Periodo ({NOMBRE_PERIODO})</label>
+                                    <input type="text" id="inpNombrePeriodoEditable" placeholder="Ej. Ciclo Escolar 2025/2026 · Otoño" oninput="updateActiveAcademicPeriodFromInput();updateDocument();" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Fechas del Periodo Escolar ({FECHAS_PERIODO} / {PERIODO})</label>
+                                    <input type="text" id="inpPeriodoEscolarEditable" placeholder="Ej. a partir del 11 de Agosto de 2025 al 21 de Enero del 2026..." oninput="updateActiveAcademicPeriodFromInput();updateDocument();" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50/30 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Periodo Vacacional Asociado ({PERIODO_VACACIONAL})</label>
+                                    <input type="text" id="inpPeriodoVacacionalInline" placeholder="Ej. Con un periodo vacacional del 22 de enero de 2026 al 08 de febrero de 2026." oninput="syncInlineVacationToMain();updateDocument();" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50/30 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
+                                </div>
                             </div>
                         </div>
 
                         <!-- CONTROLES ESPECÍFICOS POR MODALIDAD -->
                         <div id="periodoVacacionalControls" data-field-wrap="periodo_vacacional" class="pt-2 border-t border-slate-100 space-y-2 hidden">
-                            <label class="block text-[11px] font-extrabold uppercase text-blue-900">Periodo Vacacional (Editable)</label>
-                            <select id="selPeriodoVacacionalPreset" onchange="if(this.value){document.getElementById('inpPeriodoVacacional').value=this.value;updateDocument();}" class="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-semibold bg-slate-50 text-slate-800"><option value="">Elegir periodo vacacional guardado...</option><option value="Con un periodo vacacional del 18 de julio de 2026 al 09 de agosto de 2026.">Con un periodo vacacional del 18 de julio de 2026 al 09 de agosto de 2026.</option></select>
-                            <textarea id="inpPeriodoVacacional" rows="2" oninput="updateDocument()" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-blue-300 bg-blue-50/30 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">Con un periodo vacacional del 22 de enero de 2026 al 08 de febrero de 2026.</textarea>
+                            <label class="block text-[11px] font-extrabold uppercase text-blue-900">Periodo Vacacional ({PERIODO_VACACIONAL})</label>
+                            <select id="selPeriodoVacacionalPreset" onchange="if(this.value){document.getElementById('inpPeriodoVacacional').value=this.value;if(document.getElementById('inpPeriodoVacacionalInline'))document.getElementById('inpPeriodoVacacionalInline').value=this.value;updateDocument();}" class="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-semibold bg-slate-50 text-slate-800"><option value="">Elegir periodo vacacional guardado...</option></select>
+                            <textarea id="inpPeriodoVacacional" rows="2" oninput="if(document.getElementById('inpPeriodoVacacionalInline'))document.getElementById('inpPeriodoVacacionalInline').value=this.value;updateActiveAcademicPeriodFromInput();updateDocument();" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-blue-300 bg-blue-50/30 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">Con un periodo vacacional del 22 de enero de 2026 al 08 de febrero de 2026.</textarea>
                         </div>
 
                         <div id="periodosAnterioresControls" data-field-wrap="verbo_cursado" class="pt-2 border-t border-slate-100 hidden">
@@ -489,8 +500,10 @@
                                 <button type="button" onclick="insertTagIntoFormatBody('{RVOE}')" class="px-2 py-0.5 rounded bg-white border border-blue-200 text-[10px] font-mono font-bold text-blue-900 hover:bg-blue-100">{RVOE}</button>
                                 <button type="button" onclick="insertTagIntoFormatBody('{FECHA_RVOE}')" class="px-2 py-0.5 rounded bg-white border border-blue-200 text-[10px] font-mono font-bold text-blue-900 hover:bg-blue-100">{FECHA_RVOE}</button>
                                 <button type="button" onclick="insertTagIntoFormatBody('{GRADO}')" class="px-2 py-0.5 rounded bg-white border border-blue-200 text-[10px] font-mono font-bold text-blue-900 hover:bg-blue-100">{GRADO}</button>
+                                <button type="button" onclick="insertTagIntoFormatBody('{NOMBRE_PERIODO}')" class="px-2 py-0.5 rounded bg-white border border-emerald-300 text-[10px] font-mono font-bold text-emerald-900 hover:bg-emerald-50">{NOMBRE_PERIODO}</button>
+                                <button type="button" onclick="insertTagIntoFormatBody('{FECHAS_PERIODO}')" class="px-2 py-0.5 rounded bg-white border border-emerald-300 text-[10px] font-mono font-bold text-emerald-900 hover:bg-emerald-50">{FECHAS_PERIODO}</button>
                                 <button type="button" onclick="insertTagIntoFormatBody('{PERIODO}')" class="px-2 py-0.5 rounded bg-white border border-blue-200 text-[10px] font-mono font-bold text-blue-900 hover:bg-blue-100">{PERIODO}</button>
-                                <button type="button" onclick="insertTagIntoFormatBody('{PERIODO_VACACIONAL}')" class="px-2 py-0.5 rounded bg-white border border-blue-200 text-[10px] font-mono font-bold text-blue-900 hover:bg-blue-100">{PERIODO_VACACIONAL}</button>
+                                <button type="button" onclick="insertTagIntoFormatBody('{PERIODO_VACACIONAL}')" class="px-2 py-0.5 rounded bg-white border border-emerald-300 text-[10px] font-mono font-bold text-emerald-900 hover:bg-emerald-50">{PERIODO_VACACIONAL}</button>
                                 <button type="button" onclick="insertTagIntoFormatBody('{FECHA}')" class="px-2 py-0.5 rounded bg-white border border-blue-200 text-[10px] font-mono font-bold text-blue-900 hover:bg-blue-100">{FECHA}</button>
                                 <button type="button" onclick="insertTagIntoFormatBody('{NOTA}')" class="px-2 py-0.5 rounded bg-white border border-blue-200 text-[10px] font-mono font-bold text-blue-900 hover:bg-blue-100">{NOTA}</button>
                             </div>
@@ -530,7 +543,7 @@
                                 </div>
 
                                 <!-- CUERPO DINÁMICO DE LA CONSTANCIA -->
-                                <div id="docDynamicBody" class="text-justify space-y-4"><p style="text-indent: 42px;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1276W, hace CONSTAR que el alumno <b>GOMEZ AMORES ENRIQUE</b>, con matrícula: <b>2211899</b>, inscrito en esta Institución, en la LICENCIATURA EN DERECHO, con número de RVOE: 20231082 de fecha 01 de Junio de 2017, cursa el 7° semestre,.</p>
+                                <div id="docDynamicBody" class="text-justify space-y-4"><p style="text-indent: 42px;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1276W, hace CONSTAR que el alumno <b>GOMEZ AMORES ENRIQUE</b>, con matrícula: <b>2211899</b>, inscrito en esta Institución, en la LICENCIATURA EN DERECHO, con número de RVOE: 20231082 de fecha 01 de Junio de 2017, cursa el 7° semestre, .</p>
 <p>Sin más por el momento y para los fines del interesado se extiende la presente.</p></div>
 
                                 <!-- FIRMA DE LA RESPONSABLE (SIEMPRE 4 RENGLONES ABAJO DEL CUERPO) -->
@@ -682,67 +695,56 @@
     </div>
 
     <!-- MODAL: PERIODOS ESCOLARES Y VACACIONALES -->
-    <div id="periodsModal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl max-w-2xl w-full p-5 shadow-2xl border border-slate-200 space-y-4 max-h-[85vh] overflow-y-auto">
+    <div id="periodsModal" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-3xl w-full p-5 shadow-2xl border border-slate-200 space-y-4 max-h-[85vh] overflow-y-auto">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 class="text-sm font-black text-slate-800">Gestión de Periodos Escolares y Periodos Vacacionales</h3>
+                <div>
+                    <h3 class="text-sm font-black text-slate-800">Gestión de Periodos (Nombre, Fechas y Periodo Vacacional)</h3>
+                    <p class="text-[11px] text-slate-500">Cada periodo incluye tres variables independientes: <code class="font-bold text-blue-900">{NOMBRE_PERIODO}</code>, <code class="font-bold text-blue-900">{FECHAS_PERIODO}</code> (o <code class="font-bold text-blue-900">{PERIODO}</code>) y <code class="font-bold text-emerald-800">{PERIODO_VACACIONAL}</code>.</p>
+                </div>
                 <button type="button" onclick="closePeriodsModal()" class="px-3 py-1 rounded-lg bg-slate-200 text-slate-700 text-xs font-bold">Cerrar</button>
             </div>
-            <div class="space-y-2">
-                <label class="block text-[11px] font-extrabold uppercase text-slate-600">1. Periodos Escolares (Ciclo)</label>
-                <div class="flex gap-2">
-                    <input type="text" id="newAcademicPeriodInput" placeholder="Ej. a partir del 11 de Agosto de 2025 al 21 de Enero del 2026, correspondiente al ciclo escolar 2025/2026" class="flex-1 px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold">
-                    <button type="button" onclick="saveCustomAcademicPeriod()" class="px-4 py-2 rounded-xl bg-blue-900 text-white text-xs font-bold">Agregar</button>
-                </div>
-                <div id="periodsModalList" class="max-h-44 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-xl">
-                    <div id="academicPeriodRow_0" class="px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs transition">
-                        <input type="text" id="academicPeriodInput_0" value="" oninput="appState.periods[0]=this.value;populatePeriodsSelect();updateDocument();" onchange="persistBaseState(true,true,true);" class="flex-1 min-w-[200px] px-2.5 py-1.5 rounded-lg border border-slate-200 font-semibold text-slate-800">
-                        <div class="flex items-center gap-1.5">
-                            <button type="button" onclick="focusEditAcademicPeriod(0)" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold">Editar</button>
-                            <button type="button" onclick="saveEditedPeriodToBase(0, 'academic')" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold">Guardar</button>
-                            <button type="button" onclick="useAcademicPeriodPreset(0)" class="px-2.5 py-1 rounded-lg bg-blue-900 hover:bg-blue-800 text-white font-bold">Usar</button>
-                            <button type="button" onclick="deleteAcademicPeriodPermanently(0)" class="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold">Eliminar</button>
-                        </div>
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-2.5">
+                <label class="block text-[11px] font-extrabold uppercase text-blue-950">Agregar Nuevo Periodo Completo</label>
+                <div class="space-y-2">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-0.5">1. Nombre del Periodo ({NOMBRE_PERIODO})</label>
+                        <input type="text" id="newAcademicPeriodNameInput" placeholder="Ej. Ciclo Escolar 2026/2027 · Otoño" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-900">
                     </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-0.5">2. Fechas del Periodo ({FECHAS_PERIODO} / {PERIODO})</label>
+                        <input type="text" id="newAcademicPeriodInput" placeholder="Ej. a partir del 10 de Agosto de 2026 al 22 de Enero del 2027, correspondiente al ciclo escolar 2026/2027" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-800">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-0.5">3. Periodo Vacacional ({PERIODO_VACACIONAL})</label>
+                        <input type="text" id="newAcademicPeriodVacationInput" placeholder="Ej. Con un periodo vacacional del 19 de diciembre de 2026 al 06 de enero de 2027." class="w-full px-3 py-2 rounded-xl border border-emerald-300 bg-white text-xs font-semibold text-slate-800">
+                    </div>
+                    <button type="button" onclick="saveCustomAcademicPeriod()" class="w-full py-2 rounded-xl bg-blue-900 hover:bg-blue-800 text-white text-xs font-extrabold shadow-xs transition">+ Guardar Periodo Completo</button>
                 </div>
             </div>
-            <div class="space-y-2 pt-2 border-t border-slate-100">
-                <label class="block text-[11px] font-extrabold uppercase text-blue-900">2. Periodos Vacacionales</label>
-                <div class="flex gap-2">
-                    <input type="text" id="newVacationPeriodInput" placeholder="Ej. Con un periodo vacacional del 22 de enero de 2026 al 08 de febrero de 2026." class="flex-1 px-3 py-2 rounded-xl border border-blue-300 text-xs font-semibold">
-                    <button type="button" onclick="saveCustomVacationPeriod()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">Agregar Vacacional</button>
-                </div>
-                <div id="vacationPeriodsModalList" class="max-h-44 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-xl">
-                    <div id="vacationPeriodRow_0" class="px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs transition">
-                        <input type="text" id="vacationPeriodInput_0" value="Con un periodo vacacional del 18 de julio de 2026 al 09 de agosto de 2026." oninput="appState.vacationPeriods[0]=this.value;populatePeriodsSelect();updateDocument();" onchange="persistBaseState(true,true,true);" class="flex-1 min-w-[200px] px-2.5 py-1.5 rounded-lg border border-blue-200 font-semibold text-slate-800">
-                        <div class="flex items-center gap-1.5">
-                            <button type="button" onclick="focusEditVacationPeriod(0)" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold">Editar</button>
-                            <button type="button" onclick="saveEditedPeriodToBase(0, 'vacation')" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold">Guardar</button>
-                            <button type="button" onclick="useVacationPeriodPreset(0)" class="px-2.5 py-1 rounded-lg bg-blue-900 hover:bg-blue-800 text-white font-bold">Usar</button>
-                            <button type="button" onclick="deleteVacationPeriodPermanently(0)" class="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold">Eliminar</button>
-                        </div>
-                    </div>
-                </div>
+            <div class="space-y-2">
+                <label class="block text-[11px] font-extrabold uppercase text-slate-600">Periodos Guardados (Edición Directa)</label>
+                <div id="periodsModalList" class="max-h-72 overflow-y-auto space-y-2.5 pr-1"></div>
             </div>
         </div>
     </div>
 
     <!-- NOTIFICACIÓN FLOTANTE (TOAST) -->
-    <div id="toastNotification" class="fixed bottom-20 right-4 z-50 bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-2xl border border-slate-700">Formato guardado permanentemente hasta que decidas volver a modificarlo.</div>
+    <div id="toastNotification" class="fixed bottom-20 right-4 z-50 bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-2xl border border-slate-700 hidden">Editando periodo escolar: modifica el texto y presiona Guardar.</div>
 
     <!-- MONITOR FLOTANTE EN ESQUINA DE ACTUALIZACIONES EN TIEMPO REAL (EXCLUSIVO ADMINISTRADOR) -->
-    <div id="realtimeCornerMonitor" data-admin-only="true" class="no-print fixed bottom-4 right-4 z-40 bg-slate-950/95 text-white border border-slate-700/90 rounded-2xl px-3.5 py-2.5 shadow-2xl backdrop-blur-xs max-w-xs">
+    <div id="realtimeCornerMonitor" data-admin-only="true" class="no-print fixed bottom-4 right-4 z-40 bg-slate-950/95 text-white border border-slate-700/90 rounded-2xl px-3.5 py-2.5 shadow-2xl backdrop-blur-xs max-w-xs hidden">
         <div class="flex items-center gap-2">
             <span id="realtimeCornerDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0"></span>
             <span class="text-[11px] font-black tracking-wide uppercase text-emerald-300">Tiempo Real Activo</span>
-            <span id="realtimeCornerVersion" class="ml-auto text-[10px] font-mono text-slate-400">v17859</span>
+            <span id="realtimeCornerVersion" class="ml-auto text-[10px] font-mono text-slate-400">v37729</span>
         </div>
         <div id="realtimeCornerMessage" class="text-[11px] text-slate-200 font-medium mt-1 leading-snug">Subiendo index.html en tiempo real a GitHub...</div>
-        <div id="realtimeCornerTime" class="text-[9px] text-slate-400 mt-0.5 font-mono">Actualizado: 12:53:38 p.m.</div>
+        <div id="realtimeCornerTime" class="text-[9px] text-slate-400 mt-0.5 font-mono">Actualizado: 12:45:38 p.m.</div>
     </div>
 
     <!-- ALMACÉN EMBEBIDO EN EL CÓDIGO BASE -->
-    <script type="application/json" id="embeddedInternalVaultData">{"deploymentVersion":1795546419663,"currentDocType":"estudios","extractedFormState":{"currentDocType":"estudios","folio":"DIR.C.E. 552/2025","fechaExpedicion":"2026-11-24","fechaExpedicionTexto":"24 de Noviembre de 2026","nombre":"GOMEZ AMORES ENRIQUE","genero":"M","matricula":"2211899","curp":"GOAE010412HPLRND09","licenciaturaId":"maj_1795544770695","grado":"7° semestre","periodoEscolar":"","periodoVacacional":"Con un periodo vacacional del 22 de enero de 2026 al 08 de febrero de 2026.","verboCursado":"cursó","nota":"Sin más por el momento y para los fines del interesado se extiende la presente.","firmanteNombre":"LIC. GISELLE SELENE LÓPEZ SÁNCHEZ","firmanteCargo":"CONTROL ESCOLAR","fontFamily":"Arial, Helvetica, sans-serif","fontSize":"11","lineHeight":"1.3"},"profiles":[{"id":"usr_adriana","name":"Adriana","roleLabel":"Capturista / Control Escolar","code":"12345","docAccess":{"estudios":true,"calificaciones":true,"periodos_anteriores":true,"montos":true,"kardex":true,"resguardo":true},"headerPerms":{"tab_generador":"edit","tab_catalogos":"edit","tab_control_panel":"edit","btn_pdf":"edit","btn_print":"edit","btn_history":"edit","btn_excel":"edit","btn_periods":"edit","btn_save_html":"edit","cmd_folio":"edit","cmd_clear":"edit","cmd_copy":"edit","cmd_today":"edit","cmd_reset_all":"edit"},"fieldPerms":{"folio":"edit","fecha_expedicion":"edit","nombre_alumno":"edit","matricula":"edit","curp":"edit","licenciatura":"edit","grado":"edit","periodo_escolar":"edit","verbo_cursado":"edit","tabla_calificaciones":"edit","tabla_montos":"edit","tabla_kardex":"edit","tabla_resguardo":"edit","editor_formato":"edit","observaciones":"edit","firmante_nombre":"edit","firmante_cargo":"edit"}},{"id":"usr_1795542158254","name":"ABRAHAM","roleLabel":"Capturista / Control Escolar","code":"BIKER","docAccess":{"estudios":true,"periodo_vacacional":true,"calificaciones":true,"periodos_anteriores":true,"montos":true,"kardex":true,"resguardo":true},"headerPerms":{"tab_generador":"hide","tab_catalogos":"hide","tab_control_panel":"hide","btn_pdf":"edit","btn_print":"edit","btn_history":"hide","btn_excel":"hide","btn_periods":"hide","btn_save_html":"hide","btn_extract_data":"hide","btn_realtime_sync":"hide","cmd_folio":"hide","cmd_clear":"edit","cmd_copy":"edit","cmd_today":"edit","cmd_reset_all":"hide"},"fieldPerms":{"folio":"edit","fecha_expedicion":"select","nombre_alumno":"edit","genero_alumno":"edit","matricula":"edit","curp":"edit","licenciatura":"select","grado":"select","periodo_escolar":"select","periodo_vacacional":"select","verbo_cursado":"select","tabla_calificaciones":"edit","tabla_montos":"edit","tabla_kardex":"edit","tabla_resguardo":"edit","editor_formato":"select","observaciones":"edit","firmante_nombre":"select","firmante_cargo":"select"}}],"deletedIds":["usr_1","usr_2","usr_3","usr_4","usr_abraham","usr_giselle","usr_nataly","maj_1","maj_2","maj_3","maj_4","maj_5","maj_6","maj_7","period:Agosto 2026 - Enero 2027","period:Febrero 2026 - Julio 2026","maj_1795538418019","period:Septiembre 2026 - Diciembre 2026","vac_period:Con un periodo vacacional del 22 de enero de 2026 al 08 de febrero de 2026."],"templates":{"estudios":{"title":"Constancia de Estudios","body":"<p style=\"text-indent: 42px;\">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1276W, hace CONSTAR que el alumno <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE} de fecha {FECHA_RVOE}, cursa el {GRADO},.</p>\n<p>{NOTA}</p>"},"periodo_vacacional":{"title":"Constancia de Periodo Vacacional","body":"<p style=\"text-indent: 42px; margin: 0;\">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que {ARTICULO_ALUMNO}: <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, {INSCRITO_GENERO} en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}{FECHA_RVOE_TEXTO}, cursa el {GRADO}, {PERIODO}. {PERIODO_VACACIONAL}</p>\n<p style=\"margin: 0;\">{NOTA}</p>"},"calificaciones":{"title":"Constancia de Calificaciones","body":"<p style=\"text-indent: 42px;\">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que el alumno (a): <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}, obtuvo en el {GRADO}, {PERIODO}, las siguientes calificaciones:</p>\n{TABLA_CALIFICACIONES}\n<p>{NOTA}</p>"},"periodos_anteriores":{"title":"Constancia de Periodos Anteriores","body":"<p style=\"text-indent: 42px;\">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que el alumno (a): <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}, <b>{VERBO_CURSADO}</b> el {GRADO}, {PERIODO}.</p>\n<p>{NOTA}</p>"},"montos":{"title":"Constancia de Montos y Cuotas","body":"<p style=\"text-indent: 42px;\">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que el alumno (a): <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}, en el {GRADO}, {PERIODO}, presenta el siguiente desglose de montos y cuotas:</p>\n{TABLA_MONTOS}\n<p>{NOTA}</p>"},"kardex":{"title":"Kardex Académico","body":"<p style=\"text-indent: 42px;\">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que el alumno (a): <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}, cuenta con el siguiente historial académico (Kardex) hasta el {GRADO}, {PERIODO}:</p>\n{TABLA_KARDEX}\n<p>{NOTA}</p>"},"resguardo":{"title":"Constancia de Resguardo","body":"<p style=\"text-indent: 42px;\">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que el alumno (a): <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}, correspondiente al {GRADO}, {PERIODO}, mantiene bajo resguardo institucional lo siguiente:</p>\n{TABLA_RESGUARDO}\n<p>{NOTA}</p>"}},"majors":[{"id":"maj_1795544465106","plan":"","name":"LICENCIATURA EN FISIOTERAPIA","rvoe":"SEP-SES/21/174/01/1272/2015/ACT.1/2017","rvoeDate":"01 de Junio de 2017"},{"id":"maj_1795544551553","plan":"","name":"LICENCIATURA EN ENFERMERÍA","rvoe":"SEP-SES/21/174/01/1271/2015/ACT.1/2017","rvoeDate":"01 de Junio de 2017"},{"id":"maj_1795544723351","plan":"","name":"LICENCIATURA EN ACONDICIONAMIENTO FÍSICO","rvoe":"SEP-SES/21/174/01/2449/2018","rvoeDate":"05 de diciembre de 2018"},{"id":"maj_1795544770695","plan":"","name":"LICENCIATURA EN DERECHO","rvoe":"20231082","rvoeDate":"12 de Abril de 2023"},{"id":"maj_1795544813870","plan":"","name":"LICENCIATURA EN ESTILISMO Y COSMETOLOGÍA","rvoe":"SEP-SES/21/174/01/2653/2018","rvoeDate":"10 de Diciembre de 2018"},{"id":"maj_1795544857925","plan":"","name":"LICENCIATURA EN GASTRONOMÍA Y TURISMO","rvoe":"SEP-SES/21/174/01/2112/2017","rvoeDate":"30 de Noviembre de 2017"},{"id":"maj_1795544923332","plan":"","name":"LICENCIATURA EN IDIOMAS","rvoe":"20200787","rvoeDate":"29 de Noviembre de 2019"}],"periods":[""],"vacationPeriods":["Con un periodo vacacional del 18 de julio de 2026 al 09 de agosto de 2026."],"grades":[{"group":"7A","code":"DER-701","subject":"Derecho Constitucional","score":"9.5"},{"group":"7A","code":"DER-702","subject":"Teoría General del Proceso","score":"9.0"},{"group":"7A","code":"DER-703","subject":"Metodología de la Investigación","score":"10.0"},{"group":"7A","code":"MAT-001","subject":"Nueva Materia","score":"9.0"},{"group":"7A","code":"MAT-001","subject":"Nueva Materia","score":"9.0"}],"montos":[{"concepto":"Inscripción Semestral","periodo":"Agosto 2026 - Enero 2027","importe":2500},{"concepto":"Colegiatura Mensual (5 pagos)","periodo":"Agosto - Diciembre 2026","importe":9000}],"kardex":[{"clave":"DER-101","asignatura":"Introducción al Estudio del Derecho","ciclo":"1° Semestre","creditos":"8","calif":"9.5"},{"clave":"DER-102","asignatura":"Derecho Romano I","ciclo":"1° Semestre","creditos":"8","calif":"9.0"},{"clave":"DER-201","asignatura":"Derecho Civil I","ciclo":"2° Semestre","creditos":"8","calif":"9.8"}],"resguardo":[{"cantidad":"1","descripcion":"Certificado Original de Bachillerato","serie":"FOLIO-BACH-8821","estado":"Original / Buen Estado"},{"cantidad":"1","descripcion":"Acta de Nacimiento Certificada","serie":"ACTA-2026-091","estado":"Original / Buen Estado"}],"signer":{"name":"LIC. GISELLE SELENE LÓPEZ SÁNCHEZ","title":"CONTROL ESCOLAR"},"githubConfig":{"repo":"meamosoyhermoso20-lang/CONSTANCIAS","branch":"main","filePath":"index.html","publicUrl":"https://meamosoyhermoso20-lang.github.io/CONSTANCIAS/","tokenUpdatedAt":"24/11/2026, 12:53:39 p.m."},"history":[{"id":"hist_1795541806253","folio":"","type":"Constancia de Calificaciones","student":"sabina hernandez ","date":"24/11/2026"},{"id":"hist_1795539880531","folio":"DIR.C.E. 552/2025","type":"Constancia de Calificaciones","student":"sabina hernandez ","date":"24/11/2026"}],"studentsVault":[]}</script>
+    <script type="application/json" id="embeddedInternalVaultData">{"deploymentVersion":1795545939512,"currentDocType":"estudios","extractedFormState":{"currentDocType":"estudios","folio":"DIR.C.E. 552/2025","fechaExpedicion":"2026-11-24","fechaExpedicionTexto":"24 de Noviembre de 2026","nombre":"GOMEZ AMORES ENRIQUE","genero":"M","matricula":"2211899","curp":"GOAE010412HPLRND09","licenciaturaId":"maj_1795544770695","grado":"7° semestre","periodoEscolar":"","periodoVacacional":"Con un periodo vacacional del 22 de enero de 2026 al 08 de febrero de 2026.","verboCursado":"cursó","nota":"Sin más por el momento y para los fines del interesado se extiende la presente.","firmanteNombre":"LIC. GISELLE SELENE LÓPEZ SÁNCHEZ","firmanteCargo":"CONTROL ESCOLAR","fontFamily":"Arial, Helvetica, sans-serif","fontSize":"11","lineHeight":"1.3"},"profiles":[{"id":"usr_adriana","name":"Adriana","roleLabel":"Capturista / Control Escolar","code":"12345","docAccess":{"estudios":true,"calificaciones":true,"periodos_anteriores":true,"montos":true,"kardex":true,"resguardo":true},"headerPerms":{"tab_generador":"edit","tab_catalogos":"edit","tab_control_panel":"edit","btn_pdf":"edit","btn_print":"edit","btn_history":"edit","btn_excel":"edit","btn_periods":"edit","btn_save_html":"edit","cmd_folio":"edit","cmd_clear":"edit","cmd_copy":"edit","cmd_today":"edit","cmd_reset_all":"edit"},"fieldPerms":{"folio":"edit","fecha_expedicion":"edit","nombre_alumno":"edit","matricula":"edit","curp":"edit","licenciatura":"edit","grado":"edit","periodo_escolar":"edit","verbo_cursado":"edit","tabla_calificaciones":"edit","tabla_montos":"edit","tabla_kardex":"edit","tabla_resguardo":"edit","editor_formato":"edit","observaciones":"edit","firmante_nombre":"edit","firmante_cargo":"edit"}},{"id":"usr_1795542158254","name":"ABRAHAM","roleLabel":"Capturista / Control Escolar","code":"BIKER","docAccess":{"estudios":true,"periodo_vacacional":true,"calificaciones":true,"periodos_anteriores":true,"montos":true,"kardex":true,"resguardo":true},"headerPerms":{"tab_generador":"hide","tab_catalogos":"hide","tab_control_panel":"hide","btn_pdf":"edit","btn_print":"edit","btn_history":"hide","btn_excel":"hide","btn_periods":"hide","btn_save_html":"hide","btn_extract_data":"hide","btn_realtime_sync":"hide","cmd_folio":"hide","cmd_clear":"edit","cmd_copy":"edit","cmd_today":"edit","cmd_reset_all":"hide"},"fieldPerms":{"folio":"edit","fecha_expedicion":"select","nombre_alumno":"edit","genero_alumno":"edit","matricula":"edit","curp":"edit","licenciatura":"select","grado":"select","periodo_escolar":"select","periodo_vacacional":"select","verbo_cursado":"select","tabla_calificaciones":"edit","tabla_montos":"edit","tabla_kardex":"edit","tabla_resguardo":"edit","editor_formato":"select","observaciones":"edit","firmante_nombre":"select","firmante_cargo":"select"}}],"deletedIds":["usr_1","usr_2","usr_3","usr_4","usr_abraham","usr_giselle","usr_nataly","maj_1","maj_2","maj_3","maj_4","maj_5","maj_6","maj_7","period:Agosto 2026 - Enero 2027","period:Febrero 2026 - Julio 2026","maj_1795538418019","period:Septiembre 2026 - Diciembre 2026","vac_period:Con un periodo vacacional del 22 de enero de 2026 al 08 de febrero de 2026."],"templates":{"estudios":{"title":"Constancia de Estudios","body":"<p style=\"text-indent: 42px;\">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1276W, hace CONSTAR que el alumno <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE} de fecha {FECHA_RVOE}, cursa el {GRADO}, {PERIODO}.</p>\n<p>{NOTA}</p>"},"periodo_vacacional":{"title":"Constancia de Periodo Vacacional","body":"<p style=\"text-indent: 42px; margin: 0;\">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que {ARTICULO_ALUMNO}: <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, {INSCRITO_GENERO} en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}{FECHA_RVOE_TEXTO}, cursa el {GRADO}, {PERIODO}. {PERIODO_VACACIONAL}</p>\n<p style=\"margin: 0;\">{NOTA}</p>"},"calificaciones":{"title":"Constancia de Calificaciones","body":"<p style=\"text-indent: 42px;\">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que el alumno (a): <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}, obtuvo en el {GRADO}, {PERIODO}, las siguientes calificaciones:</p>\n{TABLA_CALIFICACIONES}\n<p>{NOTA}</p>"},"periodos_anteriores":{"title":"Constancia de Periodos Anteriores","body":"<p style=\"text-indent: 42px;\">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que el alumno (a): <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}, <b>{VERBO_CURSADO}</b> el {GRADO}, {PERIODO}.</p>\n<p>{NOTA}</p>"},"montos":{"title":"Constancia de Montos y Cuotas","body":"<p style=\"text-indent: 42px;\">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que el alumno (a): <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}, en el {GRADO}, {PERIODO}, presenta el siguiente desglose de montos y cuotas:</p>\n{TABLA_MONTOS}\n<p>{NOTA}</p>"},"kardex":{"title":"Kardex Académico","body":"<p style=\"text-indent: 42px;\">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que el alumno (a): <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}, cuenta con el siguiente historial académico (Kardex) hasta el {GRADO}, {PERIODO}:</p>\n{TABLA_KARDEX}\n<p>{NOTA}</p>"},"resguardo":{"title":"Constancia de Resguardo","body":"<p style=\"text-indent: 42px;\">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que el alumno (a): <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}, correspondiente al {GRADO}, {PERIODO}, mantiene bajo resguardo institucional lo siguiente:</p>\n{TABLA_RESGUARDO}\n<p>{NOTA}</p>"}},"majors":[{"id":"maj_1795544465106","plan":"","name":"LICENCIATURA EN FISIOTERAPIA","rvoe":"SEP-SES/21/174/01/1272/2015/ACT.1/2017","rvoeDate":"01 de Junio de 2017"},{"id":"maj_1795544551553","plan":"","name":"LICENCIATURA EN ENFERMERÍA","rvoe":"SEP-SES/21/174/01/1271/2015/ACT.1/2017","rvoeDate":"01 de Junio de 2017"},{"id":"maj_1795544723351","plan":"","name":"LICENCIATURA EN ACONDICIONAMIENTO FÍSICO","rvoe":"SEP-SES/21/174/01/2449/2018","rvoeDate":"05 de diciembre de 2018"},{"id":"maj_1795544770695","plan":"","name":"LICENCIATURA EN DERECHO","rvoe":"20231082","rvoeDate":"12 de Abril de 2023"},{"id":"maj_1795544813870","plan":"","name":"LICENCIATURA EN ESTILISMO Y COSMETOLOGÍA","rvoe":"SEP-SES/21/174/01/2653/2018","rvoeDate":"10 de Diciembre de 2018"},{"id":"maj_1795544857925","plan":"","name":"LICENCIATURA EN GASTRONOMÍA Y TURISMO","rvoe":"SEP-SES/21/174/01/2112/2017","rvoeDate":"30 de Noviembre de 2017"},{"id":"maj_1795544923332","plan":"","name":"LICENCIATURA EN IDIOMAS","rvoe":"20200787","rvoeDate":"29 de Noviembre de 2019"}],"periods":[""],"vacationPeriods":["Con un periodo vacacional del 18 de julio de 2026 al 09 de agosto de 2026."],"grades":[{"group":"7A","code":"DER-701","subject":"Derecho Constitucional","score":"9.5"},{"group":"7A","code":"DER-702","subject":"Teoría General del Proceso","score":"9.0"},{"group":"7A","code":"DER-703","subject":"Metodología de la Investigación","score":"10.0"},{"group":"7A","code":"MAT-001","subject":"Nueva Materia","score":"9.0"},{"group":"7A","code":"MAT-001","subject":"Nueva Materia","score":"9.0"}],"montos":[{"concepto":"Inscripción Semestral","periodo":"Agosto 2026 - Enero 2027","importe":2500},{"concepto":"Colegiatura Mensual (5 pagos)","periodo":"Agosto - Diciembre 2026","importe":9000}],"kardex":[{"clave":"DER-101","asignatura":"Introducción al Estudio del Derecho","ciclo":"1° Semestre","creditos":"8","calif":"9.5"},{"clave":"DER-102","asignatura":"Derecho Romano I","ciclo":"1° Semestre","creditos":"8","calif":"9.0"},{"clave":"DER-201","asignatura":"Derecho Civil I","ciclo":"2° Semestre","creditos":"8","calif":"9.8"}],"resguardo":[{"cantidad":"1","descripcion":"Certificado Original de Bachillerato","serie":"FOLIO-BACH-8821","estado":"Original / Buen Estado"},{"cantidad":"1","descripcion":"Acta de Nacimiento Certificada","serie":"ACTA-2026-091","estado":"Original / Buen Estado"}],"signer":{"name":"LIC. GISELLE SELENE LÓPEZ SÁNCHEZ","title":"CONTROL ESCOLAR"},"githubConfig":{"repo":"meamosoyhermoso20-lang/CONSTANCIAS","branch":"main","filePath":"index.html","publicUrl":"https://meamosoyhermoso20-lang.github.io/CONSTANCIAS/","tokenUpdatedAt":"24/11/2026, 12:45:39 p.m."},"history":[{"id":"hist_1795541806253","folio":"","type":"Constancia de Calificaciones","student":"sabina hernandez ","date":"24/11/2026"},{"id":"hist_1795539880531","folio":"DIR.C.E. 552/2025","type":"Constancia de Calificaciones","student":"sabina hernandez ","date":"24/11/2026"}],"studentsVault":[]}</script>
 
     <script>
         const ADMIN_MASTER_CODE = 'bubu03';
@@ -872,9 +874,24 @@
                 { id: 'maj_7', plan: '', name: 'Ingeniería en Sistemas Computacionales', rvoe: 'RVOE-SEP-20210302', rvoeDate: '02 de marzo de 2021' }
             ],
             periods: [
-                'a partir del 11 de Agosto de 2025 al 21 de Enero del 2026, correspondiente al ciclo escolar 2025/2026',
-                'a partir del 02 de Febrero de 2026 al 17 de Julio del 2026, correspondiente al ciclo escolar 2025/2026',
-                'a partir del 10 de Agosto de 2026 al 22 de Enero del 2027, correspondiente al ciclo escolar 2026/2027'
+                {
+                    id: 'per_1',
+                    name: 'Ciclo Escolar 2025/2026 · Otoño',
+                    dates: 'a partir del 11 de Agosto de 2025 al 21 de Enero del 2026, correspondiente al ciclo escolar 2025/2026',
+                    vacation: 'Con un periodo vacacional del 22 de enero de 2026 al 08 de febrero de 2026.'
+                },
+                {
+                    id: 'per_2',
+                    name: 'Ciclo Escolar 2025/2026 · Primavera',
+                    dates: 'a partir del 02 de Febrero de 2026 al 17 de Julio del 2026, correspondiente al ciclo escolar 2025/2026',
+                    vacation: 'Con un periodo vacacional del 18 de julio de 2026 al 09 de agosto de 2026.'
+                },
+                {
+                    id: 'per_3',
+                    name: 'Ciclo Escolar 2026/2027 · Otoño',
+                    dates: 'a partir del 10 de Agosto de 2026 al 22 de Enero del 2027, correspondiente al ciclo escolar 2026/2027',
+                    vacation: 'Con un periodo vacacional del 19 de diciembre de 2026 al 06 de enero de 2027.'
+                }
             ],
             vacationPeriods: [
                 'Con un periodo vacacional del 22 de enero de 2026 al 08 de febrero de 2026.',
@@ -970,7 +987,6 @@
                 publicUrl: appState.githubConfig?.publicUrl || '',
                 tokenUpdatedAt: appState.githubConfig?.tokenUpdatedAt || ''
             };
-            // Solo incluir el token en el respaldo privado de localStorage del Administrador, NUNCA en el código fuente index.html
             if (includeSecretToken) {
                 safeGithubConfig.token = appState.githubConfig?.token || '';
             }
@@ -1007,8 +1023,10 @@
                 curp: document.getElementById('inpCurp')?.value || '',
                 licenciaturaId: document.getElementById('selLicenciatura')?.value || '',
                 grado: document.getElementById('inpPeriodoGrado')?.value || '',
-                periodoEscolar: document.getElementById('inpPeriodoEscolarEditable')?.value || document.getElementById('selPeriodoEscolar')?.value || '',
-                periodoVacacional: document.getElementById('inpPeriodoVacacional')?.value || '',
+                selectedPeriodId: document.getElementById('selPeriodoEscolar')?.value || '',
+                nombrePeriodo: document.getElementById('inpNombrePeriodoEditable')?.value || '',
+                periodoEscolar: document.getElementById('inpPeriodoEscolarEditable')?.value || '',
+                periodoVacacional: document.getElementById('inpPeriodoVacacionalInline')?.value || document.getElementById('inpPeriodoVacacional')?.value || '',
                 verboCursado: document.getElementById('selVerboCursado')?.value || 'cursó',
                 nota: document.getElementById('inpDestinoNota')?.value || '',
                 firmanteNombre: document.getElementById('inpFirmanteNombre')?.value || appState.signer.name,
@@ -1038,11 +1056,19 @@
             if (fields.curp && document.getElementById('inpCurp')) document.getElementById('inpCurp').value = fields.curp;
             if (fields.licenciaturaId && document.getElementById('selLicenciatura')) document.getElementById('selLicenciatura').value = fields.licenciaturaId;
             if (fields.grado && document.getElementById('inpPeriodoGrado')) document.getElementById('inpPeriodoGrado').value = fields.grado;
-            if (fields.periodoEscolar) {
-                if (document.getElementById('selPeriodoEscolar')) document.getElementById('selPeriodoEscolar').value = fields.periodoEscolar;
-                if (document.getElementById('inpPeriodoEscolarEditable')) document.getElementById('inpPeriodoEscolarEditable').value = fields.periodoEscolar;
+            if (fields.selectedPeriodId && document.getElementById('selPeriodoEscolar')) {
+                document.getElementById('selPeriodoEscolar').value = fields.selectedPeriodId;
             }
-            if (fields.periodoVacacional !== undefined && document.getElementById('inpPeriodoVacacional')) document.getElementById('inpPeriodoVacacional').value = fields.periodoVacacional;
+            if (fields.nombrePeriodo !== undefined && document.getElementById('inpNombrePeriodoEditable')) {
+                document.getElementById('inpNombrePeriodoEditable').value = fields.nombrePeriodo;
+            }
+            if (fields.periodoEscolar !== undefined && document.getElementById('inpPeriodoEscolarEditable')) {
+                document.getElementById('inpPeriodoEscolarEditable').value = fields.periodoEscolar;
+            }
+            if (fields.periodoVacacional !== undefined) {
+                if (document.getElementById('inpPeriodoVacacional')) document.getElementById('inpPeriodoVacacional').value = fields.periodoVacacional;
+                if (document.getElementById('inpPeriodoVacacionalInline')) document.getElementById('inpPeriodoVacacionalInline').value = fields.periodoVacacional;
+            }
             if (fields.verboCursado && document.getElementById('selVerboCursado')) document.getElementById('selVerboCursado').value = fields.verboCursado;
             if (fields.nota && document.getElementById('inpDestinoNota')) document.getElementById('inpDestinoNota').value = fields.nota;
             if (fields.firmanteNombre && document.getElementById('inpFirmanteNombre')) document.getElementById('inpFirmanteNombre').value = fields.firmanteNombre;
@@ -1054,11 +1080,8 @@
 
         async function extractAndAutoLoadSystemData() {
             showToast('Extrayendo datos del sistema y cargando automáticamente...');
-            // 1. Consultar versión más reciente desplegada en el servidor (si existe)
             await checkRemoteDeploymentVersion(false);
-            // 2. Recargar datos guardados de la base local y embebida
             loadPersistedState(true);
-            // 3. Si el usuario escribió una matrícula o nombre que coincide con la Base Excel importada, autocompletar sus datos
             const currentMat = (document.getElementById('inpMatricula')?.value || '').trim().toLowerCase();
             const currentName = (document.getElementById('inpNombre')?.value || '').trim().toLowerCase();
             if (Array.isArray(appState.studentsVault) && appState.studentsVault.length > 0) {
@@ -1081,7 +1104,6 @@
                     }
                 }
             }
-            // 4. Sincronizar campos extraídos y refrescar toda la interfaz y vista previa
             if (appState.extractedFormState) {
                 applyExtractedSystemFields(appState.extractedFormState);
             }
@@ -1110,7 +1132,6 @@
 
                 appState.extractedFormState = extractCurrentSystemFields();
 
-                // En localStorage guardamos la sesión completa (con token); en el código fuente embebido excluimos el token para cumplir GitHub Push Protection
                 if (appState.githubConfig.token) {
                     localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, appState.githubConfig.token);
                 }
@@ -1178,22 +1199,31 @@
                     { id: 'maj_7', plan: '', name: 'Ingeniería en Sistemas Computacionales', rvoe: 'RVOE-SEP-20210302', rvoeDate: '02 de marzo de 2021' }
                 ];
             }
-            if (parsed.templates && typeof parsed.templates === 'object') {
-                Object.keys(DEFAULT_DOC_TEMPLATES).forEach(k => {
-                    if (parsed.templates[k]) {
-                        appState.templates[k] = {
-                            title: parsed.templates[k].title || DEFAULT_DOC_TEMPLATES[k].title,
-                            body: parsed.templates[k].body || DEFAULT_DOC_TEMPLATES[k].body
-                        };
-                    }
-                });
-            }
-            if (Array.isArray(parsed.majors)) {
-                const filteredMajors = parsed.majors.filter(m => !appState.deletedIds.includes(m.id));
-                if (filteredMajors.length) appState.majors = filteredMajors;
-            }
             if (Array.isArray(parsed.periods)) {
-                appState.periods = parsed.periods.filter(p => !appState.deletedIds.includes('period:' + p));
+                const normalizedPeriods = parsed.periods
+                    .map((p, idx) => {
+                        if (typeof p === 'string') {
+                            return {
+                                id: `per_legacy_${idx}`,
+                                name: p ? `Periodo ${idx + 1}` : 'Periodo General',
+                                dates: p,
+                                vacation: (Array.isArray(parsed.vacationPeriods) && parsed.vacationPeriods[idx]) ? parsed.vacationPeriods[idx] : ''
+                            };
+                        }
+                        if (p && typeof p === 'object') {
+                            return {
+                                id: p.id || `per_${idx}_${Date.now()}`,
+                                name: p.name || `Periodo ${idx + 1}`,
+                                dates: p.dates || p.period || '',
+                                vacation: p.vacation || p.vacationPeriod || ''
+                            };
+                        }
+                        return null;
+                    })
+                    .filter(p => p && !appState.deletedIds.includes('period:' + p.id) && !appState.deletedIds.includes('period:' + p.dates));
+                if (normalizedPeriods.length) {
+                    appState.periods = normalizedPeriods;
+                }
             }
             if (Array.isArray(parsed.vacationPeriods)) {
                 appState.vacationPeriods = parsed.vacationPeriods.filter(vp => !appState.deletedIds.includes('vac_period:' + vp));
@@ -1236,7 +1266,6 @@
                     }
                 }
 
-                // Cargar automáticamente el token guardado del Administrador en memoria y en el campo visual
                 const savedAdminToken = (localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || localObj?.githubConfig?.token || appState.githubConfig?.token || '').trim();
                 if (savedAdminToken) {
                     appState.githubConfig.token = savedAdminToken;
@@ -1249,7 +1278,6 @@
         }
 
         function buildSelfContainedIndexHtml() {
-            // Excluir el token secreto del HTML fuente para evitar el error 409 Secret Detected de GitHub
             const sanitizedPayload = buildSerializableVaultPayload(false);
             const sanitizedJson = JSON.stringify(sanitizedPayload);
 
@@ -1260,7 +1288,6 @@
             const cloneVault = docClone.querySelector('#embeddedInternalVaultData');
             if (cloneVault) cloneVault.textContent = sanitizedJson;
 
-            // Limpiar el campo visual del token en el clon exportado para que ningún secreto viaje en el código fuente
             const cloneTokenInput = docClone.querySelector('#inpGithubToken');
             if (cloneTokenInput) {
                 cloneTokenInput.value = '';
@@ -1290,7 +1317,6 @@
         }
 
         async function deployUpdateToGithub(notifySuccess = true, silentBackground = false, reloadAfter = false) {
-            // Tomar siempre el token y repositorio más recientes antes de cada despliegue
             saveGithubIntegrationSettings();
             appState.extractedFormState = extractCurrentSystemFields();
 
@@ -1381,7 +1407,7 @@
                 return false;
             }
         }
-        // INTERVENTOR DE CACHÉ Y ACTUALIZACIÓN EN VIVO PARA TODOS LOS USUARIOS CONECTADOS
+
         async function purgeAllBrowserCaches() {
             try {
                 if ('caches' in window) {
@@ -1416,7 +1442,6 @@
                     const remoteVault = JSON.parse(match[1]);
                     const remoteVer = remoteVault?.deploymentVersion || 0;
                     if (remoteVer > (appState.deploymentVersion || 0)) {
-                        // Preservar token local del administrador si el remoto viene vacío
                         const preservedToken = (appState.githubConfig?.token || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '').trim();
                         applyParsedStateObject(remoteVault);
                         if (preservedToken) {
@@ -1562,13 +1587,11 @@
             const profile = getActiveUserProfile();
             const isAdmin = !session || session.role === 'admin';
 
-            // Mostrar sección de vinculación GitHub estrictamente solo al Administrador
             const githubSection = document.getElementById('adminOnlyGithubSection');
             if (githubSection) {
                 githubSection.classList.toggle('hidden', !isAdmin);
             }
 
-            // Botones y pestañas exclusivos del Administrador (Licenciaturas y RVOE, Panel de Control, Exportar index.html y Guardar en Tiempo Real)
             document.querySelectorAll('[data-admin-only="true"]').forEach(el => {
                 el.classList.toggle('hidden', !isAdmin);
             });
@@ -1701,78 +1724,87 @@
             if (bodyTxt && tpl) bodyTxt.value = tpl.body;
         }
 
-        function insertTagIntoFormatBody(tag) {
-            const textarea = document.getElementById('txtCustomFormatBody');
-            if (!textarea) return;
-            const start = textarea.selectionStart || 0;
-            const end = textarea.selectionEnd || 0;
-            const val = textarea.value;
-            textarea.value = val.slice(0, start) + tag + val.slice(end);
-            textarea.focus();
-            textarea.selectionStart = textarea.selectionEnd = start + tag.length;
-            previewCustomFormatLive();
-        }
-
         function previewCustomFormatLive() {
             const titleVal = document.getElementById('inpCustomFormatTitle')?.value || '';
             const bodyVal = document.getElementById('txtCustomFormatBody')?.value || '';
-            appState.templates[appState.currentDocType] = { title: titleVal, body: bodyVal };
+            if (!appState.templates[appState.currentDocType]) {
+                appState.templates[appState.currentDocType] = { title: '', body: '' };
+            }
+            appState.templates[appState.currentDocType].title = titleVal;
+            appState.templates[appState.currentDocType].body = bodyVal;
             updateDocument();
         }
 
         function saveCurrentFormatTemplate() {
-            const titleVal = (document.getElementById('inpCustomFormatTitle')?.value || '').trim();
-            const bodyVal = (document.getElementById('txtCustomFormatBody')?.value || '').trim();
-            if (!titleVal || !bodyVal) return showToast('El título y el cuerpo del formato no pueden estar vacíos.');
-            appState.templates[appState.currentDocType] = { title: titleVal, body: bodyVal };
-            persistBaseState(true, true);
-            updateDocument();
-            showToast('Formato guardado permanentemente hasta que decidas volver a modificarlo.');
+            previewCustomFormatLive();
+            persistBaseState(true, true, true);
+            showToast('Plantilla y formato de constancia guardados correctamente.');
         }
 
         function resetCurrentFormatTemplate() {
             const def = DEFAULT_DOC_TEMPLATES[appState.currentDocType];
             if (!def) return;
-            appState.templates[appState.currentDocType] = JSON.parse(JSON.stringify(def));
+            appState.templates[appState.currentDocType] = { title: def.title, body: def.body };
             loadFormatTemplateEditorForCurrentDoc();
-            persistBaseState(true, true);
+            persistBaseState(true, true, true);
             updateDocument();
-            showToast('Formato restaurado al diseño predeterminado.');
+            showToast('Plantilla restablecida a su formato original.');
+        }
+
+        function insertTagIntoFormatBody(tag) {
+            const textarea = document.getElementById('txtCustomFormatBody');
+            if (!textarea) return;
+            const start = textarea.selectionStart ?? textarea.value.length;
+            const end = textarea.selectionEnd ?? textarea.value.length;
+            textarea.value = textarea.value.slice(0, start) + tag + textarea.value.slice(end);
+            textarea.focus();
+            textarea.selectionStart = textarea.selectionEnd = start + tag.length;
+            previewCustomFormatLive();
         }
 
         function selectDocType(docType) {
+            if (!DEFAULT_DOC_TEMPLATES[docType]) docType = 'estudios';
             appState.currentDocType = docType;
-            document.querySelectorAll('.doc-type-btn').forEach(btn => {
-                const active = btn.getAttribute('data-doc-btn') === docType;
-                const hidden = btn.classList.contains('hidden');
-                btn.className = (active
-                    ? 'doc-type-btn px-2.5 py-2 rounded-xl text-xs font-bold border border-blue-900 bg-blue-900 text-white text-left transition'
-                    : 'doc-type-btn px-2.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 text-left transition') + (hidden ? ' hidden' : '');
-            });
-
-            document.getElementById('periodosAnterioresControls')?.classList.toggle('hidden', docType !== 'periodos_anteriores');
-            document.getElementById('periodoVacacionalControls')?.classList.toggle('hidden', docType !== 'periodo_vacacional');
-            document.getElementById('calificacionesControls')?.classList.toggle('hidden', docType !== 'calificaciones');
-            document.getElementById('montosControls')?.classList.toggle('hidden', docType !== 'montos');
-            document.getElementById('kardexControls')?.classList.toggle('hidden', docType !== 'kardex');
-            document.getElementById('resguardoControls')?.classList.toggle('hidden', docType !== 'resguardo');
 
             const badge = document.getElementById('currentDocTypeBadge');
             if (badge) badge.textContent = docType.replace(/_/g, ' ').toUpperCase();
 
+            document.querySelectorAll('.doc-type-btn').forEach(btn => {
+                const isSelected = btn.getAttribute('data-doc-btn') === docType;
+                btn.className = isSelected
+                    ? 'doc-type-btn px-2.5 py-2 rounded-xl text-xs font-bold border border-blue-900 bg-blue-900 text-white text-left transition'
+                    : 'doc-type-btn px-2.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 text-left transition';
+            });
+
+            const toggleBlock = (id, show) => {
+                const el = document.getElementById(id);
+                if (el) el.classList.toggle('hidden', !show);
+            };
+            toggleBlock('periodoVacacionalControls', docType === 'periodo_vacacional');
+            toggleBlock('periodosAnterioresControls', docType === 'periodos_anteriores');
+            toggleBlock('calificacionesControls', docType === 'calificaciones');
+            toggleBlock('montosControls', docType === 'montos');
+            toggleBlock('kardexControls', docType === 'kardex');
+            toggleBlock('resguardoControls', docType === 'resguardo');
+
             loadFormatTemplateEditorForCurrentDoc();
             updateDocument();
         }
 
-        function formatSpanishDate(isoDate) {
-            if (!isoDate) return '';
-            const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-            const parts = isoDate.split('-');
-            if (parts.length !== 3) return isoDate;
+        function formatSpanishDate(isoDateStr) {
+            if (!isoDateStr) return '';
+            const months = [
+                'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+            ];
+            const clean = String(isoDateStr).split('T')[0];
+            const parts = clean.split('-');
+            if (parts.length !== 3) return isoDateStr;
             const year = parts[0];
-            const month = months[parseInt(parts[1], 10) - 1] || '';
+            const monthIdx = parseInt(parts[1], 10) - 1;
             const day = String(parseInt(parts[2], 10)).padStart(2, '0');
-            return `${day} de ${month} de ${year}`;
+            if (monthIdx < 0 || monthIdx > 11) return isoDateStr;
+            return `${day} de ${months[monthIdx]} de ${year}`;
         }
 
         function populateMajorsSelect() {
@@ -1780,39 +1812,81 @@
             if (!sel) return;
             const prev = sel.value;
             sel.innerHTML = appState.majors.map(m => {
-                const cleanPlan = (m.plan || '').replace(/Plan 2017\s*·\s*Semestral/gi, '').trim();
+                const cleanPlan = (m.plan || '').trim();
                 return `<option value="${m.id}">${cleanPlan ? '[' + cleanPlan + '] ' : ''}${m.name} (${m.rvoe}${m.rvoeDate ? ' · ' + m.rvoeDate : ''})</option>`;
             }).join('');
-            if (prev && appState.majors.some(m => m.id === prev)) sel.value = prev;
+            if (prev && appState.majors.some(m => m.id === prev)) {
+                sel.value = prev;
+            }
             syncPlanInputFromSelectedMajor();
+        }
+
+        function ensureStructuredPeriodsList() {
+            if (!Array.isArray(appState.periods) || !appState.periods.length) {
+                appState.periods = [
+                    {
+                        id: 'per_default_1',
+                        name: 'Ciclo Escolar 2025/2026 · Otoño',
+                        dates: 'a partir del 11 de Agosto de 2025 al 21 de Enero del 2026, correspondiente al ciclo escolar 2025/2026',
+                        vacation: 'Con un periodo vacacional del 22 de enero de 2026 al 08 de febrero de 2026.'
+                    }
+                ];
+            }
+            appState.periods = appState.periods.map((p, idx) => {
+                if (typeof p === 'string') {
+                    return { id: `per_str_${idx}`, name: p ? `Periodo ${idx + 1}` : 'Periodo Actual', dates: p, vacation: '' };
+                }
+                return {
+                    id: p.id || `per_obj_${idx}`,
+                    name: p.name ?? `Periodo ${idx + 1}`,
+                    dates: p.dates ?? '',
+                    vacation: p.vacation ?? ''
+                };
+            });
+            return appState.periods;
         }
 
         function populatePeriodsSelect() {
             const selAcademic = document.getElementById('selPeriodoEscolar');
-            const inpAcademic = document.getElementById('inpPeriodoEscolarEditable');
+            const inpName = document.getElementById('inpNombrePeriodoEditable');
+            const inpDates = document.getElementById('inpPeriodoEscolarEditable');
+            const inpVacInline = document.getElementById('inpPeriodoVacacionalInline');
+            const inpVacMain = document.getElementById('inpPeriodoVacacional');
+
+            const periodsList = ensureStructuredPeriodsList();
+
             if (selAcademic) {
-                const prevAcademic = selAcademic.value;
-                const periodsList = Array.isArray(appState.periods) && appState.periods.length
-                    ? appState.periods
-                    : ['a partir del 11 de Agosto de 2025 al 21 de Enero del 2026, correspondiente al ciclo escolar 2025/2026'];
-                selAcademic.innerHTML = periodsList.map((p, idx) => `<option value="${p.replace(/"/g, '&quot;')}" data-idx="${idx}">${p}</option>`).join('');
-                if (prevAcademic && periodsList.includes(prevAcademic)) {
-                    selAcademic.value = prevAcademic;
+                const prevId = selAcademic.value;
+                selAcademic.innerHTML = periodsList.map((p, idx) => {
+                    const label = `${p.name || 'Periodo ' + (idx + 1)}${p.dates ? ' — ' + p.dates.slice(0, 48) + (p.dates.length > 48 ? '...' : '') : ''}`;
+                    return `<option value="${p.id}" data-idx="${idx}">${label}</option>`;
+                }).join('');
+
+                if (prevId && periodsList.some(p => p.id === prevId)) {
+                    selAcademic.value = prevId;
+                } else {
+                    selAcademic.value = periodsList[0].id;
                 }
-                if (inpAcademic) {
-                    inpAcademic.value = selAcademic.value || periodsList[0] || '';
+
+                const activePeriod = periodsList.find(p => p.id === selAcademic.value) || periodsList[0];
+                if (activePeriod) {
+                    if (inpName) inpName.value = activePeriod.name || '';
+                    if (inpDates) inpDates.value = activePeriod.dates || '';
+                    if (inpVacInline) inpVacInline.value = activePeriod.vacation || '';
+                    if (inpVacMain && activePeriod.vacation) inpVacMain.value = activePeriod.vacation;
                 }
             }
 
             const selVac = document.getElementById('selPeriodoVacacionalPreset');
             if (selVac) {
                 const prevVac = selVac.value;
-                const vacList = Array.isArray(appState.vacationPeriods) && appState.vacationPeriods.length
-                    ? appState.vacationPeriods
-                    : ['Con un periodo vacacional del 22 de enero de 2026 al 08 de febrero de 2026.'];
+                const combinedVacations = Array.from(new Set([
+                    ...periodsList.map(p => (p.vacation || '').trim()).filter(Boolean),
+                    ...(Array.isArray(appState.vacationPeriods) ? appState.vacationPeriods.map(v => v.trim()).filter(Boolean) : [])
+                ]));
                 selVac.innerHTML = `<option value="">Elegir periodo vacacional guardado...</option>` +
-                    vacList.map(vp => `<option value="${vp.replace(/"/g, '&quot;')}">${vp}</option>`).join('');
-                if (prevVac && vacList.includes(prevVac)) {
+                    combinedVacations.map(vp => `<option value="${vp.replace(/"/g, '&quot;')}">${vp}</option>`).join('');
+                if (prevVac && combinedVacations.includes(prevVac)) {
                     selVac.value = prevVac;
                 }
             }
@@ -1820,23 +1894,49 @@
 
         function syncAcademicPeriodInputFromSelect() {
             const sel = document.getElementById('selPeriodoEscolar');
-            const inp = document.getElementById('inpPeriodoEscolarEditable');
-            if (sel && inp) {
-                inp.value = sel.value;
+            const inpName = document.getElementById('inpNombrePeriodoEditable');
+            const inpDates = document.getElementById('inpPeriodoEscolarEditable');
+            const inpVacInline = document.getElementById('inpPeriodoVacacionalInline');
+            const inpVacMain = document.getElementById('inpPeriodoVacacional');
+            if (!sel) return;
+            const periodsList = ensureStructuredPeriodsList();
+            const found = periodsList.find(p => p.id === sel.value) || periodsList[sel.selectedIndex];
+            if (found) {
+                if (inpName) inpName.value = found.name || '';
+                if (inpDates) inpDates.value = found.dates || '';
+                if (inpVacInline) inpVacInline.value = found.vacation || '';
+                if (inpVacMain) inpVacMain.value = found.vacation || '';
             }
+        }
+
+        function syncInlineVacationToMain() {
+            const inlineVal = document.getElementById('inpPeriodoVacacionalInline')?.value ?? '';
+            const mainVac = document.getElementById('inpPeriodoVacacional');
+            if (mainVac) mainVac.value = inlineVal;
+            updateActiveAcademicPeriodFromInput();
         }
 
         function updateActiveAcademicPeriodFromInput() {
             const sel = document.getElementById('selPeriodoEscolar');
-            const inp = document.getElementById('inpPeriodoEscolarEditable');
-            if (!sel || !inp) return;
-            const idx = sel.selectedIndex;
-            if (idx >= 0 && Array.isArray(appState.periods) && appState.periods[idx] !== undefined) {
-                appState.periods[idx] = inp.value;
+            const inpName = document.getElementById('inpNombrePeriodoEditable');
+            const inpDates = document.getElementById('inpPeriodoEscolarEditable');
+            const inpVacInline = document.getElementById('inpPeriodoVacacionalInline');
+            const inpVacMain = document.getElementById('inpPeriodoVacacional');
+            if (!sel) return;
+            const periodsList = ensureStructuredPeriodsList();
+            const idx = periodsList.findIndex(p => p.id === sel.value);
+            if (idx >= 0) {
+                if (inpName) periodsList[idx].name = inpName.value;
+                if (inpDates) periodsList[idx].dates = inpDates.value;
+                if (inpVacInline) {
+                    periodsList[idx].vacation = inpVacInline.value;
+                } else if (inpVacMain) {
+                    periodsList[idx].vacation = inpVacMain.value;
+                }
                 const opt = sel.options[idx];
                 if (opt) {
-                    opt.value = inp.value;
-                    opt.textContent = inp.value;
+                    const p = periodsList[idx];
+                    opt.textContent = `${p.name || 'Periodo ' + (idx + 1)}${p.dates ? ' — ' + p.dates.slice(0, 48) + (p.dates.length > 48 ? '...' : '') : ''}`;
                 }
             }
         }
@@ -2222,8 +2322,10 @@
             const matricula = document.getElementById('inpMatricula')?.value || '';
             const curp = document.getElementById('inpCurp')?.value || '';
             const grado = document.getElementById('inpPeriodoGrado')?.value || '';
-            const periodo = document.getElementById('inpPeriodoEscolarEditable')?.value || document.getElementById('selPeriodoEscolar')?.value || '';
-            const periodoVacacional = document.getElementById('inpPeriodoVacacional')?.value || '';
+            const nombrePeriodo = document.getElementById('inpNombrePeriodoEditable')?.value || '';
+            const fechasPeriodo = document.getElementById('inpPeriodoEscolarEditable')?.value || '';
+            const periodo = fechasPeriodo;
+            const periodoVacacional = document.getElementById('inpPeriodoVacacionalInline')?.value || document.getElementById('inpPeriodoVacacional')?.value || '';
             const verboCursado = document.getElementById('selVerboCursado')?.value || 'cursó';
             const nota = document.getElementById('inpDestinoNota')?.value || '';
             const firmanteNombre = document.getElementById('inpFirmanteNombre')?.value || appState.signer.name;
@@ -2255,6 +2357,8 @@
                 '{FECHA_RVOE}': fechaRvoeRaw,
                 '{FECHA_RVOE_TEXTO}': fechaRvoeTexto,
                 '{GRADO}': grado,
+                '{NOMBRE_PERIODO}': nombrePeriodo,
+                '{FECHAS_PERIODO}': fechasPeriodo,
                 '{PERIODO}': periodo,
                 '{PERIODO_VACACIONAL}': periodoVacacional,
                 '{VERBO_CURSADO}': verboCursado,
@@ -2325,7 +2429,6 @@
 
             let currentPt = baseFontSize;
 
-            // Ajusta inteligente y proporcionalmente el tamaño de fuente manteniendo el interlineado en 1.3
             while (inner.scrollHeight > maxInnerHeight && currentPt > 8.5) {
                 currentPt = +(currentPt - 0.25).toFixed(2);
                 paper.style.fontSize = `${currentPt}pt`;
@@ -2336,30 +2439,6 @@
                 const scale = Math.max(0.75, +(maxInnerHeight / inner.scrollHeight).toFixed(3));
                 inner.style.transform = `scale(${scale})`;
                 inner.style.width = `${(100 / scale).toFixed(2)}%`;
-            }
-        }
-
-        function saveResponsibleSignature() {
-            const nameVal = (document.getElementById('inpFirmanteNombre')?.value || '').trim();
-            const titleVal = (document.getElementById('inpFirmanteCargo')?.value || '').trim();
-            if (!nameVal || !titleVal) return showToast('Ingresa el nombre y el cargo del responsable.');
-            appState.signer = { name: nameVal, title: titleVal };
-            persistBaseState(true, true);
-            updateDocument();
-            showToast('Firma de la responsable guardada permanentemente.');
-        }
-
-        function printConstanciaDocument() {
-            try {
-                updateDocument();
-                fitDocumentToSingleLetterPage();
-                window.focus();
-                setTimeout(() => {
-                    window.print();
-                }, 80);
-            } catch (err) {
-                console.error('Error al abrir panel de impresión:', err);
-                window.print();
             }
         }
 
@@ -2687,7 +2766,7 @@
             if (!p.fieldPerms) p.fieldPerms = createDefaultFieldMatrix('edit');
             p.fieldPerms[fieldId] = perm;
             persistBaseState(true, true, true);
-            showToast(`Permiso de campo actualizado en el código base para "${p.name}".`);
+            showToast(`Permiso de campo "${fieldId}" actualizado para "${p.name}".`);
         }
 
         function updateProfileHeaderPerm(idx, btnId, perm) {
@@ -2696,570 +2775,250 @@
             if (!p.headerPerms) p.headerPerms = createDefaultHeaderMatrix('edit');
             p.headerPerms[btnId] = perm;
             persistBaseState(true, true, true);
-            showToast(`Permiso de botón actualizado en el código base para "${p.name}".`);
+            showToast(`Permiso de botón "${btnId}" actualizado para "${p.name}".`);
+        }
+
+        function setAllProfileDocAccess(idx, allowed) {
+            const p = appState.profiles[idx];
+            if (!p) return;
+            p.docAccess = createDefaultDocAccessMatrix(allowed);
+            persistBaseState(true, true, true);
+            renderProfilesManager();
+            showToast(`Constancias ${allowed ? 'activadas' : 'desactivadas'} para "${p.name}".`);
+        }
+
+        function setAllProfileFields(idx, mode) {
+            const p = appState.profiles[idx];
+            if (!p) return;
+            p.fieldPerms = createDefaultFieldMatrix(mode);
+            persistBaseState(true, true, true);
+            renderProfilesManager();
+            showToast(`Todos los campos cambiados a "${mode}" para "${p.name}".`);
+        }
+
+        function setAllProfileHeaders(idx, mode) {
+            const p = appState.profiles[idx];
+            if (!p) return;
+            p.headerPerms = createDefaultHeaderMatrix(mode);
+            persistBaseState(true, true, true);
+            renderProfilesManager();
+            showToast(`Todos los botones cambiados a "${mode}" para "${p.name}".`);
         }
 
         function renderProfilesManager() {
             const container = document.getElementById('profilesManagerContainer');
             if (!container) return;
-            container.innerHTML = appState.profiles.map((p, idx) => {
-                const docChecks = DOC_MODALITIES_LIST.map(d => {
-                    const allowed = p.docAccess?.[d.id] !== false;
-                    return `
-                        <label class="flex items-center justify-between py-1 px-2 rounded-lg bg-slate-50 border border-slate-100 text-[11px] cursor-pointer">
-                            <span class="font-semibold text-slate-700">${d.label}</span>
-                            <input type="checkbox" ${allowed ? 'checked' : ''} onchange="updateProfileDocAccess(${idx}, '${d.id}', this.checked)" class="rounded text-blue-900">
-                        </label>
-                    `;
-                }).join('');
-
-                const fieldChecks = DOC_FIELD_DEFINITIONS.map(f => {
-                    const current = p.fieldPerms?.[f.id] || 'edit';
-                    return `
-                        <div class="flex items-center justify-between py-1 px-2 rounded-lg bg-slate-50 border border-slate-100 text-[11px]">
-                            <span class="font-semibold text-slate-700">${f.label}</span>
-                            <select onchange="updateProfileFieldPerm(${idx}, '${f.id}', this.value)" class="px-2 py-0.5 rounded border border-slate-300 bg-white font-bold text-[10px]">
-                                <option value="edit" ${current === 'edit' ? 'selected' : ''}>Modificar</option>
-                                <option value="select" ${current === 'select' ? 'selected' : ''}>Solo Seleccionar</option>
-                                <option value="hide" ${current === 'hide' ? 'selected' : ''}>Ocultar</option>
-                            </select>
-                        </div>
-                    `;
-                }).join('');
-
-                const headerChecks = HEADER_BUTTON_DEFINITIONS.map(b => {
-                    const current = p.headerPerms?.[b.id] || 'edit';
-                    const isAllowed = current !== 'hide' && current !== 'deny';
-                    return `
-                        <div class="flex items-center justify-between py-1 px-2 rounded-lg bg-slate-50 border border-slate-100 text-[11px]">
-                            <span class="font-semibold text-slate-700">${b.label}</span>
-                            <select onchange="updateProfileHeaderPerm(${idx}, '${b.id}', this.value)" class="px-2 py-0.5 rounded border ${isAllowed ? 'border-emerald-300 bg-emerald-50 text-emerald-900' : 'border-rose-300 bg-rose-50 text-rose-900'} font-bold text-[10px]">
-                                <option value="edit" ${isAllowed ? 'selected' : ''}>Permitir Acceso</option>
-                                <option value="hide" ${!isAllowed ? 'selected' : ''}>Denegar / Ocultar</option>
-                            </select>
-                        </div>
-                    `;
-                }).join('');
-
-                return `
-                    <div id="profileCard_${idx}" class="border border-slate-200 rounded-2xl p-4 bg-white shadow-xs space-y-3 transition">
-                        <div class="flex flex-wrap items-center justify-between gap-2">
-                            <div class="flex flex-wrap items-center gap-2">
-                                <input type="text" id="profileNameInput_${idx}" value="${p.name}" oninput="appState.profiles[${idx}].name=this.value.trim();persistBaseState(true,true,false);" onchange="appState.profiles[${idx}].name=this.value.trim();persistBaseState(true,true,true);" class="px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-800">
-                                <input type="text" id="profileCodeInput_${idx}" value="${p.code}" oninput="appState.profiles[${idx}].code=this.value.trim();persistBaseState(true,true,false);" onchange="appState.profiles[${idx}].code=this.value.trim();persistBaseState(true,true,true);" placeholder="Código de acceso" class="w-32 px-3 py-1.5 rounded-xl border border-blue-300 bg-blue-50/40 text-xs font-mono font-bold text-blue-900">
-                            </div>
-                            <div class="flex flex-wrap gap-2">
-                                <button type="button" onclick="focusEditUserProfile(${idx})" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold transition">Editar</button>
-                                <button type="button" onclick="saveProfileModifications(${idx})" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">Guardar Perfil y Código</button>
-                                <button type="button" onclick="deleteUserProfilePermanently(${idx})" class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold">Borrar para Siempre</button>
+            if (!Array.isArray(appState.profiles) || appState.profiles.length === 0) {
+                appState.profiles = JSON.parse(JSON.stringify(DEFAULT_USER_PROFILES));
+            }
+            container.innerHTML = appState.profiles.map((p, idx) => `
+                <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50/70 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
+                        <div class="flex flex-wrap items-center gap-2 flex-1">
+                            <input type="text" value="${p.name}" oninput="appState.profiles[${idx}].name=this.value;" onchange="persistBaseState(true,true,true);" placeholder="Nombre del usuario" class="px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-xs font-extrabold text-slate-900">
+                            <input type="text" value="${p.roleLabel || ''}" oninput="appState.profiles[${idx}].roleLabel=this.value;" onchange="persistBaseState(true,true,true);" placeholder="Puesto / Rol" class="px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-700">
+                            <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-blue-300">
+                                <span class="text-[10px] font-bold text-blue-900">Código:</span>
+                                <input type="text" value="${p.code}" oninput="appState.profiles[${idx}].code=this.value;" onchange="persistBaseState(true,true,true);" class="w-24 text-xs font-mono font-black text-blue-950 outline-none">
                             </div>
                         </div>
-                        <details id="profileDetails_${idx}" class="text-xs">
-                            <summary class="cursor-pointer font-bold text-blue-900 select-none">Configurar Lista de Cotejo (Modalidades, Campos y Panel Superior)</summary>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
-                                <div class="space-y-1">
-                                    <div class="text-[11px] font-extrabold uppercase text-slate-500 mb-1">Constancias Habilitadas</div>
-                                    ${docChecks}
-                                </div>
-                                <div class="space-y-1">
-                                    <div class="text-[11px] font-extrabold uppercase text-slate-500 mb-1">Campos del Documento</div>
-                                    ${fieldChecks}
-                                </div>
-                                <div class="space-y-1">
-                                    <div class="text-[11px] font-extrabold uppercase text-slate-500 mb-1">Botones Panel Superior</div>
-                                    ${headerChecks}
-                                </div>
-                            </div>
-                        </details>
+                        <div class="flex items-center gap-1.5">
+                            <button type="button" onclick="saveProfileModifications(${idx})" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs">Guardar Usuario</button>
+                            <button type="button" onclick="deleteUserProfilePermanently(${idx})" class="px-3 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-bold">Eliminar</button>
+                        </div>
                     </div>
-                `;
-            }).join('');
-        }
 
-        function focusEditUserProfile(idx) {
-            const card = document.getElementById(`profileCard_${idx}`);
-            const details = document.getElementById(`profileDetails_${idx}`);
-            const nameInput = document.getElementById(`profileNameInput_${idx}`);
-            if (details) details.open = true;
-            if (card) {
-                card.classList.add('ring-2', 'ring-amber-400');
-                setTimeout(() => card.classList.remove('ring-2', 'ring-amber-400'), 1600);
-            }
-            if (nameInput) {
-                nameInput.focus();
-                nameInput.select();
-            }
-            showToast('Editando perfil: modifica nombre, código o permisos y guarda.');
-        }
-
-        function saveProfileModifications(idx) {
-            const profile = appState.profiles[idx];
-            if (profile) {
-                profile.name = (profile.name || '').trim() || `Usuario ${idx + 1}`;
-                profile.code = (profile.code || '').trim();
-                if (!profile.code) {
-                    return showToast('El código de acceso del usuario no puede estar vacío.');
-                }
-            }
-            persistBaseState(true, true, true);
-            renderProfilesManager();
-            showToast(`Código "${profile?.code}" y permisos de "${profile?.name || 'Usuario'}" guardados en el código fuente.`);
-        }
-
-        function openHistoryModal() {
-            const modal = document.getElementById('historyModal');
-            const box = document.getElementById('historyListContainer');
-            if (box) {
-                box.innerHTML = appState.history.length
-                    ? appState.history.map((h, idx) => `
-                        <div class="py-2.5 px-3 flex items-center justify-between gap-2">
-                            <div>
-                                <div class="font-bold text-slate-800">${h.student} · <span class="text-blue-900">${h.type}</span></div>
-                                <div class="text-[11px] text-slate-500">Folio: ${h.folio} · Fecha: ${h.date} · <span class="font-semibold text-slate-700">Elaborado por: ${h.issuedBy || 'No registrado'}</span></div>
+                    <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="text-[11px] font-extrabold uppercase text-blue-900">1. Constancias Autorizadas (Seleccionar / Permitir)</span>
+                            <div class="flex gap-1">
+                                <button type="button" onclick="setAllProfileDocAccess(${idx}, true)" class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">Activar Todas</button>
+                                <button type="button" onclick="setAllProfileDocAccess(${idx}, false)" class="px-2 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-bold">Quitar Todas</button>
                             </div>
-                            <button type="button" onclick="deleteHistoryEntryPermanently(${idx})" class="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-700 font-bold">Borrar</button>
                         </div>
-                    `).join('')
-                    : '<p class="p-4 text-center text-slate-400">Aún no hay constancias registradas en el historial.</p>';
-            }
-            modal?.classList.remove('hidden');
-        }
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                            ${DOC_MODALITIES_LIST.map(d => {
+                                const isChecked = p.docAccess?.[d.id] !== false;
+                                return `
+                                    <label class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border ${isChecked ? 'border-blue-300 bg-blue-50/60 text-blue-950' : 'border-slate-200 bg-slate-50 text-slate-500'} text-[11px] font-semibold cursor-pointer select-none">
+                                        <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="updateProfileDocAccess(${idx}, '${d.id}', this.checked)" class="rounded text-blue-900">
+                                        <span class="truncate">${d.label}</span>
+                                    </label>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
 
-        function exportHistoryToExcel() {
-            if (!appState.history.length) return showToast('No hay registros en el historial para exportar.');
-            if (window.XLSX) {
-                const formattedRows = appState.history.map((h, index) => ({
-                    'No.': index + 1,
-                    'Folio': h.folio || '',
-                    'Tipo de Constancia': h.type || '',
-                    'Alumno': h.student || '',
-                    'Fecha de Emisión': h.date || '',
-                    'Elaborado por': h.issuedBy || 'No registrado'
-                }));
-                const ws = XLSX.utils.json_to_sheet(formattedRows);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, 'Historial_UAMP');
-                XLSX.writeFile(wb, 'Historial_Constancias_UAMP.xlsx');
-                showToast('Historial exportado a Excel con el usuario que elaboró cada constancia.');
-            }
-        }
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 text-[11px]">
+                        <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
+                            <div class="flex flex-wrap items-center justify-between gap-1">
+                                <span class="font-extrabold uppercase text-slate-700">2. Permisos por Campo</span>
+                                <div class="flex gap-1">
+                                    <button type="button" onclick="setAllProfileFields(${idx}, 'edit')" class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-bold">Todo Modificar</button>
+                                    <button type="button" onclick="setAllProfileFields(${idx}, 'select')" class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-bold">Todo Selección</button>
+                                    <button type="button" onclick="setAllProfileFields(${idx}, 'hide')" class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 text-[9px] font-bold">Ocultar</button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                                ${DOC_FIELD_DEFINITIONS.map(f => {
+                                    const cur = p.fieldPerms?.[f.id] || 'edit';
+                                    return `
+                                        <div class="flex items-center justify-between gap-1 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">
+                                            <span class="font-medium text-slate-700 truncate">${f.label}</span>
+                                            <select onchange="updateProfileFieldPerm(${idx}, '${f.id}', this.value)" class="px-1.5 py-0.5 rounded border border-slate-300 bg-white font-bold text-[10px]">
+                                                <option value="edit" ${cur === 'edit' ? 'selected' : ''}>Modificar</option>
+                                                <option value="select" ${cur === 'select' ? 'selected' : ''}>Solo Selección</option>
+                                                <option value="hide" ${cur === 'hide' ? 'selected' : ''}>Ocultar</option>
+                                            </select>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
 
-        function deleteHistoryEntryPermanently(idx) {
-            const item = appState.history[idx];
-            if (item?.id) appState.deletedIds.push(item.id);
-            appState.history.splice(idx, 1);
-            persistBaseState(true, true);
-            openHistoryModal();
-        }
-
-        function closeHistoryModal() { document.getElementById('historyModal')?.classList.add('hidden'); }
-        function deleteUserProfilePermanently(idx) {
-            const target = appState.profiles[idx];
-            if (!target) return;
-            appState.deletedIds.push(target.id);
-            appState.profiles.splice(idx, 1);
-            persistBaseState(true, true);
-            renderProfilesManager();
-            showToast(`Usuario "${target.name}" eliminado permanentemente.`);
+                        <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
+                            <div class="flex flex-wrap items-center justify-between gap-1">
+                                <span class="font-extrabold uppercase text-slate-700">3. Permisos de Botones y Atajos</span>
+                                <div class="flex gap-1">
+                                    <button type="button" onclick="setAllProfileHeaders(${idx}, 'edit')" class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-bold">Permitir Todos</button>
+                                    <button type="button" onclick="setAllProfileHeaders(${idx}, 'select')" class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-bold">Solo Vista</button>
+                                    <button type="button" onclick="setAllProfileHeaders(${idx}, 'hide')" class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 text-[9px] font-bold">Ocultar</button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                                ${HEADER_BUTTON_DEFINITIONS.map(b => {
+                                    const cur = p.headerPerms?.[b.id] || 'edit';
+                                    return `
+                                        <div class="flex items-center justify-between gap-1 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">
+                                            <span class="font-medium text-slate-700 truncate">${b.label}</span>
+                                            <select onchange="updateProfileHeaderPerm(${idx}, '${b.id}', this.value)" class="px-1.5 py-0.5 rounded border border-slate-300 bg-white font-bold text-[10px]">
+                                                <option value="edit" ${cur === 'edit' ? 'selected' : ''}>Permitir</option>
+                                                <option value="select" ${cur === 'select' ? 'selected' : ''}>Solo Vista</option>
+                                                <option value="hide" ${cur === 'hide' ? 'selected' : ''}>Ocultar</option>
+                                            </select>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
         }
 
         function createNewUserProfile() {
-            const num = appState.profiles.length + 13;
+            const nextNum = appState.profiles.length + 1;
             appState.profiles.push({
                 id: 'usr_' + Date.now(),
-                name: `Nuevo Usuario ${num}`,
-                roleLabel: 'Operativo Editor',
-                code: `UAMP${String(num).padStart(2, '0')}`,
+                name: `Nuevo Usuario ${nextNum}`,
+                roleLabel: 'Capturista / Control Escolar',
+                code: `UAMP${String(nextNum).padStart(2, '0')}`,
                 docAccess: createDefaultDocAccessMatrix(true),
                 headerPerms: createDefaultHeaderMatrix('edit'),
                 fieldPerms: createDefaultFieldMatrix('edit')
             });
-            persistBaseState(true, true);
+            persistBaseState(true, true, true);
             renderProfilesManager();
-            showToast('Nuevo usuario agregado.');
+            showToast('Nuevo perfil agregado. Asigna su código y guarda.');
         }
 
-        // VINCULACIÓN Y DESPLIEGUE DIRECTO A GITHUB (SOLO ADMINISTRADOR)
-        function autoDetectGithubFromHost() {
-            if (appState.githubConfig?.repo) return;
-            const host = window.location.hostname || '';
-            const pathParts = (window.location.pathname || '').split('/').filter(Boolean);
-            if (host.endsWith('.github.io')) {
-                const owner = host.replace('.github.io', '');
-                const repoName = pathParts[0] || `${owner}.github.io`;
-                appState.githubConfig.repo = `${owner}/${repoName}`;
-                appState.githubConfig.publicUrl = window.location.href.split('#')[0].split('?')[0];
+        function saveProfileModifications(idx) {
+            const p = appState.profiles[idx];
+            if (!p || !p.name.trim() || !p.code.trim()) {
+                return showToast('El nombre y el código de acceso son obligatorios.');
             }
+            persistBaseState(true, true, true);
+            applySessionPermissions();
+            showToast(`Usuario "${p.name}" y sus permisos guardados y sincronizados en tiempo real.`);
+        }
+
+        function deleteUserProfilePermanently(idx) {
+            const p = appState.profiles[idx];
+            if (p?.id) appState.deletedIds.push(p.id);
+            appState.profiles.splice(idx, 1);
+            persistBaseState(true, true, true);
+            renderProfilesManager();
+            showToast('Usuario eliminado permanentemente del código base y sincronizado en tiempo real.');
         }
 
         function loadGithubConfigToInputs() {
-            autoDetectGithubFromHost();
             const cfg = appState.githubConfig || {};
-            const savedToken = (cfg.token || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '').trim();
-            if (savedToken) {
-                appState.githubConfig.token = savedToken;
-            }
             if (document.getElementById('inpGithubRepo')) document.getElementById('inpGithubRepo').value = cfg.repo || '';
-            if (document.getElementById('inpGithubToken')) document.getElementById('inpGithubToken').value = savedToken;
+            if (document.getElementById('inpGithubToken')) {
+                document.getElementById('inpGithubToken').value = cfg.token || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '';
+            }
             if (document.getElementById('inpGithubBranch')) document.getElementById('inpGithubBranch').value = cfg.branch || 'main';
             if (document.getElementById('inpGithubFilePath')) document.getElementById('inpGithubFilePath').value = 'index.html';
             if (document.getElementById('inpCustomDomainUrl')) document.getElementById('inpCustomDomainUrl').value = cfg.publicUrl || '';
-            const badge = document.getElementById('githubSyncStatusBadge');
-            if (badge && savedToken && cfg.repo) {
-                badge.textContent = `Vinculado: ${cfg.repo} · Token cargado ✓`;
-            }
         }
 
         function saveGithubIntegrationSettings() {
-            if (!appState.activeSession || appState.activeSession.role !== 'admin') return;
-            const repoVal = document.getElementById('inpGithubRepo')?.value;
-            const tokenVal = document.getElementById('inpGithubToken')?.value;
-            const branchVal = document.getElementById('inpGithubBranch')?.value;
-            const urlVal = document.getElementById('inpCustomDomainUrl')?.value;
-
-            const resolvedToken = (tokenVal !== undefined && tokenVal.trim() !== '')
-                ? tokenVal.trim()
-                : (appState.githubConfig.token || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '');
-
-            if (resolvedToken) {
-                localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, resolvedToken);
+            const tokenValue = (document.getElementById('inpGithubToken')?.value || '').trim();
+            if (tokenValue) {
+                localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, tokenValue);
             }
-
             appState.githubConfig = {
-                ...appState.githubConfig,
-                repo: repoVal !== undefined ? repoVal.trim() : (appState.githubConfig.repo || ''),
-                token: resolvedToken,
-                branch: branchVal !== undefined ? (branchVal.trim() || 'main') : (appState.githubConfig.branch || 'main'),
+                repo: (document.getElementById('inpGithubRepo')?.value || '').trim(),
+                token: tokenValue,
+                branch: (document.getElementById('inpGithubBranch')?.value || 'main').trim() || 'main',
                 filePath: 'index.html',
-                publicUrl: urlVal !== undefined ? urlVal.trim() : (appState.githubConfig.publicUrl || ''),
+                publicUrl: (document.getElementById('inpCustomDomainUrl')?.value || '').trim(),
                 tokenUpdatedAt: new Date().toLocaleString('es-MX')
             };
-            if (document.getElementById('inpGithubFilePath')) {
-                document.getElementById('inpGithubFilePath').value = 'index.html';
-            }
             localStorage.setItem(STORAGE_KEY, JSON.stringify(buildSerializableVaultPayload(true)));
-            const vaultTag = document.getElementById('embeddedInternalVaultData');
-            if (vaultTag) vaultTag.textContent = JSON.stringify(buildSerializableVaultPayload(false));
         }
 
         async function saveAllDataAndAutoUploadIndex() {
-            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
-                return showToast('Solo el Administrador puede guardar y subir la base global.');
-            }
             saveGithubIntegrationSettings();
             appState.extractedFormState = extractCurrentSystemFields();
             persistBaseState(true, true, false);
-            const { repo, token } = appState.githubConfig;
+            const { repo, token } = appState.githubConfig || {};
             if (repo && repo.includes('/') && token) {
-                showToast('Guardando base index.html, actualizando token y desplegando en tiempo real...');
-                await deployUpdateToGithub(true, false, false);
-                refreshAllUI();
+                const uploaded = await deployUpdateToGithub(false, false, false);
+                if (uploaded) {
+                    showToast('Todos los datos se guardaron en el código fuente y index.html se subió automáticamente.');
+                }
             } else {
-                downloadSelfContainedPageWithData();
-                showToast('Datos guardados en index.html. Ingresa Repo y Token para subida automática en tiempo real.');
+                showToast('Cambios guardados en el código fuente local. Configura Repo y Token para subir index.html.');
             }
-        }
-
-        async function saveGithubIntegrationAndAutoDeploy() {
-            await saveAllDataAndAutoUploadIndex();
         }
 
         async function realtimeSaveAndRefreshSystem() {
-            const extracted = extractCurrentSystemFields();
-            appState.extractedFormState = extracted;
-            appState.signer = {
-                name: extracted.firmanteNombre || appState.signer.name,
-                title: extracted.firmanteCargo || appState.signer.title
-            };
-            if (document.getElementById('inpCustomFormatTitle') && document.getElementById('txtCustomFormatBody')) {
-                appState.templates[appState.currentDocType] = {
-                    title: document.getElementById('inpCustomFormatTitle').value,
-                    body: document.getElementById('txtCustomFormatBody').value
-                };
+            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
+                return showToast('Esta función es exclusiva del Administrador.');
             }
+            updateRealtimeCornerStatus('Guardando y actualizando sistema...', 'busy');
+            saveGithubIntegrationSettings();
+            appState.extractedFormState = extractCurrentSystemFields();
             persistBaseState(true, true, false);
 
-            const isAdmin = appState.activeSession?.role === 'admin';
             const { repo, token } = appState.githubConfig || {};
-            if (isAdmin && repo && repo.includes('/') && token) {
-                showToast('Extrayendo campos, guardando modificaciones y actualizando página...');
-                await deployUpdateToGithub(true, false, true);
+            if (repo && repo.includes('/') && token) {
+                const uploaded = await deployUpdateToGithub(false, false, true);
+                if (uploaded) {
+                    showToast('Guardado en el código fuente, publicado en GitHub y recargando en tiempo real...');
+                }
             } else {
-                showToast('Campos extraídos y modificaciones guardadas. Actualizando página...');
-                setTimeout(() => {
-                    const baseUrl = window.location.href.split('#')[0].split('?')[0];
-                    if (window.location.protocol.startsWith('http')) {
-                        window.location.replace(`${baseUrl}?v=${appState.deploymentVersion}`);
-                    } else {
-                        window.location.reload();
-                    }
-                }, 700);
-            }
-        }
-
-        function openDatabaseVaultModal() {
-            renderStudentsVaultList();
-            document.getElementById('databaseVaultModal')?.classList.remove('hidden');
-        }
-
-        function closeDatabaseVaultModal() { document.getElementById('databaseVaultModal')?.classList.add('hidden'); }
-
-        function importStudentsExcel(e) {
-            const file = e.target.files?.[0];
-            if (!file || !window.XLSX) return;
-            const reader = new FileReader();
-            reader.onload = (evt) => {
-                const wb = XLSX.read(evt.target.result, { type: 'binary' });
-                const sheet = wb.Sheets[wb.SheetNames[0]];
-                const rows = XLSX.utils.sheet_to_json(sheet);
-                appState.studentsVault = rows;
-                persistBaseState(false);
-                renderStudentsVaultList();
-                showToast(`${rows.length} alumnos cargados desde Excel.`);
-            };
-            reader.readAsBinaryString(file);
-        }
-
-        function renderStudentsVaultList() {
-            const box = document.getElementById('studentsVaultList');
-            if (!box) return;
-            box.innerHTML = appState.studentsVault.length
-                ? appState.studentsVault.map((s, idx) => `
-                    <div class="px-3 py-2 flex items-center justify-between hover:bg-slate-50">
-                        <span><b>${s.Nombre || s.nombre || ''}</b> (${s.Matricula || s.matricula || ''})</span>
-                        <button type="button" onclick="applyStudentFromVault(${idx})" class="px-2.5 py-1 rounded bg-blue-900 text-white text-[11px] font-bold">Usar</button>
-                    </div>
-                `).join('')
-                : '<p class="p-4 text-center text-slate-400">Sin alumnos importados.</p>';
-        }
-
-        function applyStudentFromVault(idx) {
-            const s = appState.studentsVault[idx];
-            if (!s) return;
-            if (s.Nombre || s.nombre) document.getElementById('inpNombre').value = s.Nombre || s.nombre;
-            if (s.Matricula || s.matricula) document.getElementById('inpMatricula').value = s.Matricula || s.matricula;
-            if (s.CURP || s.curp) document.getElementById('inpCurp').value = s.CURP || s.curp;
-            if (s.Grado || s.grado) document.getElementById('inpPeriodoGrado').value = s.Grado || s.grado;
-            updateDocument();
-            closeDatabaseVaultModal();
-            showToast('Datos del alumno aplicados.');
-        }
-
-        function openPeriodsModal() {
-            renderPeriodsModalList();
-            document.getElementById('periodsModal')?.classList.remove('hidden');
-        }
-
-        function closePeriodsModal() { document.getElementById('periodsModal')?.classList.add('hidden'); }
-
-        function renderPeriodsModalList() {
-            const box = document.getElementById('periodsModalList');
-            if (box) {
-                box.innerHTML = appState.periods.map((p, idx) => `
-                    <div id="academicPeriodRow_${idx}" class="px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs transition">
-                        <input type="text" id="academicPeriodInput_${idx}" value="${p.replace(/"/g, '&quot;')}" oninput="appState.periods[${idx}]=this.value;populatePeriodsSelect();updateDocument();" onchange="persistBaseState(true,true,true);" class="flex-1 min-w-[200px] px-2.5 py-1.5 rounded-lg border border-slate-200 font-semibold text-slate-800">
-                        <div class="flex items-center gap-1.5">
-                            <button type="button" onclick="focusEditAcademicPeriod(${idx})" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold">Editar</button>
-                            <button type="button" onclick="saveEditedPeriodToBase(${idx}, 'academic')" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold">Guardar</button>
-                            <button type="button" onclick="useAcademicPeriodPreset(${idx})" class="px-2.5 py-1 rounded-lg bg-blue-900 hover:bg-blue-800 text-white font-bold">Usar</button>
-                            <button type="button" onclick="deleteAcademicPeriodPermanently(${idx})" class="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold">Eliminar</button>
-                        </div>
-                    </div>
-                `).join('');
-            }
-            const vacBox = document.getElementById('vacationPeriodsModalList');
-            if (vacBox) {
-                vacBox.innerHTML = (appState.vacationPeriods || []).map((vp, idx) => `
-                    <div id="vacationPeriodRow_${idx}" class="px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs transition">
-                        <input type="text" id="vacationPeriodInput_${idx}" value="${vp.replace(/"/g, '&quot;')}" oninput="appState.vacationPeriods[${idx}]=this.value;populatePeriodsSelect();updateDocument();" onchange="persistBaseState(true,true,true);" class="flex-1 min-w-[200px] px-2.5 py-1.5 rounded-lg border border-blue-200 font-semibold text-slate-800">
-                        <div class="flex items-center gap-1.5">
-                            <button type="button" onclick="focusEditVacationPeriod(${idx})" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold">Editar</button>
-                            <button type="button" onclick="saveEditedPeriodToBase(${idx}, 'vacation')" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold">Guardar</button>
-                            <button type="button" onclick="useVacationPeriodPreset(${idx})" class="px-2.5 py-1 rounded-lg bg-blue-900 hover:bg-blue-800 text-white font-bold">Usar</button>
-                            <button type="button" onclick="deleteVacationPeriodPermanently(${idx})" class="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold">Eliminar</button>
-                        </div>
-                    </div>
-                `).join('');
-            }
-        }
-
-        function focusEditAcademicPeriod(idx) {
-            const row = document.getElementById(`academicPeriodRow_${idx}`);
-            const inp = document.getElementById(`academicPeriodInput_${idx}`);
-            if (row) {
-                row.classList.add('bg-amber-50/70');
-                setTimeout(() => row.classList.remove('bg-amber-50/70'), 1400);
-            }
-            if (inp) {
-                inp.focus();
-                inp.select();
-            }
-            showToast('Editando periodo escolar: modifica el texto y presiona Guardar.');
-        }
-
-        function focusEditVacationPeriod(idx) {
-            const row = document.getElementById(`vacationPeriodRow_${idx}`);
-            const inp = document.getElementById(`vacationPeriodInput_${idx}`);
-            if (row) {
-                row.classList.add('bg-amber-50/70');
-                setTimeout(() => row.classList.remove('bg-amber-50/70'), 1400);
-            }
-            if (inp) {
-                inp.focus();
-                inp.select();
-            }
-            showToast('Editando periodo vacacional: modifica el texto y presiona Guardar.');
-        }
-
-        function saveEditedPeriodToBase(idx, kind) {
-            if (kind === 'academic') {
-                const inp = document.getElementById(`academicPeriodInput_${idx}`);
-                if (inp && inp.value.trim()) appState.periods[idx] = inp.value.trim();
-            } else {
-                const inp = document.getElementById(`vacationPeriodInput_${idx}`);
-                if (inp && inp.value.trim()) appState.vacationPeriods[idx] = inp.value.trim();
-            }
-            persistBaseState(true, true, true);
-            populatePeriodsSelect();
-            renderPeriodsModalList();
-            updateDocument();
-            showToast('Periodo actualizado y guardado en el código base.');
-        }
-
-        function useAcademicPeriodPreset(idx) {
-            const val = appState.periods?.[idx];
-            if (!val) return;
-            const sel = document.getElementById('selPeriodoEscolar');
-            const inp = document.getElementById('inpPeriodoEscolarEditable');
-            if (sel) sel.value = val;
-            if (inp) inp.value = val;
-            persistBaseState(true, true, true);
-            updateDocument();
-            closePeriodsModal();
-            showToast('Periodo escolar aplicado a la constancia.');
-        }
-
-        function useVacationPeriodPreset(idx) {
-            const val = appState.vacationPeriods?.[idx];
-            if (!val) return;
-            const inp = document.getElementById('inpPeriodoVacacional');
-            if (inp) inp.value = val;
-            selectDocType('periodo_vacacional');
-            persistBaseState(true, true, true);
-            closePeriodsModal();
-            showToast('Periodo vacacional aplicado a la constancia.');
-        }
-
-        function deleteVacationPeriodPermanently(idx) {
-            const val = appState.vacationPeriods?.[idx];
-            if (val) appState.deletedIds.push('vac_period:' + val);
-            appState.vacationPeriods.splice(idx, 1);
-            persistBaseState(true, true, true);
-            populatePeriodsSelect();
-            renderPeriodsModalList();
-            showToast('Periodo vacacional eliminado del código base.');
-        }
-
-        function saveCustomVacationPeriod() {
-            const inp = document.getElementById('newVacationPeriodInput');
-            const val = (inp?.value || '').trim();
-            if (!val) return;
-            if (!Array.isArray(appState.vacationPeriods)) appState.vacationPeriods = [];
-            appState.deletedIds = appState.deletedIds.filter(id => id !== 'vac_period:' + val);
-            appState.vacationPeriods.unshift(val);
-            if (document.getElementById('inpPeriodoVacacional')) {
-                document.getElementById('inpPeriodoVacacional').value = val;
-            }
-            inp.value = '';
-            persistBaseState(true, true, true);
-            populatePeriodsSelect();
-            renderPeriodsModalList();
-            updateDocument();
-            showToast('Periodo vacacional agregado y guardado en el código base.');
-        }
-
-        function deleteAcademicPeriodPermanently(idx) {
-            const periodVal = appState.periods[idx];
-            if (periodVal) appState.deletedIds.push('period:' + periodVal);
-            appState.periods.splice(idx, 1);
-            persistBaseState(true, true, true);
-            populatePeriodsSelect();
-            renderPeriodsModalList();
-            showToast('Periodo eliminado permanentemente.');
-        }
-
-        function saveCustomAcademicPeriod() {
-            const inp = document.getElementById('newAcademicPeriodInput');
-            const val = (inp?.value || '').trim();
-            if (!val) return;
-            appState.deletedIds = appState.deletedIds.filter(id => id !== 'period:' + val);
-            appState.periods.unshift(val);
-            inp.value = '';
-            persistBaseState(true, true, true);
-            populatePeriodsSelect();
-            renderPeriodsModalList();
-            showToast('Periodo agregado.');
-        }
-
-        function setTodayExpeditionDate(silent = false) {
-            const inp = document.getElementById('inpFechaExpedicion');
-            const textInp = document.getElementById('inpFechaExpedicionTexto');
-            const now = new Date();
-            const yyyy = now.getFullYear();
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            const dd = String(now.getDate()).padStart(2, '0');
-            const isoToday = `${yyyy}-${mm}-${dd}`;
-            if (inp) {
-                inp.value = isoToday;
-            }
-            if (textInp) {
-                textInp.value = formatSpanishDate(isoToday);
-            }
-            if (!silent) {
-                userEditedExpeditionDate = true;
-                updateDocument();
-                showToast('Fecha de expedición actualizada a hoy.');
-            } else {
-                updateDocument();
+                refreshAllUI();
+                updateRealtimeCornerStatus('Actualizado localmente en tiempo real ✓', 'ok');
+                showToast('Cambios guardados y aplicados en tiempo real en toda la plataforma.');
             }
         }
 
         function incrementFolioByOne() {
             const inp = document.getElementById('inpFolio');
             if (!inp) return;
-            const match = inp.value.match(/^(.*?)(\d+)([^\d]*)$/);
-            if (match) {
-                const prefix = match[1];
-                const numStr = match[2];
-                const suffix = match[3];
-                const nextNum = String(parseInt(numStr, 10) + 1).padStart(numStr.length, '0');
-                inp.value = `${prefix}${nextNum}${suffix}`;
-            } else {
-                inp.value = `${inp.value}-1`;
-            }
+            inp.value = inp.value.replace(/(\d+)(?!.*\d)/, (m) => String(parseInt(m, 10) + 1).padStart(m.length, '0'));
             updateDocument();
-            showToast(`Folio incrementado: ${inp.value}`);
+            showToast('Folio incrementado en +1');
         }
 
         function clearStudentQuickCommand() {
-            ['inpNombre', 'inpMatricula', 'inpCurp'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.value = '';
-            });
+            document.getElementById('inpNombre').value = '';
+            document.getElementById('inpMatricula').value = '';
+            document.getElementById('inpCurp').value = '';
             updateDocument();
-            showToast('Campos del alumno limpiados.');
-        }
-
-        function resetFormToDefaultsCommand() {
-            document.getElementById('inpFolio').value = 'DIR.C.E. 552/2025';
-            document.getElementById('inpNombre').value = 'GOMEZ AMORES ENRIQUE';
-            document.getElementById('inpMatricula').value = '2211899';
-            document.getElementById('inpCurp').value = 'GOAE010412HPLRND09';
-            document.getElementById('inpPeriodoGrado').value = '7° semestre';
-            document.getElementById('inpDestinoNota').value = 'Sin más por el momento y para los fines del interesado se extiende la presente.';
-            setTodayExpeditionDate(true);
-            updateDocument();
-            showToast('Datos de ejemplo restablecidos.');
+            showToast('Datos del alumno limpiados.');
         }
 
         function copyDocumentTextCommand() {
@@ -3271,7 +3030,243 @@
             temp.select();
             document.execCommand('copy');
             document.body.removeChild(temp);
-            showToast('Texto de la constancia copiado al portapapeles.');
+            showToast('Texto completo de la constancia copiado al portapapeles.');
+        }
+
+        function setTodayExpeditionDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('inpFechaExpedicion').value = today;
+            const textInp = document.getElementById('inpFechaExpedicionTexto');
+            if (textInp) textInp.value = formatSpanishDate(today);
+            updateDocument();
+            showToast('Fecha actualizada al día de hoy.');
+        }
+
+        function resetFormToDefaultsCommand() {
+            document.getElementById('inpFolio').value = 'DIR.C.E. 552/2025';
+            document.getElementById('inpNombre').value = 'GOMEZ AMORES ENRIQUE';
+            document.getElementById('selGeneroAlumno').value = 'M';
+            document.getElementById('inpMatricula').value = '2211899';
+            document.getElementById('inpCurp').value = 'GOAE010412HPLRND09';
+            document.getElementById('inpPeriodoGrado').value = '7° semestre';
+            document.getElementById('inpDestinoNota').value = 'Sin más por el momento y para los fines del interesado se extiende la presente.';
+            setTodayExpeditionDate();
+            updateDocument();
+            showToast('Datos de ejemplo restablecidos.');
+        }
+
+        function openHistoryModal() {
+            const list = document.getElementById('historyListContainer');
+            if (list) {
+                list.innerHTML = appState.history.length
+                    ? appState.history.map((h, idx) => `
+                        <div class="py-2 flex items-center justify-between gap-2">
+                            <div>
+                                <div class="font-bold text-slate-800">${h.folio} · ${h.student}</div>
+                                <div class="text-slate-500">${h.type} · ${h.date} · Emitido por: <b>${h.issuedBy || 'Administrador General'}</b></div>
+                            </div>
+                            <button type="button" onclick="deleteHistoryItem(${idx})" class="px-2 py-1 rounded bg-rose-100 text-rose-700 font-bold">Eliminar</button>
+                        </div>
+                    `).join('')
+                    : '<p class="text-slate-500 py-4 text-center">No hay constancias registradas aún.</p>';
+            }
+            document.getElementById('historyModal')?.classList.remove('hidden');
+        }
+
+        function deleteHistoryItem(idx) {
+            const item = appState.history[idx];
+            if (item?.id) appState.deletedIds.push(item.id);
+            appState.history.splice(idx, 1);
+            persistBaseState(true, true);
+            openHistoryModal();
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal')?.classList.add('hidden');
+        }
+
+        function exportHistoryToExcel() {
+            if (!window.XLSX || !appState.history.length) return showToast('No hay registros para exportar.');
+            const ws = XLSX.utils.json_to_sheet(appState.history);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Historial');
+            XLSX.writeFile(wb, 'Historial_Constancias_UAMP.xlsx');
+        }
+
+        function openDatabaseVaultModal() {
+            renderStudentsVaultList();
+            document.getElementById('databaseVaultModal')?.classList.remove('hidden');
+        }
+
+        function closeDatabaseVaultModal() {
+            document.getElementById('databaseVaultModal')?.classList.add('hidden');
+        }
+
+        function importStudentsExcel(event) {
+            const file = event.target.files?.[0];
+            if (!file || !window.XLSX) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const wb = XLSX.read(e.target.result, { type: 'binary' });
+                const sheet = wb.Sheets[wb.SheetNames[0]];
+                appState.studentsVault = XLSX.utils.sheet_to_json(sheet);
+                persistBaseState(true, true);
+                renderStudentsVaultList();
+                showToast(`${appState.studentsVault.length} alumnos cargados desde Excel.`);
+            };
+            reader.readAsBinaryString(file);
+        }
+
+        function renderStudentsVaultList() {
+            const box = document.getElementById('studentsVaultList');
+            if (!box) return;
+            box.innerHTML = appState.studentsVault.length
+                ? appState.studentsVault.map((s, idx) => `
+                    <div class="px-3 py-2 flex items-center justify-between hover:bg-slate-50">
+                        <div>
+                            <div class="font-bold text-slate-800">${s.Nombre || s.nombre || 'Alumno'}</div>
+                            <div class="text-slate-500">Matrícula: ${s.Matricula || s.matricula || '-'}</div>
+                        </div>
+                        <button type="button" onclick="loadStudentFromVault(${idx})" class="px-2.5 py-1 rounded-lg bg-blue-900 text-white font-bold">Cargar</button>
+                    </div>
+                `).join('')
+                : '<p class="p-4 text-center text-slate-500">Sube un archivo Excel (.xlsx) con columnas Nombre, Matricula, CURP, Licenciatura, Grado.</p>';
+        }
+
+        function loadStudentFromVault(idx) {
+            const s = appState.studentsVault[idx];
+            if (!s) return;
+            document.getElementById('inpNombre').value = s.Nombre || s.nombre || '';
+            document.getElementById('inpMatricula').value = s.Matricula || s.matricula || '';
+            document.getElementById('inpCurp').value = s.CURP || s.curp || '';
+            document.getElementById('inpPeriodoGrado').value = s.Grado || s.grado || '';
+            updateDocument();
+            closeDatabaseVaultModal();
+            showToast('Datos del alumno cargados en el formato.');
+        }
+
+        function openPeriodsModal() {
+            const periodsList = ensureStructuredPeriodsList();
+            const list = document.getElementById('periodsModalList');
+            if (list) {
+                list.innerHTML = periodsList.map((p, idx) => `
+                    <div id="academicPeriodRow_${idx}" class="p-3 rounded-xl border border-slate-200 bg-white space-y-2 text-xs transition shadow-2xs">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-1.5">
+                            <span class="text-[10px] font-black uppercase tracking-wider text-blue-900">Periodo #${idx + 1}</span>
+                            <div class="flex items-center gap-1.5">
+                                <button type="button" onclick="focusEditAcademicPeriod(${idx})" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold">Editar</button>
+                                <button type="button" onclick="saveEditedPeriodToBase(${idx})" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold">Guardar</button>
+                                <button type="button" onclick="useAcademicPeriodPreset(${idx})" class="px-2.5 py-1 rounded-lg bg-blue-900 hover:bg-blue-800 text-white font-bold">Usar en Constancia</button>
+                                <button type="button" onclick="deleteAcademicPeriodPermanently(${idx})" class="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold">Eliminar</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Nombre del Periodo ({NOMBRE_PERIODO})</label>
+                            <input type="text" id="academicPeriodNameInput_${idx}" value="${(p.name || '').replace(/"/g, '&quot;')}" oninput="appState.periods[${idx}].name=this.value;populatePeriodsSelect();updateDocument();" onchange="persistBaseState(true,true,true);" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-extrabold text-slate-900">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Fechas del Periodo ({FECHAS_PERIODO} / {PERIODO})</label>
+                            <input type="text" id="academicPeriodInput_${idx}" value="${(p.dates || '').replace(/"/g, '&quot;')}" oninput="appState.periods[${idx}].dates=this.value;populatePeriodsSelect();updateDocument();" onchange="persistBaseState(true,true,true);" class="w-full px-2.5 py-1.5 rounded-lg border border-blue-200 bg-blue-50/20 font-semibold text-slate-800">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Periodo Vacacional ({PERIODO_VACACIONAL})</label>
+                            <input type="text" id="academicPeriodVacationInput_${idx}" value="${(p.vacation || '').replace(/"/g, '&quot;')}" oninput="appState.periods[${idx}].vacation=this.value;populatePeriodsSelect();updateDocument();" onchange="persistBaseState(true,true,true);" class="w-full px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50/20 font-semibold text-slate-800">
+                        </div>
+                    </div>
+                `).join('');
+            }
+            document.getElementById('periodsModal')?.classList.remove('hidden');
+        }
+
+        function focusEditAcademicPeriod(idx) {
+            const row = document.getElementById(`academicPeriodRow_${idx}`);
+            const input = document.getElementById(`academicPeriodNameInput_${idx}`) || document.getElementById(`academicPeriodInput_${idx}`);
+            if (row) {
+                row.classList.add('bg-amber-50/70');
+                setTimeout(() => row.classList.remove('bg-amber-50/70'), 1400);
+            }
+            if (input) {
+                input.focus();
+                input.select();
+            }
+            showToast('Editando periodo completo: modifica nombre, fechas o vacaciones y presiona Guardar.');
+        }
+
+        function saveEditedPeriodToBase(idx) {
+            const periodsList = ensureStructuredPeriodsList();
+            const item = periodsList[idx];
+            if (item) {
+                const sel = document.getElementById('selPeriodoEscolar');
+                if (sel && sel.value === item.id) {
+                    if (document.getElementById('inpNombrePeriodoEditable')) document.getElementById('inpNombrePeriodoEditable').value = item.name || '';
+                    if (document.getElementById('inpPeriodoEscolarEditable')) document.getElementById('inpPeriodoEscolarEditable').value = item.dates || '';
+                    if (document.getElementById('inpPeriodoVacacionalInline')) document.getElementById('inpPeriodoVacacionalInline').value = item.vacation || '';
+                    if (document.getElementById('inpPeriodoVacacional')) document.getElementById('inpPeriodoVacacional').value = item.vacation || '';
+                }
+            }
+            persistBaseState(true, true, true);
+            populatePeriodsSelect();
+            updateDocument();
+            showToast('Periodo completo (nombre, fechas y vacaciones) guardado en el código base.');
+        }
+
+        function useAcademicPeriodPreset(idx) {
+            const periodsList = ensureStructuredPeriodsList();
+            const item = periodsList[idx];
+            if (!item) return;
+            const sel = document.getElementById('selPeriodoEscolar');
+            const inpName = document.getElementById('inpNombrePeriodoEditable');
+            const inpDates = document.getElementById('inpPeriodoEscolarEditable');
+            const inpVacInline = document.getElementById('inpPeriodoVacacionalInline');
+            const inpVacMain = document.getElementById('inpPeriodoVacacional');
+            if (sel) sel.value = item.id;
+            if (inpName) inpName.value = item.name || '';
+            if (inpDates) inpDates.value = item.dates || '';
+            if (inpVacInline) inpVacInline.value = item.vacation || '';
+            if (inpVacMain) inpVacMain.value = item.vacation || '';
+            updateDocument();
+            closePeriodsModal();
+            showToast(`Periodo "${item.name}" aplicado a la constancia.`);
+        }
+
+        function closePeriodsModal() {
+            document.getElementById('periodsModal')?.classList.add('hidden');
+        }
+
+        function saveCustomAcademicPeriod() {
+            const nameInp = document.getElementById('newAcademicPeriodNameInput');
+            const datesInp = document.getElementById('newAcademicPeriodInput');
+            const vacInp = document.getElementById('newAcademicPeriodVacationInput');
+            const name = (nameInp?.value || '').trim();
+            const dates = (datesInp?.value || '').trim();
+            const vacation = (vacInp?.value || '').trim();
+            if (!name && !dates) return showToast('Escribe al menos el nombre o las fechas del periodo.');
+            const periodsList = ensureStructuredPeriodsList();
+            periodsList.unshift({
+                id: 'per_' + Date.now(),
+                name: name || `Periodo ${periodsList.length + 1}`,
+                dates,
+                vacation
+            });
+            if (nameInp) nameInp.value = '';
+            if (datesInp) datesInp.value = '';
+            if (vacInp) vacInp.value = '';
+            persistBaseState(true, true, true);
+            populatePeriodsSelect();
+            openPeriodsModal();
+            showToast('Periodo completo guardado con sus variables separadas.');
+        }
+
+        function deleteAcademicPeriodPermanently(idx) {
+            const periodsList = ensureStructuredPeriodsList();
+            const p = periodsList[idx];
+            if (p?.id) appState.deletedIds.push('period:' + p.id);
+            if (p?.dates) appState.deletedIds.push('period:' + p.dates);
+            periodsList.splice(idx, 1);
+            persistBaseState(true, true, true);
+            populatePeriodsSelect();
+            openPeriodsModal();
+            showToast('Periodo eliminado permanentemente.');
         }
 
         function refreshAllUI() {
@@ -3281,34 +3276,52 @@
             renderMontosEditor();
             renderKardexEditor();
             renderResguardoEditor();
-            if (appState.activeSession?.role === 'admin') {
-                loadGithubConfigToInputs();
+            if (document.getElementById('inpFirmanteNombre') && (!document.getElementById('inpFirmanteNombre').value || !appState.extractedFormState?.firmanteNombre)) {
+                document.getElementById('inpFirmanteNombre').value = appState.signer.name;
             }
-            if (document.getElementById('inpFirmanteNombre')) document.getElementById('inpFirmanteNombre').value = appState.signer.name;
-            if (document.getElementById('inpFirmanteCargo')) document.getElementById('inpFirmanteCargo').value = appState.signer.title;
-            if (appState.extractedFormState) applyExtractedSystemFields(appState.extractedFormState);
+            if (document.getElementById('inpFirmanteCargo') && (!document.getElementById('inpFirmanteCargo').value || !appState.extractedFormState?.firmanteCargo)) {
+                document.getElementById('inpFirmanteCargo').value = appState.signer.title;
+            }
+            if (appState.extractedFormState) {
+                applyExtractedSystemFields(appState.extractedFormState);
+            }
+            loadGithubConfigToInputs();
+            renderMajorsCatalogList();
+            renderProfilesManager();
             applySessionPermissions();
-            selectDocType(appState.currentDocType);
+            selectDocType(appState.currentDocType || 'estudios');
         }
 
-        // Sincronización automática en tiempo real cuando cambian desplegables o campos clave
-        document.addEventListener('change', (ev) => {
-            const target = ev.target;
-            if (!target) return;
-            if (['selLicenciatura', 'selPeriodoEscolar', 'selVerboCursado', 'selGeneroAlumno', 'inpPeriodoGrado'].includes(target.id)) {
-                appState.extractedFormState = extractCurrentSystemFields();
-                persistBaseState(true, true, true);
-            }
-        });
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            const dateInp = document.getElementById('inpFechaExpedicion');
+            const dateTextInp = document.getElementById('inpFechaExpedicionTexto');
+            if (dateInp && !dateInp.value) dateInp.value = today;
+            if (dateTextInp && !dateTextInp.value) dateTextInp.value = formatSpanishDate(today);
 
-        window.addEventListener('load', async () => {
-            await purgeAllBrowserCaches();
-            loadPersistedState(false);
-            await checkRemoteDeploymentVersion(false);
-            setTodayExpeditionDate(true);
+            purgeAllBrowserCaches();
+            loadPersistedState(true);
+            refreshAllUI();
+
+            setTimeout(() => {
+                checkRemoteDeploymentVersion(false);
+            }, 600);
             setInterval(() => {
                 checkRemoteDeploymentVersion(false);
-            }, 5000);
+            }, 15000);
+
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) {
+                    checkRemoteDeploymentVersion(false);
+                }
+            });
+
+            window.addEventListener('storage', (ev) => {
+                if (ev.key === STORAGE_KEY) {
+                    loadPersistedState(true);
+                    refreshAllUI();
+                }
+            });
         });
     </script>
 </div></body>
