@@ -1930,6 +1930,20 @@
                 tpl = tpl.split(k).join(v);
             });
 
+            // Garantizar concordancia automática de género incluso si se escribió literalmente en la plantilla
+            tpl = tpl.replace(/\b(el alumno|la alumna)\b/gi, (match) => {
+                const isCapitalized = match[0] === match[0].toUpperCase();
+                return isCapitalized
+                    ? tratamiento.charAt(0).toUpperCase() + tratamiento.slice(1)
+                    : tratamiento;
+            });
+            tpl = tpl.replace(/\b(inscrito|inscrita)\b/gi, (match) => {
+                const isCapitalized = match[0] === match[0].toUpperCase();
+                return isCapitalized
+                    ? inscrito.charAt(0).toUpperCase() + inscrito.slice(1)
+                    : inscrito;
+            });
+
             const lines = tpl.split('\n');
             const secStyles = vaultState.typography.sections || SECTION_TYPO_DEFAULT;
             const buildInlineStyle = (secKey) => {
