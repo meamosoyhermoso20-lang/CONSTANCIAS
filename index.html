@@ -2599,12 +2599,15 @@
                 card.className = 'p-4 rounded-2xl border border-slate-200 bg-slate-50 space-y-3 shadow-xs';
                 card.innerHTML = `
                     <div class="flex items-center justify-between gap-2">
-                        <input type="text" value="${escapeHtml(p.name)}" onchange="updateProfileField('${p.id}', 'name', this.value)" class="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-extrabold text-blue-950">
-                        <input type="text" value="${escapeHtml(p.code)}" onchange="updateProfileField('${p.id}', 'code', this.value)" title="Código de acceso" class="w-24 rounded-xl border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs font-extrabold text-center text-amber-950">
+                        <input type="text" id="prof-name-${p.id}" value="${escapeHtml(p.name)}" onchange="updateProfileField('${p.id}', 'name', this.value)" placeholder="Nombre del usuario" class="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-extrabold text-blue-950">
+                        <input type="text" id="prof-code-${p.id}" value="${escapeHtml(p.code)}" onchange="updateProfileField('${p.id}', 'code', this.value)" title="Código de acceso" placeholder="Código" class="w-28 rounded-xl border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs font-extrabold text-center text-amber-950 uppercase">
                     </div>
-                    <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-200/80">
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200/80">
                         <span class="text-[11px] font-bold text-slate-600">Constancias habilitadas: <strong class="text-blue-950">${allowedCount} de 8</strong></span>
-                        <div class="flex items-center gap-1.5">
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <button type="button" onclick="saveProfileAccessToSource('${p.id}')" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-[11px] shadow-xs transition">
+                                Guardar Acceso
+                            </button>
                             <button type="button" onclick="openUserPermissionsModal('${p.id}')" class="px-3 py-1.5 rounded-xl bg-blue-950 hover:bg-blue-900 text-amber-300 font-extrabold text-[11px] shadow-xs transition">
                                 Permisos por Constancia
                             </button>
@@ -2719,6 +2722,37 @@
             if (!p) return;
             p[field] = field === 'code' ? val.trim().toUpperCase() : val.trim();
             persistVaultData(false);
+        }
+
+        function saveProfileAccessToSource(id) {
+            const p = (vaultState.profiles || []).find(x => x.id === id);
+            if (!p) return;
+            const nameInput = document.getElementById(`prof-name-${id}`);
+            const codeInput = document.getElementById(`prof-code-${id}`);
+            const newName = (nameInput ? nameInput.value : p.name).trim();
+            const newCode = (codeInput ? codeInput.value : p.code).trim().toUpperCase();
+
+            if (!newName || !newCode) {
+                showToast('El nombre y el código de acceso son obligatorios.');
+                return;
+            }
+            if (newCode === ADMIN_MASTER_CODE) {
+                showToast('Ese código está reservado para el Administrador.');
+                return;
+            }
+            const duplicate = (vaultState.profiles || []).some(other => other.id !== id && (other.code || '').trim().toUpperCase() === newCode);
+            if (duplicate) {
+                showToast(`El código "${newCode}" ya pertenece a otro usuario.`);
+                return;
+            }
+
+            p.name = newName;
+            p.code = newCode;
+            if (codeInput) codeInput.value = newCode;
+
+            persistVaultData(true);
+            renderProfilesManagerGrid();
+            showToast(`Acceso "${newCode}" de ${newName} guardado en el código fuente. Descarga el HTML si vas a publicarlo para visitantes.`);
         }
 
         function deleteUserProfile(id) {
