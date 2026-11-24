@@ -1553,6 +1553,15 @@
         }
 
         function onDirectSheetVisualInput() {
+            const bodyEl = document.getElementById('documentRenderedBody');
+            if (bodyEl) {
+                if (!vaultState.savedVisualLayouts) vaultState.savedVisualLayouts = {};
+                const parameterizedHtml = convertVisualSheetToTemplateHtml(bodyEl);
+                vaultState.savedVisualLayouts[currentDocType] = {
+                    templateHtml: parameterizedHtml,
+                    typography: JSON.parse(JSON.stringify(vaultState.typography))
+                };
+            }
             fitDocumentToSingleLetterSheet();
         }
 
@@ -1640,18 +1649,20 @@
                 tableEl.replaceWith(tableMarker);
             }
 
-            // Ordenar tokens de mayor a menor longitud para evitar reemplazos parciales
-            const entries = Object.entries(data.map)
-                .filter(([, val]) => val && val.length >= 2)
-                .sort((a, b) => b[1].length - a[1].length);
-
+            // Reemplazar tratamiento y estado de inscripción sensibles a género
             const walker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT, null);
             const textNodes = [];
             let n;
             while ((n = walker.nextNode())) textNodes.push(n);
 
+            const entries = Object.entries(data.map)
+                .filter(([token, val]) => val && val.length >= 2 && token !== '{TRATAMIENTO}' && token !== '{INSCRITO}')
+                .sort((a, b) => b[1].length - a[1].length);
+
             textNodes.forEach(node => {
                 let txt = node.nodeValue;
+                txt = txt.replace(/\b(el alumno|la alumna)\b/gi, '{TRATAMIENTO}');
+                txt = txt.replace(/\b(inscrito|inscrita)\b/gi, '{INSCRITO}');
                 entries.forEach(([token, val]) => {
                     if (txt.includes(val)) {
                         txt = txt.split(val).join(token);
