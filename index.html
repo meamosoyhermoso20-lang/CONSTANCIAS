@@ -124,18 +124,21 @@
 
         .doc-para {
             margin-bottom: var(--doc-para-mb, 10pt);
+            white-space: pre-wrap;
         }
 
         .doc-para-right {
             text-align: right;
             font-weight: 700;
             margin-bottom: 2pt;
+            white-space: pre-wrap;
         }
 
         .doc-para-left-bold {
             text-align: left;
             font-weight: 700;
             margin-bottom: 2pt;
+            white-space: pre-wrap;
         }
 
         .doc-blank {
@@ -463,6 +466,9 @@
                         </div>
                     </div>
                     <textarea id="customDocFormatText" rows="7" oninput="onCustomFormatTextareaInput()" placeholder="Edita aquí toda la constancia desde el Oficio/Folio hasta la Firma..." class="uap-input w-full rounded-xl border border-blue-200 bg-blue-50/30 focus:bg-white p-3.5 text-xs font-medium leading-relaxed text-slate-800 outline-none"></textarea>
+                    <p class="text-[11px] text-slate-500">
+                        Tip: Puedes dar <strong>Enter</strong> y agregar <strong>espacios</strong> tanto en este cuadro como directamente sobre la hoja de la constancia; al presionar <strong>Guardar Formato</strong> se conservará exactamente como la dejaste.
+                    </p>
                     <details class="group bg-slate-50/80 border border-slate-200/80 rounded-xl px-3.5 py-2.5">
                         <summary class="cursor-pointer text-[11px] font-bold text-slate-700 flex items-center justify-between select-none">
                             <span>Insertar variables dinámicas ({ALUMNO}, {FOLIO}, {PERIODO}...)</span>
@@ -777,7 +783,7 @@
                     <div id="officialLetterSheet" class="letter-sheet">
                         <div id="docSmartContent" class="doc-smart-content">
                             <div class="doc-top-three-lines"></div>
-                            <div id="documentRenderedBody" class="doc-body-text"></div>
+                            <div id="documentRenderedBody" contenteditable="true" spellcheck="false" oninput="onDirectSheetVisualInput()" class="doc-body-text outline-none focus:ring-2 focus:ring-blue-300/60 rounded"></div>
                         </div>
                     </div>
                 </div>
@@ -1130,6 +1136,7 @@
             majors: [],
             periods: [],
             customTemplates: { ...DEFAULT_TEMPLATES },
+            savedVisualLayouts: {},
             globalDefaults: {},
             typography: {
                 fontFamily: 'Arial, Helvetica, sans-serif',
@@ -1205,6 +1212,7 @@
                     vacEnd: p.vacEnd || '07 DE ENERO DE 2027'
                 })),
                 customTemplates: rawTemplates,
+                savedVisualLayouts: { ...(baseData.savedVisualLayouts || {}), ...(merged.savedVisualLayouts || {}) },
                 globalDefaults: { ...(baseData.globalDefaults || {}), ...(merged.globalDefaults || {}) },
                 typography: {
                     fontFamily: merged.typography?.fontFamily || 'Arial, Helvetica, sans-serif',
@@ -1452,6 +1460,7 @@
             const mode = isAdmin ? 'edit' : (perms[currentDocType] || 'select');
             const fMap = perms[`${currentDocType}_fields`] || {};
             const canEditField = (key) => isAdmin || (mode === 'edit' && fMap[key] !== false) || (key === 'writeName' && perms[`${currentDocType}_writeName`] === true);
+            const canEditStructure = isAdmin || (mode === 'edit' && fMap.estructuraTexto === true);
 
             const fieldControls = [
                 { id: 'inputFolio', allowed: canEditField('folio') },
@@ -1470,13 +1479,18 @@
                 { id: 'inputFinPeriodo', allowed: canEditField('periodoActivo') },
                 { id: 'inputFirmante', allowed: canEditField('firmante') },
                 { id: 'inputCargoFirmante', allowed: canEditField('firmante') },
-                { id: 'customDocFormatText', allowed: isAdmin || (mode === 'edit' && fMap.estructuraTexto === true) }
+                { id: 'customDocFormatText', allowed: canEditStructure }
             ];
 
             fieldControls.forEach(({ id, allowed }) => {
                 const el = document.getElementById(id);
                 if (el) el.disabled = !allowed;
             });
+
+            const bodySheet = document.getElementById('documentRenderedBody');
+            if (bodySheet) {
+                bodySheet.contentEditable = canEditStructure ? 'true' : 'false';
+            }
 
             if (readOnlyAlert) {
                 readOnlyAlert.classList.toggle('hidden', isAdmin || mode === 'edit');
@@ -1529,7 +1543,56 @@
             const customTa = document.getElementById('customDocFormatText');
             if (!customTa) return;
             vaultState.customTemplates[currentDocType] = customTa.value;
+            if (vaultState.savedVisualLayouts && vaultState.savedVisualLayouts[currentDocType]) {
+                delete vaultState.savedVisualLayouts[currentDocType];
+            }
             updateDocument();
+        }
+
+        function onDirectSheetVisualInput() {
+            fitDocumentToSingleLetterSheet();
+        }
+
+        function resetCurrentDocTypeFormat() {
+            const isAdmin = activeSession.unlocked && activeSession.role === 'admin';
+            const hb = getActiveUserProfile()?.permissions?.headerButtons || {};
+            if (!isAdmin && hb.resetFormat !== true) {
+                showToast('No tienes permiso para restaurar la plantilla base.');
+                return;
+            }
+            const baseTpl = DEFAULT_TEMPLATES[currentDocType] || '';
+            vaultState.customTemplates[currentDocType] = baseTpl;
+            if (vaultState.savedVisualLayouts && vaultState.savedVisualLayouts[currentDocType]) {
+                delete vaultState.savedVisualLayouts[currentDocType];
+            }
+            const customTa = document.getElementById('customDocFormatText');
+            if (customTa) customTa.value = baseTpl;
+            persistVaultData(true);
+            updateDocument(true);
+            showToast('Plantilla restaurada al formato oficial base.');
+        }
+
+        function saveCurrentDocTypeFormat() {
+            const isAdmin = activeSession.unlocked && activeSession.role === 'admin';
+            const hb = getActiveUserProfile()?.permissions?.headerButtons || {};
+            if (!isAdmin && hb.saveFormat !== true) {
+                showToast('No tienes permiso para guardar formatos de plantilla.');
+                return;
+            }
+            const customTa = document.getElementById('customDocFormatText');
+            if (customTa) {
+                vaultState.customTemplates[currentDocType] = customTa.value;
+            }
+            const bodyEl = document.getElementById('documentRenderedBody');
+            if (bodyEl) {
+                if (!vaultState.savedVisualLayouts) vaultState.savedVisualLayouts = {};
+                vaultState.savedVisualLayouts[currentDocType] = {
+                    html: bodyEl.innerHTML,
+                    typography: JSON.parse(JSON.stringify(vaultState.typography))
+                };
+            }
+            persistVaultData(false);
+            showToast('Formato, espacios y diseño guardados permanentemente.');
         }
 
         function resetCurrentDocTypeFormat() {
@@ -1701,14 +1764,26 @@
         }
 
         function formatInlineRichText(raw) {
-            return escapeHtml(raw)
+            const withMarkers = escapeHtml(raw)
                 .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                 .replace(/__(.+?)__/g, '<u>$1</u>');
+            return withMarkers.replace(/ {2,}/g, (spaces) => '&nbsp;'.repeat(spaces.length));
         }
 
-        function updateDocument() {
+        function updateDocument(forceTemplateRender = false) {
             const bodyEl = document.getElementById('documentRenderedBody');
             if (!bodyEl) return;
+
+            const savedLayout = !forceTemplateRender && vaultState.savedVisualLayouts?.[currentDocType];
+            if (savedLayout && savedLayout.html) {
+                bodyEl.innerHTML = savedLayout.html;
+                if (savedLayout.typography) {
+                    vaultState.typography = JSON.parse(JSON.stringify(savedLayout.typography));
+                }
+                applyGlobalTypographyVariables();
+                fitDocumentToSingleLetterSheet();
+                return;
+            }
 
             const folio = (document.getElementById('inputFolio')?.value || '').trim();
             const ciudad = (document.getElementById('inputCiudad')?.value || '').trim();
@@ -1810,21 +1885,21 @@
                 }
 
                 if (inSignature) {
-                    if (trimmed) sigLines.push(trimmed);
+                    if (trimmed) sigLines.push(rawLine);
                     continue;
                 }
 
                 if (!trimmed) {
-                    htmlOut += '<div class="doc-blank"></div>';
+                    htmlOut += '<div class="doc-blank"><br></div>';
                     continue;
                 }
 
                 if (i <= 2) {
-                    htmlOut += `<div class="doc-para-right" data-doc-section="header"${buildInlineStyle('header')}>${formatInlineRichText(trimmed)}</div>`;
+                    htmlOut += `<div class="doc-para-right" data-doc-section="header"${buildInlineStyle('header')}>${formatInlineRichText(rawLine)}</div>`;
                 } else if (i <= 5 && (trimmed.includes(destinatario) || /^PRESENTE$/i.test(trimmed))) {
-                    htmlOut += `<div class="doc-para-left-bold" data-doc-section="recipient"${buildInlineStyle('recipient')}>${formatInlineRichText(trimmed)}</div>`;
+                    htmlOut += `<div class="doc-para-left-bold" data-doc-section="recipient"${buildInlineStyle('recipient')}>${formatInlineRichText(rawLine)}</div>`;
                 } else {
-                    htmlOut += `<div class="doc-para" data-doc-section="body"${buildInlineStyle('body')}>${formatInlineRichText(trimmed)}</div>`;
+                    htmlOut += `<div class="doc-para" data-doc-section="body"${buildInlineStyle('body')}>${formatInlineRichText(rawLine)}</div>`;
                 }
             }
 
