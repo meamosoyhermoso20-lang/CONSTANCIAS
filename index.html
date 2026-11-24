@@ -1628,7 +1628,7 @@
         function getCurrentDocumentTokenValues() {
             const folio = (document.getElementById('inputFolio')?.value || '').trim();
             const asunto = DOC_TYPE_META[currentDocType]?.asunto || 'CONSTANCIA DE ESTUDIOS';
-            const ciudad = (document.getElementById('inputCiudad')?.value || '').trim().toUpperCase();
+            const ciudad = (document.getElementById('inputCiudad')?.value || '').trim();
             const fechaIso = document.getElementById('inputFecha')?.value || '';
             const fechaMayus = formatDateToSpanishUpper(fechaIso);
             const destinatario = (document.getElementById('inputDestinatario')?.value || '').trim();
@@ -2554,11 +2554,11 @@
         function saveCustomAcademicPeriod(event) {
             event.preventDefault();
             const id = document.getElementById('editPeriodIdInput').value || ('per_' + Date.now());
-            const name = document.getElementById('periodNameInput').value.trim().toUpperCase();
-            const start = document.getElementById('periodStartInput').value.trim().toUpperCase();
-            const end = document.getElementById('periodEndInput').value.trim().toUpperCase();
-            const vacStart = document.getElementById('periodVacStartInput').value.trim().toUpperCase();
-            const vacEnd = document.getElementById('periodVacEndInput').value.trim().toUpperCase();
+            const name = document.getElementById('periodNameInput').value.trim();
+            const start = document.getElementById('periodStartInput').value.trim();
+            const end = document.getElementById('periodEndInput').value.trim();
+            const vacStart = document.getElementById('periodVacStartInput').value.trim();
+            const vacEnd = document.getElementById('periodVacEndInput').value.trim();
 
             const idx = vaultState.periods.findIndex(p => p.id === id);
             const obj = { id, name, start, end, vacStart, vacEnd };
@@ -2622,7 +2622,7 @@
         function saveMajorRvoeForm(event) {
             event.preventDefault();
             const id = document.getElementById('editMajorIdInput').value || ('maj_' + Date.now());
-            const name = document.getElementById('newMajorNameInput').value.trim().toUpperCase();
+            const name = document.getElementById('newMajorNameInput').value.trim();
             const rvoe = document.getElementById('newMajorRvoeInput').value.trim();
             const rvoeDate = document.getElementById('newMajorRvoeDateInput').value.trim();
             const idx = vaultState.majors.findIndex(m => m.id === id);
