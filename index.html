@@ -1,0 +1,688 @@
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script id="embeddedInternalVaultData" type="application/json">{"updatedAt":"2026-11-24T00:56:01.809Z","profiles":[{"id":"prof_1","name":"Perfil 1 • Control Escolar","code":"UAP01","permissions":{"simple":"edit","simple_writeName":true,"simple_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true},"anteriores":"edit","anteriores_writeName":true,"anteriores_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"periodosAnteriores":true},"vacaciones":"edit","vacaciones_writeName":true,"vacaciones_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"vacacionesFechas":true},"calificaciones":"edit","calificaciones_writeName":true,"calificaciones_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"tablaMaterias":true},"kardex":"edit","kardex_writeName":true,"kardex_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"tablaMaterias":true},"montos":"edit","montos_writeName":true,"montos_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"montosCuotas":true},"resguardo":"edit","resguardo_writeName":true,"resguardo_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"docsResguardo":true},"headerButtons":{"downloadPdf":true,"print":true,"history":true,"excelVault":false,"periods":false,"licenciaturasTab":false,"rolesTab":false,"saveCheckpoint":false,"recoverPage":false,"restoreDB":false,"backupHtml":false,"quickFolio":true,"quickClear":true,"quickCopy":true,"quickToday":true}}},{"id":"prof_2","name":"Perfil 2 • Ventanilla","code":"UAP02","permissions":{"simple":"select","simple_writeName":true,"simple_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false},"anteriores":"select","anteriores_writeName":true,"anteriores_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"periodosAnteriores":false},"vacaciones":"select","vacaciones_writeName":true,"vacaciones_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"vacacionesFechas":false},"calificaciones":"select","calificaciones_writeName":true,"calificaciones_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"tablaMaterias":false},"kardex":"select","kardex_writeName":true,"kardex_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"tablaMaterias":false},"montos":"select","montos_writeName":true,"montos_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"montosCuotas":false},"resguardo":"select","resguardo_writeName":true,"resguardo_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"docsResguardo":false},"headerButtons":{"downloadPdf":true,"print":true,"history":true,"excelVault":false,"periods":false,"licenciaturasTab":false,"rolesTab":false,"saveCheckpoint":false,"recoverPage":false,"restoreDB":false,"backupHtml":false,"quickFolio":true,"quickClear":true,"quickCopy":true,"quickToday":true}}},{"id":"prof_3","name":"Perfil 3 • Coordinación","code":"UAP03","permissions":{"simple":"edit","simple_writeName":true,"anteriores":"edit","anteriores_writeName":true,"vacaciones":"select","vacaciones_writeName":true,"calificaciones":"edit","calificaciones_writeName":true,"kardex":"edit","kardex_writeName":true,"montos":"none","montos_writeName":false,"resguardo":"select","resguardo_writeName":false,"headerButtons":{"downloadPdf":true,"print":true,"history":true,"excelVault":false,"periods":false,"licenciaturasTab":false,"rolesTab":false,"saveCheckpoint":false,"recoverPage":false,"restoreDB":false,"backupHtml":false,"quickFolio":true,"quickClear":true,"quickCopy":true,"quickToday":true},"simple_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true},"anteriores_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"periodosAnteriores":true},"vacaciones_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"vacacionesFechas":false},"calificaciones_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"tablaMaterias":true},"kardex_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"tablaMaterias":true},"montos_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":false,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"montosCuotas":false},"resguardo_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":false,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"docsResguardo":false}}},{"id":"prof_4","name":"Perfil 4 • Caja y Finanzas","code":"UAP04","permissions":{"simple":"select","simple_writeName":true,"anteriores":"none","anteriores_writeName":false,"vacaciones":"none","vacaciones_writeName":false,"calificaciones":"none","calificaciones_writeName":false,"kardex":"none","kardex_writeName":false,"montos":"edit","montos_writeName":true,"resguardo":"none","resguardo_writeName":false,"headerButtons":{"downloadPdf":true,"print":true,"history":true,"excelVault":false,"periods":false,"licenciaturasTab":false,"rolesTab":false,"saveCheckpoint":false,"recoverPage":false,"restoreDB":false,"backupHtml":false,"quickFolio":true,"quickClear":true,"quickCopy":true,"quickToday":true},"simple_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false},"anteriores_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":false,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"periodosAnteriores":false},"vacaciones_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":false,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"vacacionesFechas":false},"calificaciones_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":false,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"tablaMaterias":false},"kardex_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":false,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"tablaMaterias":false},"montos_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"montosCuotas":true},"resguardo_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":false,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"docsResguardo":false}}},{"id":"prof_5","name":"Perfil 5 • Archivo y Resguardo","code":"UAP05","permissions":{"simple":"select","simple_writeName":true,"anteriores":"select","anteriores_writeName":false,"vacaciones":"none","vacaciones_writeName":false,"calificaciones":"none","calificaciones_writeName":false,"kardex":"none","kardex_writeName":false,"montos":"none","montos_writeName":false,"resguardo":"edit","resguardo_writeName":true,"headerButtons":{"downloadPdf":true,"print":true,"history":true,"excelVault":false,"periods":false,"licenciaturasTab":false,"rolesTab":false,"saveCheckpoint":false,"recoverPage":false,"restoreDB":false,"backupHtml":false,"quickFolio":true,"quickClear":true,"quickCopy":true,"quickToday":true},"simple_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false},"anteriores_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":false,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"periodosAnteriores":false},"vacaciones_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":false,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"vacacionesFechas":false},"calificaciones_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":false,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"tablaMaterias":false},"kardex_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":false,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"tablaMaterias":false},"montos_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":false,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"montosCuotas":false},"resguardo_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"docsResguardo":true}}},{"id":"prof_6","name":"Perfil 6 • Auxiliar Académico","code":"UAP06","permissions":{"simple":"select","simple_writeName":true,"simple_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false},"anteriores":"select","anteriores_writeName":true,"anteriores_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"periodosAnteriores":false},"vacaciones":"select","vacaciones_writeName":true,"vacaciones_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"vacacionesFechas":false},"calificaciones":"select","calificaciones_writeName":true,"calificaciones_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"tablaMaterias":false},"kardex":"select","kardex_writeName":true,"kardex_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"tablaMaterias":false},"montos":"select","montos_writeName":true,"montos_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"montosCuotas":false},"resguardo":"select","resguardo_writeName":true,"resguardo_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"docsResguardo":false},"headerButtons":{"downloadPdf":true,"print":true,"history":true,"excelVault":false,"periods":false,"licenciaturasTab":false,"rolesTab":false,"saveCheckpoint":false,"recoverPage":false,"restoreDB":false,"backupHtml":false,"quickFolio":true,"quickClear":true,"quickCopy":true,"quickToday":true}}},{"id":"prof_7","name":"Perfil 7 • Subdirección","code":"UAP07","permissions":{"simple":"edit","simple_writeName":true,"simple_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true},"anteriores":"edit","anteriores_writeName":true,"anteriores_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"periodosAnteriores":true},"vacaciones":"edit","vacaciones_writeName":true,"vacaciones_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"vacacionesFechas":true},"calificaciones":"edit","calificaciones_writeName":true,"calificaciones_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"tablaMaterias":true},"kardex":"edit","kardex_writeName":true,"kardex_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"tablaMaterias":true},"montos":"edit","montos_writeName":true,"montos_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"montosCuotas":true},"resguardo":"edit","resguardo_writeName":true,"resguardo_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"docsResguardo":true},"headerButtons":{"downloadPdf":true,"print":true,"history":true,"excelVault":false,"periods":false,"licenciaturasTab":false,"rolesTab":false,"saveCheckpoint":false,"recoverPage":false,"restoreDB":false,"backupHtml":false,"quickFolio":true,"quickClear":true,"quickCopy":true,"quickToday":true}}},{"id":"prof_8","name":"Perfil 8 • Consulta Externa","code":"UAP08","permissions":{"simple":"select","simple_writeName":false,"anteriores":"none","anteriores_writeName":false,"vacaciones":"select","vacaciones_writeName":false,"calificaciones":"none","calificaciones_writeName":false,"kardex":"none","kardex_writeName":false,"montos":"none","montos_writeName":false,"resguardo":"none","resguardo_writeName":false,"headerButtons":{"downloadPdf":true,"print":true,"history":true,"excelVault":false,"periods":false,"licenciaturasTab":false,"rolesTab":false,"saveCheckpoint":false,"recoverPage":false,"restoreDB":false,"backupHtml":false,"quickFolio":true,"quickClear":true,"quickCopy":true,"quickToday":true},"simple_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":false,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false},"anteriores_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":false,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"periodosAnteriores":false},"vacaciones_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":false,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"vacacionesFechas":false},"calificaciones_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":false,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"tablaMaterias":false},"kardex_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":false,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"tablaMaterias":false},"montos_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":false,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"montosCuotas":false},"resguardo_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":false,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"docsResguardo":false}}},{"id":"prof_abraham","name":"Abraham","code":"UAP09","permissions":{"simple":"edit","simple_writeName":true,"simple_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true},"anteriores":"edit","anteriores_writeName":true,"anteriores_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"periodosAnteriores":true},"vacaciones":"edit","vacaciones_writeName":true,"vacaciones_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"vacacionesFechas":true},"calificaciones":"edit","calificaciones_writeName":true,"calificaciones_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"tablaMaterias":true},"kardex":"edit","kardex_writeName":true,"kardex_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"tablaMaterias":true},"montos":"edit","montos_writeName":true,"montos_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"montosCuotas":true},"resguardo":"edit","resguardo_writeName":true,"resguardo_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"docsResguardo":true},"headerButtons":{"downloadPdf":true,"print":true,"history":true,"excelVault":false,"periods":false,"licenciaturasTab":false,"rolesTab":false,"saveCheckpoint":false,"recoverPage":false,"restoreDB":false,"backupHtml":false,"quickFolio":true,"quickClear":true,"quickCopy":true,"quickToday":true}}},{"id":"prof_giselle","name":"Giselle","code":"UAP10","permissions":{"simple":"edit","simple_writeName":true,"simple_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true},"anteriores":"edit","anteriores_writeName":true,"anteriores_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"periodosAnteriores":true},"vacaciones":"edit","vacaciones_writeName":true,"vacaciones_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"vacacionesFechas":true},"calificaciones":"edit","calificaciones_writeName":true,"calificaciones_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"tablaMaterias":true},"kardex":"edit","kardex_writeName":true,"kardex_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"tablaMaterias":true},"montos":"edit","montos_writeName":true,"montos_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"montosCuotas":true},"resguardo":"edit","resguardo_writeName":true,"resguardo_fields":{"folio":true,"fechaCiudad":true,"destinatario":true,"writeName":true,"matricula":true,"grado":true,"licenciaturaRvoe":true,"periodoActivo":true,"firmante":true,"estructuraTexto":true,"docsResguardo":true},"headerButtons":{"downloadPdf":true,"print":true,"history":true,"excelVault":false,"periods":false,"licenciaturasTab":false,"rolesTab":false,"saveCheckpoint":false,"recoverPage":false,"restoreDB":false,"backupHtml":false,"quickFolio":true,"quickClear":true,"quickCopy":true,"quickToday":true}}},{"id":"prof_nataly","name":"Nataly","code":"UAP11","permissions":{"simple":"select","simple_writeName":true,"simple_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false},"anteriores":"select","anteriores_writeName":true,"anteriores_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"periodosAnteriores":false},"vacaciones":"select","vacaciones_writeName":true,"vacaciones_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"vacacionesFechas":false},"calificaciones":"select","calificaciones_writeName":true,"calificaciones_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"tablaMaterias":false},"kardex":"select","kardex_writeName":true,"kardex_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"tablaMaterias":false},"montos":"select","montos_writeName":true,"montos_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"montosCuotas":false},"resguardo":"select","resguardo_writeName":true,"resguardo_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"docsResguardo":false},"headerButtons":{"downloadPdf":true,"print":true,"history":true,"excelVault":false,"periods":false,"licenciaturasTab":false,"rolesTab":false,"saveCheckpoint":false,"recoverPage":false,"restoreDB":false,"backupHtml":false,"quickFolio":true,"quickClear":true,"quickCopy":true,"quickToday":true}}},{"id":"prof_adriana","name":"Adriana","code":"UAP12","permissions":{"simple":"select","simple_writeName":true,"simple_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false},"anteriores":"select","anteriores_writeName":true,"anteriores_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"periodosAnteriores":false},"vacaciones":"select","vacaciones_writeName":true,"vacaciones_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"vacacionesFechas":false},"calificaciones":"select","calificaciones_writeName":true,"calificaciones_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"tablaMaterias":false},"kardex":"select","kardex_writeName":true,"kardex_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"tablaMaterias":false},"montos":"select","montos_writeName":true,"montos_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"montosCuotas":false},"resguardo":"select","resguardo_writeName":true,"resguardo_fields":{"folio":false,"fechaCiudad":false,"destinatario":false,"writeName":true,"matricula":false,"grado":false,"licenciaturaRvoe":false,"periodoActivo":false,"firmante":false,"estructuraTexto":false,"docsResguardo":false},"headerButtons":{"downloadPdf":true,"print":true,"history":true,"excelVault":false,"periods":false,"licenciaturasTab":false,"rolesTab":false,"saveCheckpoint":false,"recoverPage":false,"restoreDB":false,"backupHtml":false,"quickFolio":true,"quickClear":true,"quickCopy":true,"quickToday":true}}}],"deletedProfileIds":[],"majors":[{"id":"der","name":"LICENCIATURA EN DERECHO","rvoe":"RVOE SEP-SES/21/114/01/1842/2018"},{"id":"adm","name":"LICENCIATURA EN ADMINISTRACIÓN DE EMPRESAS","rvoe":"RVOE SEP-SES/21/114/01/1843/2018"},{"id":"con","name":"LICENCIATURA EN CONTADURÍA PÚBLICA","rvoe":"RVOE SEP-SES/21/114/01/1844/2018"},{"id":"psi","name":"LICENCIATURA EN PSICOLOGÍA","rvoe":"RVOE SEP-SES/21/114/01/1910/2019"},{"id":"ped","name":"LICENCIATURA EN PEDAGOGÍA","rvoe":"RVOE SEP-SES/21/114/01/1911/2019"},{"id":"enf","name":"LICENCIATURA EN ENFERMERÍA","rvoe":"RVOE SEP-SES/21/114/01/2045/2020"},{"id":"nut","name":"LICENCIATURA EN NUTRICIÓN","rvoe":"RVOE SEP-SES/21/114/01/2046/2020"},{"id":"arq","name":"LICENCIATURA EN ARQUITECTURA","rvoe":"RVOE SEP-SES/21/114/01/2112/2021"},{"id":"isc","name":"INGENIERÍA EN SISTEMAS COMPUTACIONALES","rvoe":"RVOE SEP-SES/21/114/01/2115/2021"}],"periods":[{"id":"p1","name":"OTOÑO 2026 (SEPTIEMBRE - DICIEMBRE 2026)","start":"04 DE SEPTIEMBRE DE 2026","end":"18 DE DICIEMBRE DE 2026"},{"id":"p2","name":"PRIMAVERA 2026 (ENERO - ABRIL 2026)","start":"12 DE ENERO DE 2026","end":"24 DE ABRIL DE 2026"},{"id":"p3","name":"VERANO 2026 (MAYO - AGOSTO 2026)","start":"04 DE MAYO DE 2026","end":"14 DE AGOSTO DE 2026"}],"customTemplates":{"simple":"OFICIO: {FOLIO}\nASUNTO: {ASUNTO}\n{CIUDAD_MAYUS}, A {FECHA_MAYUS}.\n\n{DESTINATARIO}\nPRESENTE\n\nEl que suscribe, {CARGO_FIRMANTE} de la Universidad Americana de Puebla, hace CONSTAR que {TRATAMIENTO} {ALUMNO}, con matrícula {MATRICULA}, es estudiante regular y se encuentra debidamente {INSCRITO} en el {GRADO} de la {LICENCIATURA}, con Acuerdo de Reconocimiento de Validez Oficial de Estudios {RVOE}.\n\nEl periodo escolar vigente comprende del {INICIO_PERIODO} al {FIN_PERIODO} ({PERIODO}).\n\nSe extiende la presente constancia a petición de la parte interesada para los usos y fines legales que a ella convengan.\n\nATENTAMENTE\n{FIRMANTE}\n{CARGO_FIRMANTE}","anteriores":"OFICIO: {FOLIO}\nASUNTO: {ASUNTO}\n{CIUDAD_MAYUS}, A {FECHA_MAYUS}.\n\n{DESTINATARIO}\nPRESENTE\n\nEl que suscribe, {CARGO_FIRMANTE} de la Universidad Americana de Puebla, hace CONSTAR que {TRATAMIENTO} {ALUMNO}, con matrícula {MATRICULA}, de la {LICENCIATURA} ({RVOE}), ha cursado satisfactoriamente los siguientes periodos académicos:\n\n{PERIODOS_ANTERIORES}\n\nActualmente se encuentra {INSCRITO} en el {GRADO} correspondiente al periodo {PERIODO} (del {INICIO_PERIODO} al {FIN_PERIODO}).\n\nSe extiende la presente para los fines legales que convengan.\n\nATENTAMENTE\n{FIRMANTE}\n{CARGO_FIRMANTE}","vacaciones":"OFICIO: {FOLIO}\nASUNTO: {ASUNTO}\n{CIUDAD_MAYUS}, A {FECHA_MAYUS}.\n\n{DESTINATARIO}\nPRESENTE\n\nEl que suscribe, {CARGO_FIRMANTE} de la Universidad Americana de Puebla, hace CONSTAR que {TRATAMIENTO} {ALUMNO}, con matrícula {MATRICULA}, es estudiante regular {INSCRITO} en el {GRADO} de la {LICENCIATURA} ({RVOE}), dentro del periodo escolar {PERIODO}.\n\nAsimismo, se informa que el periodo vacacional oficial comprende a partir del {VAC_INICIO}, reanudando actividades académicas el día {VAC_FIN}.\n\nSe extiende la presente constancia a petición del interesado para los trámites correspondientes.\n\nATENTAMENTE\n{FIRMANTE}\n{CARGO_FIRMANTE}","calificaciones":"OFICIO: {FOLIO}\nASUNTO: {ASUNTO}\n{CIUDAD_MAYUS}, A {FECHA_MAYUS}.\n\n{DESTINATARIO}\nPRESENTE\n\nEl que suscribe, {CARGO_FIRMANTE} de la Universidad Americana de Puebla, hace CONSTAR que {TRATAMIENTO} {ALUMNO}, con matrícula {MATRICULA}, de la {LICENCIATURA} ({RVOE}), obtuvo las siguientes calificaciones durante el periodo escolar {PERIODO}:\n\n{TABLA}\n\nSe extiende la presente constancia a petición de la parte interesada para los fines que estime pertinentes.\n\nATENTAMENTE\n{FIRMANTE}\n{CARGO_FIRMANTE}","kardex":"OFICIO: {FOLIO}\nASUNTO: {ASUNTO}\n{CIUDAD_MAYUS}, A {FECHA_MAYUS}.\n\n{DESTINATARIO}\nPRESENTE\n\nEl que suscribe, {CARGO_FIRMANTE} de la Universidad Americana de Puebla, hace CONSTAR que en los archivos de esta institución obra el historial académico (Kardex) de {TRATAMIENTO} {ALUMNO}, con matrícula {MATRICULA}, de la {LICENCIATURA} ({RVOE}), desglosado a continuación:\n\n{TABLA}\n\nSe extiende la presente para los usos legales a que haya lugar.\n\nATENTAMENTE\n{FIRMANTE}\n{CARGO_FIRMANTE}","montos":"OFICIO: {FOLIO}\nASUNTO: {ASUNTO}\n{CIUDAD_MAYUS}, A {FECHA_MAYUS}.\n\n{DESTINATARIO}\nPRESENTE\n\nEl que suscribe, {CARGO_FIRMANTE} de la Universidad Americana de Puebla, hace CONSTAR que {TRATAMIENTO} {ALUMNO}, con matrícula {MATRICULA}, se encuentra {INSCRITO} en el {GRADO} de la {LICENCIATURA} ({RVOE}), en el periodo {PERIODO} (del {INICIO_PERIODO} al {FIN_PERIODO}).\n\nPara los efectos administrativos que correspondan, se hacen constar las cuotas escolares vigentes:\nInscripción: {MONTO_INSCRIPCION}.\nColegiatura mensual: {MONTO_COLEGIATURA}.\n\nATENTAMENTE\n{FIRMANTE}\n{CARGO_FIRMANTE}","resguardo":"OFICIO: {FOLIO}\nASUNTO: {ASUNTO}\n{CIUDAD_MAYUS}, A {FECHA_MAYUS}.\n\n{DESTINATARIO}\nPRESENTE\n\nEl que suscribe, {CARGO_FIRMANTE} de la Universidad Americana de Puebla, hace CONSTAR que en el expediente escolar de {TRATAMIENTO} {ALUMNO}, con matrícula {MATRICULA}, estudiante del {GRADO} de la {LICENCIATURA} ({RVOE}), se encuentran bajo resguardo oficial de esta institución los siguientes documentos originales:\n\n{DOCUMENTOS_RESGUARDO}\n\nSe extiende la presente constancia a petición de la parte interesada para los fines administrativos necesarios.\n\nATENTAMENTE\n{FIRMANTE}\n{CARGO_FIRMANTE}"},"globalDefaults":{"ciudad":"TEZIUTLÁN, PUEBLA","destinatario":"A QUIEN CORRESPONDA","firmante":"LIC. ALEJANDRA MENDOZA RUIZ","cargoFirmante":"JEFA DEL DEPARTAMENTO DE SERVICIOS ESCOLARES","montoInscripcion":"$2,450.00 (DOS MIL CUATROCIENTOS CINCUENTA PESOS 00/100 M.N.)","montoColegiatura":"$2,890.00 (DOS MIL OCHOCIENTOS NOVENTA PESOS 00/100 M.N.)","vacInicio":"21 DE DICIEMBRE DE 2026","vacFin":"07 DE ENERO DE 2027","periodosAnteriores":"Primer Cuatrimestre (Septiembre - Diciembre 2024), Segundo Cuatrimestre (Enero - Abril 2025), Tercer Cuatrimestre (Mayo - Agosto 2025) y Cuarto Cuatrimestre (Septiembre - Diciembre 2025).","documentosResguardo":"Acta de Nacimiento Original, Certificado Total de Estudios de Bachillerato Legalizado, Clave Única de Registro de Población (CURP) y Certificado Médico."},"typography":{"fontFamily":"Arial, Helvetica, sans-serif","fontSize":11.5,"lineHeight":1.15},"history":[]}</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style data-styled="active" data-styled-version="6.5.3"></style>
+<div id="uapConstanciasAppRoot" class="min-h-screen flex flex-col">
+
+    <!-- HEADER PRINCIPAL -->
+    <header id="uapProtectedHeader" class="no-print bg-blue-950 text-white shadow-lg sticky top-0 z-40 border-b border-blue-900">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 pt-3 pb-2.5 flex flex-col gap-2.5">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="bg-amber-500 text-blue-950 p-2 rounded-xl shadow-inner">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="file-check-2" aria-hidden="true" class="lucide lucide-file-check-2 w-6 h-6"><path d="M10.5 22H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v6"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="m14 20 2 2 4-4"></path></svg>
+                    </div>
+                    <div>
+                        <h1 class="text-sm sm:text-base font-extrabold tracking-tight leading-tight">Generador Oficial de Constancias</h1>
+                        <p class="text-[11px] text-blue-200 font-medium">Universidad Americana de Puebla • Servicios Escolares</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <span id="liveSaveStatusBadge" class="inline-flex items-center gap-1.5 bg-blue-900/90 border border-emerald-400/50 text-emerald-200 px-3 py-1.5 rounded-xl text-[11px] font-bold shadow-sm">
+                        <span id="liveSaveStatusDot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span id="liveSaveStatusText">Enlace y Base Sincronizados (06:56:01 p.m.)</span>
+                    </span>
+
+                    <button type="button" id="topBtnRecoverPage" onclick="recoverPageEmergencyState()" class="flex items-center gap-1.5 bg-amber-600 hover:bg-amber-500 border border-amber-300/60 text-blue-950 px-3 py-1.5 rounded-xl text-xs font-extrabold transition shadow-sm" title="Recuperar último estado guardado">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="rotate-ccw" aria-hidden="true" class="lucide lucide-rotate-ccw w-3.5 h-3.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                        <span>Recuperar Página</span>
+                    </button>
+
+                    <button type="button" id="topBtnRestoreDB" onclick="restoreFullDatabaseCatalogs(true)" class="flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-600 border border-emerald-300/60 text-white px-3 py-1.5 rounded-xl text-xs font-extrabold transition shadow-sm" title="Restaurar catálogos oficiales">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="database-backup" aria-hidden="true" class="lucide lucide-database-backup w-3.5 h-3.5 text-amber-200"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 12a9 3 0 0 0 5 2.69"></path><path d="M21 9.3V5"></path><path d="M3 5v14a9 3 0 0 0 6.47 2.88"></path><path d="M12 12v4h4"></path><path d="M13 20a5 5 0 0 0 9-3 4.5 4.5 0 0 0-4.5-4.5c-1.33 0-2.54.54-3.41 1.41L12 16"></path></svg>
+                        <span>Restaurar Base de Datos</span>
+                    </button>
+
+                    <button type="button" id="topBtnBackupPage" onclick="downloadSelfContainedPageWithData()" class="flex items-center gap-1.5 bg-indigo-800 hover:bg-indigo-700 border border-indigo-400/50 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-sm" title="Descargar la página HTML con los perfiles y cambios grabados">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="hard-drive-download" aria-hidden="true" class="lucide lucide-hard-drive-download w-3.5 h-3.5 text-cyan-300"><path d="M12 2v8"></path><path d="m16 6-4 4-4-4"></path><rect width="20" height="8" x="2" y="14" rx="2"></rect><path d="M6 18h.01"></path><path d="M10 18h.01"></path></svg>
+                        <span>Guardar Código Base (.html)</span>
+                    </button>
+
+                    <button type="button" id="topBtnQuickSaveCheckpoint" onclick="saveCurrentWorkspaceCheckpoint(true)" class="flex items-center gap-1.5 bg-cyan-700 hover:bg-cyan-600 border border-cyan-300/50 text-white px-3 py-1.5 rounded-xl text-xs font-extrabold transition shadow-sm" title="Guardar página en su estado actual">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="bookmark-check" aria-hidden="true" class="lucide lucide-bookmark-check w-3.5 h-3.5 text-amber-300"><path d="M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z"></path><path d="m9 10 2 2 4-4"></path></svg>
+                        <span>Guardar Página</span>
+                    </button>
+
+                    <button type="button" id="physicalVaultBtn" onclick="openDatabaseVaultModal()" class="flex items-center gap-1.5 bg-teal-800 hover:bg-teal-700 border border-teal-400/40 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="file-spreadsheet" aria-hidden="true" class="lucide lucide-file-spreadsheet w-3.5 h-3.5 text-teal-200"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M8 13h2"></path><path d="M14 13h2"></path><path d="M8 17h2"></path><path d="M14 17h2"></path></svg>
+                        <span id="physicalVaultLabel">Base Excel (.xlsx)</span>
+                    </button>
+
+                    <div class="flex items-center gap-1.5 bg-blue-900/90 border border-blue-700 px-3 py-1.5 rounded-xl text-xs font-semibold">
+                        <span id="sessionStatusDot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        <span id="headerActiveUsername">Administrador General</span>
+                        <span id="headerActiveRoleName" class="px-2 py-0.5 rounded-md bg-slate-700 text-amber-200 font-extrabold text-[10px]">ADMIN</span>
+                    </div>
+
+                    <form onsubmit="unlockProfileByQuickAccessCode(event)" class="flex items-center gap-1.5 bg-blue-900/95 border border-amber-400/70 px-3 py-1.5 rounded-xl shadow-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="key-round" aria-hidden="true" class="lucide lucide-key-round w-4 h-4 text-amber-300 shrink-0"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"></path><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"></circle></svg>
+                        <input type="password" id="quickAccessCodeInput" aria-label="Código de acceso otorgado por el Administrador" placeholder="Ingresa código de acceso..." autocomplete="off" class="w-36 sm:w-44 bg-blue-950/95 border border-blue-600 rounded-lg px-2.5 py-1 text-xs text-white placeholder-blue-300/80 font-bold outline-none focus:border-amber-400">
+                        <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-blue-950 font-extrabold px-3 py-1 rounded-lg text-xs transition shrink-0">
+                            Entrar
+                        </button>
+                        <button type="button" id="topBtnLockSession" onclick="lockProfileQuickAccess()" title="Cerrar sesión y bloquear pantalla" class="bg-slate-800 hover:bg-slate-700 text-amber-300 px-2 py-1 rounded-lg text-[11px] font-bold transition shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="lock" aria-hidden="true" class="lucide lucide-lock w-3.5 h-3.5"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        </button>
+                    </form>
+
+                    <button type="button" id="topBtnAdminPortal" onclick="switchMainWorkspaceTab('roles')" class="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 border border-amber-400/50 text-amber-300 px-3 py-1.5 rounded-xl text-xs font-extrabold transition shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="shield-check" aria-hidden="true" class="lucide lucide-shield-check w-3.5 h-3.5"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="m9 12 2 2 4-4"></path></svg>
+                        <span>Panel de Control</span>
+                    </button>
+
+                    <button type="button" id="topBtnPeriods" onclick="openPeriodsModal()" class="flex items-center gap-1.5 bg-blue-900 hover:bg-blue-800 text-blue-100 px-3 py-1.5 rounded-xl text-xs font-medium transition border border-blue-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="calendar-range" aria-hidden="true" class="lucide lucide-calendar-range w-4 h-4 text-amber-400"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M16 2v3"></path><path d="M3 9h18"></path><path d="M8 2v3"></path><path d="M17 13h-6"></path><path d="M13 17H7"></path><path d="M7 13h.01"></path><path d="M17 17h.01"></path></svg>
+                        <span>Periodos</span>
+                    </button>
+
+                    <button type="button" id="topBtnHistory" onclick="openHistoryModal()" class="flex items-center gap-1.5 bg-blue-900 hover:bg-blue-800 text-blue-100 px-3 py-1.5 rounded-xl text-xs font-semibold transition border border-blue-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="folder-clock" aria-hidden="true" class="lucide lucide-folder-clock w-4 h-4 text-amber-400"><path d="M17 15.5v1.7l1 .625"></path><path d="M8.512 20H4a2 2 0 01-2-2V5a2 2 0 012-2h3.9a2 2 0 011.69.9l.81 1.2a2 2 0 001.67.9H20a2 2 0 012 2v1.516"></path><circle cx="17" cy="17" r="5"></circle></svg>
+                        <span>Historial</span>
+                        <span id="historyCountBadge" class="bg-amber-500 text-blue-950 font-extrabold px-1.5 py-0.5 rounded-full text-[10px]">0</span>
+                    </button>
+
+                    <button type="button" id="topBtnSaveAndDownloadPdf" onclick="saveAndDownloadConstanciaPDF()" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-4 py-1.5 rounded-xl text-xs sm:text-sm shadow-md transition border border-emerald-300/50">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="file-check" aria-hidden="true" class="lucide lucide-file-check w-4 h-4"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="m9 15 2 2 4-4"></path></svg>
+                        <span>Guardar y Descargar PDF</span>
+                    </button>
+
+                    <button type="button" id="topBtnPrintConstancia" onclick="printOfficialConstancia()" class="flex items-center gap-1.5 bg-sky-600 hover:bg-sky-500 text-white font-extrabold px-3.5 py-1.5 rounded-xl text-xs sm:text-sm shadow-md transition border border-sky-300/50">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="printer" aria-hidden="true" class="lucide lucide-printer w-4 h-4"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"></path><rect x="6" y="14" width="12" height="8" rx="1"></rect></svg>
+                        <span>Imprimir</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="headerWorkspaceTabsBar" class="flex items-center justify-between gap-2 pt-1 border-t border-blue-900/80 overflow-x-auto">
+                <div class="flex items-center gap-1.5">
+                    <button type="button" id="mainTabBtn-constancias" onclick="switchMainWorkspaceTab('constancias')" class="px-4 py-2 rounded-t-xl text-xs font-extrabold flex items-center gap-2 bg-slate-100 text-blue-950 shadow-sm transition shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="file-text" aria-hidden="true" class="lucide lucide-file-text w-4 h-4 text-blue-900"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg> Generador de Constancias
+                    </button>
+                    <button type="button" id="mainTabBtn-licenciaturas" onclick="switchMainWorkspaceTab('licenciaturas')" class="px-4 py-2 rounded-t-xl text-xs font-bold flex items-center gap-2 bg-blue-950/60 hover:bg-blue-800 text-blue-100 transition shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="graduation-cap" aria-hidden="true" class="lucide lucide-graduation-cap w-4 h-4 text-emerald-300"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"></path><path d="M22 10v6"></path><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"></path></svg> Licenciaturas y RVOE
+                    </button>
+                    <button type="button" id="mainTabBtn-roles" onclick="switchMainWorkspaceTab('roles')" class="px-4 py-2 rounded-t-xl text-xs font-bold flex items-center gap-2 bg-blue-950/60 hover:bg-blue-800 text-blue-100 transition shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="shield-check" aria-hidden="true" class="lucide lucide-shield-check w-4 h-4 text-amber-400"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="m9 12 2 2 4-4"></path></svg> Panel de Control
+                    </button>
+                </div>
+
+                <div id="headerQuickActionsBar" class="hidden lg:flex items-center gap-1.5 pb-1 text-[11px]">
+                    <button type="button" id="hdrQuickFolioBtn" onclick="incrementFolioByOne()" class="px-2.5 py-1 rounded-lg bg-blue-900 hover:bg-blue-800 text-blue-100 font-bold border border-blue-700 transition">
+                        +1 Folio
+                    </button>
+                    <button type="button" id="hdrQuickClearBtn" onclick="clearStudentQuickCommand()" class="px-2.5 py-1 rounded-lg bg-blue-900 hover:bg-blue-800 text-blue-100 font-bold border border-blue-700 transition">
+                        Limpiar Alumno
+                    </button>
+                    <button type="button" id="hdrQuickCopyBtn" onclick="copyDocumentTextCommand()" class="px-2.5 py-1 rounded-lg bg-blue-900 hover:bg-blue-800 text-blue-100 font-bold border border-blue-700 transition">
+                        Copiar Texto
+                    </button>
+                    <button type="button" id="hdrQuickTodayBtn" onclick="setTodayExpeditionDate(false); updateDocument(); showToast('Fecha actualizada al día de hoy.');" class="px-2.5 py-1 rounded-lg bg-blue-900 hover:bg-blue-800 text-blue-100 font-bold border border-blue-700 transition">
+                        Fecha Hoy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- PANTALLA DE BLOQUEO -->
+    <div id="lockedHeaderNotice" class="no-print flex-1 flex items-center justify-center p-6 hidden">
+        <div class="max-w-md w-full bg-white border border-slate-200 rounded-3xl shadow-sm p-7 text-center space-y-3">
+            <div class="w-14 h-14 rounded-2xl bg-blue-950 text-amber-400 flex items-center justify-center mx-auto shadow-md">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="key-round" aria-hidden="true" class="lucide lucide-key-round w-7 h-7"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"></path><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"></circle></svg>
+            </div>
+            <h2 class="text-lg font-extrabold text-blue-950">Sistema Protegido • UAP</h2>
+            <p class="text-xs text-slate-600 leading-relaxed">
+                Coloca tu <strong>código de acceso</strong> en el recuadro de la barra superior y presiona <strong>Entrar</strong> para cargar el Generador Oficial de Constancias.
+            </p>
+        </div>
+    </div>
+
+    <!-- CONTENEDOR PRINCIPAL -->
+    <main id="appMainContainer" class="max-w-[1920px] w-full mx-auto px-4 sm:px-6 py-4 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- COLUMNA IZQUIERDA: EDITOR -->
+        <section id="editorFormColumn" class="no-print lg:col-span-6 xl:col-span-5 space-y-5 lg:max-h-[calc(100vh-110px)] lg:overflow-y-auto lg:pr-2.5 pb-6">
+
+            <div id="readOnlyRoleAlert" class="hidden bg-amber-50 border border-amber-300 text-amber-900 rounded-2xl p-4 text-xs leading-relaxed flex items-center gap-3 shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="lock" aria-hidden="true" class="lucide lucide-lock w-4 h-4 text-amber-600 shrink-0"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <span id="readOnlyRoleAlertText">Modo <strong>Solo Visualización</strong>: ingresa tu código asignado por el Administrador en la barra superior para editar.</span>
+            </div>
+
+            <!-- 1. MODALIDAD Y FORMATO -->
+            <div id="secBlockModalidad" class="bg-white rounded-2xl shadow-sm border border-slate-200/90 p-5 space-y-4">
+                <div class="flex items-center justify-between gap-2">
+                    <h2 class="text-xs font-extrabold uppercase tracking-wider text-blue-900 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="file-check-2" aria-hidden="true" class="lucide lucide-file-check-2 w-4 h-4 text-amber-600"><path d="M10.5 22H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v6"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="m14 20 2 2 4-4"></path></svg>
+                        1. Modalidad de Constancia
+                    </h2>
+                    <button type="button" id="cardBtnSaveCheckpoint" onclick="saveCurrentWorkspaceCheckpoint(true)" class="px-3 py-1.5 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white font-extrabold text-[11px] flex items-center gap-1.5 shadow-sm transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="bookmark-check" aria-hidden="true" class="lucide lucide-bookmark-check w-3.5 h-3.5 text-amber-300"><path d="M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z"></path><path d="m9 10 2 2 4-4"></path></svg>
+                        <span>Guardar Página</span>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    <button type="button" onclick="selectDocType('simple')" id="btn-type-simple" class="doc-type-btn py-3 px-2.5 rounded-xl border-2 border-blue-900 bg-blue-50 text-blue-950 font-semibold text-xs text-center transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="file-text" aria-hidden="true" class="lucide lucide-file-text w-4 h-4 mx-auto mb-1.5 text-blue-900"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+                        Simple
+                    </button>
+                    <button type="button" onclick="selectDocType('anteriores')" id="btn-type-anteriores" class="doc-type-btn py-3 px-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 font-medium text-xs text-center transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="history" aria-hidden="true" class="lucide lucide-history w-4 h-4 mx-auto mb-1.5 text-purple-600"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l4 2"></path></svg>
+                        Periodos Ant.
+                    </button>
+                    <button type="button" onclick="selectDocType('vacaciones')" id="btn-type-vacaciones" class="doc-type-btn py-3 px-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 font-medium text-xs text-center transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="sun" aria-hidden="true" class="lucide lucide-sun w-4 h-4 mx-auto mb-1.5 text-amber-500"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
+                        Vacaciones
+                    </button>
+                    <button type="button" onclick="selectDocType('calificaciones')" id="btn-type-calificaciones" class="doc-type-btn py-3 px-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 font-medium text-xs text-center transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="table-2" aria-hidden="true" class="lucide lucide-table-2 w-4 h-4 mx-auto mb-1.5 text-emerald-600"><path d="M3 9h18"></path><path d="M9 3v18"></path><rect x="3" y="3" width="18" height="18" rx="2"></rect></svg>
+                        Calificaciones
+                    </button>
+                    <button type="button" onclick="selectDocType('kardex')" id="btn-type-kardex" class="doc-type-btn py-3 px-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 font-medium text-xs text-center transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="layers" aria-hidden="true" class="lucide lucide-layers w-4 h-4 mx-auto mb-1.5 text-indigo-600"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"></path><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"></path><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"></path></svg>
+                        Kardex
+                    </button>
+                    <button type="button" onclick="selectDocType('montos')" id="btn-type-montos" class="doc-type-btn py-3 px-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 font-medium text-xs text-center transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="badge-dollar-sign" aria-hidden="true" class="lucide lucide-badge-dollar-sign w-4 h-4 mx-auto mb-1.5 text-teal-600"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"></path><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><path d="M12 18V6"></path></svg>
+                        Montos
+                    </button>
+                    <button type="button" onclick="selectDocType('resguardo')" id="btn-type-resguardo" class="doc-type-btn py-3 px-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 font-medium text-xs text-center transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="folder-lock" aria-hidden="true" class="lucide lucide-folder-lock w-4 h-4 mx-auto mb-1.5 text-rose-600"><rect width="8" height="5" x="14" y="17" rx="1"></rect><path d="M10 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v2.5"></path><path d="M20 17v-2a2 2 0 1 0-4 0v2"></path></svg>
+                        Resguardo de Documentos
+                    </button>
+                </div>
+
+                <div id="secBlockFormatos" class="pt-4 border-t border-slate-200/90 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <label for="customDocFormatText" class="text-xs font-extrabold text-blue-950 flex items-center gap-1.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="file-edit" aria-hidden="true" class="lucide lucide-file-edit w-3.5 h-3.5 text-amber-600"><path d="M12.659 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v9.34"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10.378 12.622a1 1 0 0 1 3 3.003L8.36 20.637a2 2 0 0 1-.854.506l-2.867.837a.5.5 0 0 1-.62-.62l.836-2.869a2 2 0 0 1 .506-.853z"></path></svg>
+                            Estructura Completa (<span id="currentFormatLabelBadge" class="text-blue-700">Simple</span>)
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <button type="button" id="btnResetFormat" onclick="resetCurrentDocTypeFormat()" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] transition">
+                                Restaurar Base
+                            </button>
+                            <button type="button" id="btnSaveFormat" onclick="saveCurrentDocTypeFormat()" class="px-3 py-1.5 rounded-lg bg-blue-950 hover:bg-blue-900 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-sm transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="save" aria-hidden="true" class="lucide lucide-save w-3.5 h-3.5 text-emerald-300"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"></path><path d="M7 3v4a1 1 0 0 0 1 1h7"></path></svg> Guardar Formato
+                            </button>
+                        </div>
+                    </div>
+                    <textarea id="customDocFormatText" rows="8" oninput="onCustomFormatTextareaInput()" placeholder="Edita aquí toda la constancia desde el Oficio/Folio hasta la Firma..." class="w-full rounded-xl border border-blue-200 bg-blue-50/40 focus:bg-white p-3.5 text-xs font-medium leading-relaxed text-slate-800 focus:ring-2 focus:ring-blue-600 outline-none"></textarea>
+                    <details class="group bg-slate-50 border border-slate-200/80 rounded-xl px-3.5 py-2.5">
+                        <summary class="cursor-pointer text-[11px] font-bold text-slate-700 flex items-center justify-between select-none">
+                            <span>Insertar variables dinámicas ({ALUMNO}, {FOLIO}, {PERIODO}...)</span>
+                            <span class="text-blue-700 group-open:hidden">Mostrar</span>
+                            <span class="text-slate-500 hidden group-open:inline">Ocultar</span>
+                        </summary>
+                        <div id="formatTokensBar" class="flex flex-wrap items-center gap-1.5 pt-2.5 mt-2 border-t border-slate-200/70 text-[10px] text-slate-500">
+                            <button type="button" onclick="insertFormatToken('{FOLIO}')" class="px-2 py-1 rounded-md bg-white border border-slate-200 hover:bg-blue-50 font-mono text-blue-900">{FOLIO}</button>
+                            <button type="button" onclick="insertFormatToken('{ASUNTO}')" class="px-2 py-1 rounded-md bg-white border border-slate-200 hover:bg-blue-50 font-mono text-blue-900">{ASUNTO}</button>
+                            <button type="button" onclick="insertFormatToken('{CIUDAD_MAYUS}')" class="px-2 py-1 rounded-md bg-white border border-slate-200 hover:bg-blue-50 font-mono text-blue-900">{CIUDAD_MAYUS}</button>
+                            <button type="button" onclick="insertFormatToken('{FECHA_MAYUS}')" class="px-2 py-1 rounded-md bg-white border border-slate-200 hover:bg-blue-50 font-mono text-blue-900">{FECHA_MAYUS}</button>
+                            <button type="button" onclick="insertFormatToken('{TRATAMIENTO}')" class="px-2 py-1 rounded-md bg-white border border-slate-200 hover:bg-blue-50 font-mono text-blue-900">{TRATAMIENTO}</button>
+                            <button type="button" onclick="insertFormatToken('{ALUMNO}')" class="px-2 py-1 rounded-md bg-white border border-slate-200 hover:bg-blue-50 font-mono text-blue-900">{ALUMNO}</button>
+                            <button type="button" onclick="insertFormatToken('{MATRICULA}')" class="px-2 py-1 rounded-md bg-white border border-slate-200 hover:bg-blue-50 font-mono text-blue-900">{MATRICULA}</button>
+                            <button type="button" onclick="insertFormatToken('{INSCRITO}')" class="px-2 py-1 rounded-md bg-white border border-slate-200 hover:bg-blue-50 font-mono text-blue-900">{INSCRITO}</button>
+                            <button type="button" onclick="insertFormatToken('{GRADO}')" class="px-2 py-1 rounded-md bg-white border border-slate-200 hover:bg-blue-50 font-mono text-blue-900">{GRADO}</button>
+                            <button type="button" onclick="insertFormatToken('{LICENCIATURA}')" class="px-2 py-1 rounded-md bg-white border border-slate-200 hover:bg-blue-50 font-mono text-blue-900">{LICENCIATURA}</button>
+                            <button type="button" onclick="insertFormatToken('{RVOE}')" class="px-2 py-1 rounded-md bg-white border border-slate-200 hover:bg-blue-50 font-mono text-blue-900">{RVOE}</button>
+                            <button type="button" onclick="insertFormatToken('{PERIODO}')" class="px-2 py-1 rounded-md bg-white border border-slate-200 hover:bg-blue-50 font-mono text-blue-900">{PERIODO}</button>
+                            <button type="button" onclick="insertFormatToken('{INICIO_PERIODO}')" class="px-2 py-1 rounded-md bg-white border border-slate-200 hover:bg-blue-50 font-mono text-blue-900">{INICIO_PERIODO}</button>
+                            <button type="button" onclick="insertFormatToken('{FIN_PERIODO}')" class="px-2 py-1 rounded-md bg-white border border-slate-200 hover:bg-blue-50 font-mono text-blue-900">{FIN_PERIODO}</button>
+                            <button type="button" onclick="insertFormatToken('{TABLA}')" class="px-2 py-1 rounded-md bg-amber-50 border border-amber-300 hover:bg-amber-100 font-mono font-bold text-amber-900">{TABLA}</button>
+                            <button type="button" onclick="insertFormatToken('{FIRMANTE}')" class="px-2 py-1 rounded-md bg-white border border-slate-200 hover:bg-blue-50 font-mono text-blue-900">{FIRMANTE}</button>
+                            <button type="button" onclick="insertFormatToken('{CARGO_FIRMANTE}')" class="px-2 py-1 rounded-md bg-white border border-slate-200 hover:bg-blue-50 font-mono text-blue-900">{CARGO_FIRMANTE}</button>
+                        </div>
+                    </details>
+                </div>
+            </div>
+
+            <!-- 2. DATOS DE EXPEDICIÓN Y OFICIO -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/90 p-5 space-y-4">
+                <h2 class="text-xs font-extrabold uppercase tracking-wider text-blue-900 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="stamp" aria-hidden="true" class="lucide lucide-stamp w-4 h-4 text-amber-600"><path d="M14 13V8.5C14 7 15 7 15 5a3 3 0 0 0-6 0c0 2 1 2 1 3.5V13"></path><path d="M20 15.5a2.5 2.5 0 0 0-2.5-2.5h-11A2.5 2.5 0 0 0 4 15.5V17a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1z"></path><path d="M5 22h14"></path></svg>
+                    2. Expedición y Oficio
+                </h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Número de Oficio / Folio</label>
+                        <input type="text" id="inputFolio" value="UAP/TEZ/SE/0142/2026" oninput="updateDocument()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-600 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Ciudad de Expedición</label>
+                        <input type="text" id="inputCiudad" value="TEZIUTLÁN, PUEBLA" oninput="updateDocument()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-600 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Fecha de Expedición</label>
+                        <input type="date" id="inputFecha" onchange="updateDocument()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-600 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Destinatario (A QUIEN CORRESPONDA)</label>
+                        <input type="text" id="inputDestinatario" value="A QUIEN CORRESPONDA" oninput="updateDocument()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-600 outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. DATOS DEL ALUMNO Y LICENCIATURA -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/90 p-5 space-y-4">
+                <h2 class="text-xs font-extrabold uppercase tracking-wider text-blue-900 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user-check" aria-hidden="true" class="lucide lucide-user-check w-4 h-4 text-amber-600"><path d="m16 11 2 2 4-4"></path><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                    3. Datos del Estudiante y Programa
+                </h2>
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                    <div class="sm:col-span-8">
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Nombre Completo del Alumno(a)</label>
+                        <input type="text" id="inputAlumno" value="MARÍA FERNANDA GONZÁLEZ HERNÁNDEZ" oninput="detectGenderFromName(); updateDocument();" placeholder="Ej. JUAN CARLOS PÉREZ LÓPEZ" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-800 uppercase focus:ring-2 focus:ring-blue-600 outline-none">
+                    </div>
+                    <div class="sm:col-span-4">
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Género</label>
+                        <select id="selectGenero" onchange="updateDocument()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-800 bg-white focus:ring-2 focus:ring-blue-600 outline-none">
+                            <option value="F">Femenino (La C. / alumna)</option>
+                            <option value="M">Masculino (El C. / alumno)</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-5">
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Matrícula Institucional</label>
+                        <input type="text" id="inputMatricula" value="2024UAP0894" oninput="updateDocument()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-800 uppercase focus:ring-2 focus:ring-blue-600 outline-none">
+                    </div>
+                    <div class="sm:col-span-7">
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Grado / Cuatrimestre o Semestre</label>
+                        <input type="text" id="inputGrado" value="QUINTO CUATRIMESTRE" oninput="updateDocument()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-800 uppercase focus:ring-2 focus:ring-blue-600 outline-none">
+                    </div>
+                    <div class="sm:col-span-12">
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Licenciatura / Programa Académico</label>
+                        <select id="selectLicenciatura" onchange="onSelectMajor()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-800 bg-white focus:ring-2 focus:ring-blue-600 outline-none"><option value="der">LICENCIATURA EN DERECHO</option><option value="adm">LICENCIATURA EN ADMINISTRACIÓN DE EMPRESAS</option><option value="con">LICENCIATURA EN CONTADURÍA PÚBLICA</option><option value="psi">LICENCIATURA EN PSICOLOGÍA</option><option value="ped">LICENCIATURA EN PEDAGOGÍA</option><option value="enf">LICENCIATURA EN ENFERMERÍA</option><option value="nut">LICENCIATURA EN NUTRICIÓN</option><option value="arq">LICENCIATURA EN ARQUITECTURA</option><option value="isc">INGENIERÍA EN SISTEMAS COMPUTACIONALES</option></select>
+                    </div>
+                    <div class="sm:col-span-12">
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Acuerdo RVOE Oficial</label>
+                        <input type="text" id="inputRvoe" oninput="updateDocument()" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-600 outline-none">
+                    </div>
+                    <div class="sm:col-span-12">
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Periodo Escolar Activo</label>
+                        <select id="selectPeriodo" onchange="onSelectPeriod()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-800 bg-white focus:ring-2 focus:ring-blue-600 outline-none"><option value="p1">OTOÑO 2026 (SEPTIEMBRE - DICIEMBRE 2026)</option><option value="p2">PRIMAVERA 2026 (ENERO - ABRIL 2026)</option><option value="p3">VERANO 2026 (MAYO - AGOSTO 2026)</option></select>
+                    </div>
+                    <div class="sm:col-span-6">
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Inicio de Periodo</label>
+                        <input type="text" id="inputInicioPeriodo" value="04 DE SEPTIEMBRE DE 2026" oninput="updateDocument()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-600 outline-none">
+                    </div>
+                    <div class="sm:col-span-6">
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Término de Periodo</label>
+                        <input type="text" id="inputFinPeriodo" value="18 DE DICIEMBRE DE 2026" oninput="updateDocument()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-600 outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. DATOS ESPECÍFICOS SEGÚN MODALIDAD -->
+            <div id="dynamicModalityFieldsCard" class="bg-white rounded-2xl shadow-sm border border-slate-200/90 p-5 space-y-4">
+                <h2 class="text-xs font-extrabold uppercase tracking-wider text-blue-900 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="sliders" aria-hidden="true" class="lucide lucide-sliders w-4 h-4 text-amber-600"><path d="M10 8h4"></path><path d="M12 21v-9"></path><path d="M12 8V3"></path><path d="M17 16h4"></path><path d="M19 12V3"></path><path d="M19 21v-5"></path><path d="M3 14h4"></path><path d="M5 10V3"></path><path d="M5 21v-7"></path></svg>
+                    4. Datos Específicos de la Modalidad
+                </h2>
+
+                <!-- Campos Vacaciones -->
+                <div id="fields-vacaciones" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Inicio de Vacaciones</label>
+                        <input type="text" id="inputVacInicio" value="21 DE DICIEMBRE DE 2026" oninput="updateDocument()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-800">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Reanudación de Clases</label>
+                        <input type="text" id="inputVacFin" value="07 DE ENERO DE 2027" oninput="updateDocument()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-800">
+                    </div>
+                </div>
+
+                <!-- Campos Periodos Anteriores -->
+                <div id="fields-anteriores" class="hidden space-y-2">
+                    <label class="block text-[11px] font-bold text-slate-600">Detalle de Periodos Cursados Anteriormente</label>
+                    <textarea id="inputPeriodosAnteriores" rows="3" oninput="updateDocument()" class="w-full rounded-xl border border-slate-300 p-3 text-xs font-medium text-slate-800">Primer Cuatrimestre (Septiembre - Diciembre 2024), Segundo Cuatrimestre (Enero - Abril 2025), Tercer Cuatrimestre (Mayo - Agosto 2025) y Cuarto Cuatrimestre (Septiembre - Diciembre 2025).</textarea>
+                </div>
+
+                <!-- Campos Montos -->
+                <div id="fields-montos" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Costo de Inscripción</label>
+                        <input type="text" id="inputMontoInscripcion" value="$2,450.00 (DOS MIL CUATROCIENTOS CINCUENTA PESOS 00/100 M.N.)" oninput="updateDocument()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-800">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Costo de Colegiatura Mensual</label>
+                        <input type="text" id="inputMontoColegiatura" value="$2,890.00 (DOS MIL OCHOCIENTOS NOVENTA PESOS 00/100 M.N.)" oninput="updateDocument()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-800">
+                    </div>
+                </div>
+
+                <!-- Campos Resguardo -->
+                <div id="fields-resguardo" class="hidden space-y-2">
+                    <label class="block text-[11px] font-bold text-slate-600">Documentos Originales en Resguardo</label>
+                    <textarea id="inputDocumentosResguardo" rows="3" oninput="updateDocument()" class="w-full rounded-xl border border-slate-300 p-3 text-xs font-medium text-slate-800">Acta de Nacimiento Original, Certificado Total de Estudios de Bachillerato Legalizado, Clave Única de Registro de Población (CURP) y Certificado Médico.</textarea>
+                </div>
+
+                <!-- Tabla Editable Calificaciones / Kardex -->
+                <div id="fields-tabla-materias" class="hidden space-y-3">
+                    <div id="calificacionesBulkImportBox" class="hidden bg-emerald-50/90 border border-emerald-300 rounded-xl p-3 space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <label for="bulkCalificacionesInput" class="text-[11px] font-extrabold text-emerald-950 flex items-center gap-1.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clipboard-paste" aria-hidden="true" class="lucide lucide-clipboard-paste w-3.5 h-3.5 text-emerald-700"><path d="M11 14h10"></path><path d="M16 4h2a2 2 0 0 1 2 2v1.344"></path><path d="m17 18 4-4-4-4"></path><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 1.793-1.113"></path><rect x="8" y="2" width="8" height="4" rx="1"></rect></svg>
+                                Pegar / Capturar Calificaciones (Sustituye las actuales)
+                            </label>
+                            <button type="button" onclick="parseAndReplaceCalificaciones()" class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-extrabold shadow-xs transition">
+                                Sustituir Tabla
+                            </button>
+                        </div>
+                        <textarea id="bulkCalificacionesInput" rows="4" placeholder="Pega aquí desde Excel o escribe una materia por línea:
+GRUPO | CÓDIGO | MATERIA | CALIFICACIÓN
+Ej: 4A    DER-401    DERECHO CONSTITUCIONAL    9.5" class="w-full rounded-xl border border-emerald-300 bg-white p-2.5 text-[11px] font-mono text-slate-800 focus:ring-2 focus:ring-emerald-600 outline-none"></textarea>
+                        <p class="text-[10px] text-emerald-800 leading-tight">
+                            Acepta filas copiadas directo de Excel (tabulaciones), separadas por <strong>|</strong>, <strong>;</strong>, comas o espacios: <strong>Grupo, Código de Materia, Materia y Calificación</strong>.
+                        </p>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold text-slate-700">Asignaturas y Calificaciones</span>
+                        <button type="button" onclick="addGradeRow()" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="plus" aria-hidden="true" class="lucide lucide-plus w-3 h-3"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg> Agregar Materia
+                        </button>
+                    </div>
+                    <div id="gradesEditorRows" class="space-y-2 max-h-56 overflow-y-auto pr-1"></div>
+                </div>
+
+                <!-- Firmante Autorizado -->
+                <div class="pt-3 border-t border-slate-200/80 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Nombre del Firmante</label>
+                        <input type="text" id="inputFirmante" value="LIC. ALEJANDRA MENDOZA RUIZ" oninput="updateDocument()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-800">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Cargo Oficial</label>
+                        <input type="text" id="inputCargoFirmante" value="JEFA DEL DEPARTAMENTO DE SERVICIOS ESCOLARES" oninput="updateDocument()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-800">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. TIPOGRAFÍA DEL DOCUMENTO -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/90 p-5 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-extrabold uppercase tracking-wider text-blue-900 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="type" aria-hidden="true" class="lucide lucide-type w-4 h-4 text-amber-600"><path d="M12 4v16"></path><path d="M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"></path><path d="M9 20h6"></path></svg>
+                        5. Tipografía, Negritas e Interlineado
+                    </h2>
+                    <button type="button" onclick="resetAdminDocTypography()" class="text-[11px] font-bold text-blue-700 hover:underline">Restaurar</button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                    <div class="sm:col-span-5">
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1">Tipo de Letra</label>
+                        <div class="flex items-center gap-1.5">
+                            <select id="typoFontFamily" onchange="updateAdminDocTypography(true)" class="w-full rounded-xl border border-slate-300 px-2.5 py-1.5 text-xs font-semibold bg-white">
+                                <option value="Arial, Helvetica, sans-serif">Arial Oficial</option>
+                                <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                                <option value="Calibri, 'Segoe UI', sans-serif">Calibri</option>
+                            </select>
+                            <button type="button" onmousedown="event.preventDefault()" onclick="toggleSelectedTextBold()" title="Selecciona texto en la estructura de la constancia o en la vista previa y presiona aquí para ponerlo en Negritas" class="px-3 py-1.5 rounded-xl bg-blue-950 hover:bg-blue-900 text-white font-black text-xs border border-blue-800 shadow-xs shrink-0 flex items-center gap-1 transition">
+                                <span>B</span>
+                                <span class="text-[10px] font-semibold">Negritas</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="sm:col-span-3">
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1">Tamaño (<span id="typoFontSizeVal">11.5pt</span>)</label>
+                        <input type="range" id="typoFontSize" min="9.5" max="13.5" step="0.5" value="11.5" oninput="updateAdminDocTypography(true)" class="w-full accent-blue-900">
+                    </div>
+                    <div class="sm:col-span-4">
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1">Interlineado (<span id="typoLineHeightVal">1.15</span>)</label>
+                        <input type="range" id="typoLineHeight" min="1.05" max="1.60" step="0.05" value="1.15" oninput="updateAdminDocTypography(true)" class="w-full accent-blue-900">
+                    </div>
+                </div>
+                <p class="text-[10px] text-slate-500">
+                    Tip: Selecciona cualquier palabra o frase en la caja de <strong>Estructura Completa</strong> (o directamente en la hoja) y haz clic en <strong>B Negritas</strong>.
+                </p>
+            </div>
+        </section>
+
+        <!-- COLUMNA DERECHA: VISTA PREVIA EN HOJA CARTA -->
+        <section id="previewSection" class="lg:col-span-6 xl:col-span-7 flex flex-col rounded-2xl overflow-hidden border border-slate-300 shadow-md bg-slate-200">
+            <div class="no-print bg-slate-900 text-white px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2 text-xs font-bold">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="eye" aria-hidden="true" class="lucide lucide-eye w-4 h-4 text-amber-400"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <span>Vista Previa Tamaño Carta (215.9mm × 279.4mm)</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <button type="button" onclick="adjustPreviewZoom(-0.08)" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200" title="Alejar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="zoom-out" aria-hidden="true" class="lucide lucide-zoom-out w-3.5 h-3.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" x2="16.65" y1="21" y2="16.65"></line><line x1="8" x2="14" y1="11" y2="11"></line></svg>
+                    </button>
+                    <span id="previewZoomLabel" class="text-[11px] font-mono font-bold px-2 text-amber-300">78%</span>
+                    <button type="button" onclick="adjustPreviewZoom(0.08)" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200" title="Acercar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="zoom-in" aria-hidden="true" class="lucide lucide-zoom-in w-3.5 h-3.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" x2="16.65" y1="21" y2="16.65"></line><line x1="11" x2="11" y1="8" y2="14"></line><line x1="8" x2="14" y1="11" y2="11"></line></svg>
+                    </button>
+                    <button type="button" onclick="adjustPreviewZoom(0, true)" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-slate-200 ml-1">
+                        Ajustar
+                    </button>
+                </div>
+            </div>
+
+            <div class="preview-scroll-wrapper flex-1 flex justify-center items-start min-h-[680px] lg:max-h-[calc(100vh-155px)]">
+                <div id="previewScaleBox" class="preview-scale-box" style="transform: scale(0.78);">
+                    <div id="officialLetterSheet" class="letter-sheet">
+                        <div class="doc-smart-content">
+                            <div class="doc-top-three-lines"></div>
+                            <div id="documentRenderedBody" class="doc-body-text" style="--doc-font-size: 11.5pt; --doc-line-height: 1.15; --doc-para-mb: 10pt; --doc-blank-h: 10pt; --doc-table-my: 8pt; --doc-cell-py: 4pt; --doc-kardex-py: 2.8pt; --doc-table-font: 9.5pt; --doc-kardex-font: 8.5pt; --doc-sig-rule-mt: 34pt; --doc-sig-mt: 16pt; --doc-font-family: Arial, Helvetica, sans-serif;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PESTAÑA 2: LICENCIATURAS Y RVOE -->
+        <section id="majorsRvoeTabContainer" class="hidden lg:col-span-12 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-5">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
+                <div>
+                    <h2 class="text-base font-extrabold text-blue-950 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="graduation-cap" aria-hidden="true" class="lucide lucide-graduation-cap w-5 h-5 text-emerald-600"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"></path><path d="M22 10v6"></path><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"></path></svg>
+                        Catálogo Oficial de Licenciaturas y RVOE
+                    </h2>
+                    <p class="text-xs text-slate-500">Administra los programas académicos y sus acuerdos de incorporación oficiales.</p>
+                </div>
+            </div>
+
+            <form onsubmit="addNewMajorRvoe(event)" class="grid grid-cols-1 md:grid-cols-12 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <div class="md:col-span-5">
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Nombre de la Licenciatura</label>
+                    <input type="text" id="newMajorNameInput" required="" placeholder="Ej. LICENCIATURA EN DERECHO" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold uppercase">
+                </div>
+                <div class="md:col-span-5">
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Acuerdo RVOE</label>
+                    <input type="text" id="newMajorRvoeInput" required="" placeholder="Ej. RVOE SEP-SES/21/114/01/1234/2020" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold">
+                </div>
+                <div class="md:col-span-2 flex items-end">
+                    <button type="submit" class="w-full bg-blue-950 hover:bg-blue-900 text-white font-extrabold py-2 px-4 rounded-xl text-xs transition">
+                        + Agregar
+                    </button>
+                </div>
+            </form>
+
+            <div id="majorsCatalogList" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+        </section>
+
+        <!-- PESTAÑA 3: PANEL DE CONTROL (ROLES Y RESPALDOS) -->
+        <section id="rolesAdminTabContainer" class="hidden lg:col-span-12 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
+                <div>
+                    <h2 class="text-base font-extrabold text-blue-950 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="shield-check" aria-hidden="true" class="lucide lucide-shield-check w-5 h-5 text-amber-600"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="m9 12 2 2 4-4"></path></svg>
+                        Panel de Control: Perfiles y Permisos por Constancia
+                    </h2>
+                    <p class="text-xs text-slate-500">Crea, modifica o elimina perfiles definitivamente. Cualquier cambio o eliminación actualiza automáticamente el código base interno y la descarga HTML.</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" onclick="addNewUserProfile()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user-plus" aria-hidden="true" class="lucide lucide-user-plus w-4 h-4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" x2="19" y1="8" y2="14"></line><line x1="22" x2="16" y1="11" y2="11"></line></svg> + Nuevo Perfil
+                    </button>
+                    <button type="button" onclick="openSourceCodeSyncModal()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-blue-950 text-xs font-extrabold flex items-center gap-1.5 shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="link" aria-hidden="true" class="lucide lucide-link w-4 h-4"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg> Enlace Sincronizado / Código Base
+                    </button>
+                    <button type="button" onclick="downloadSelfContainedPageWithData()" class="px-3.5 py-2 rounded-xl bg-indigo-700 hover:bg-indigo-600 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="code-2" aria-hidden="true" class="lucide lucide-code-2 w-4 h-4 text-cyan-300"><path d="m18 16 4-4-4-4"></path><path d="m6 8-4 4 4 4"></path><path d="m14.5 4-5 16"></path></svg> Descargar HTML Fuente
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-blue-50/90 border border-blue-200 rounded-2xl p-4 text-xs text-blue-950 flex flex-wrap items-center justify-between gap-3">
+                <div class="space-y-1">
+                    <div class="font-extrabold flex items-center gap-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="globe" aria-hidden="true" class="lucide lucide-globe w-4 h-4 text-emerald-600"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
+                        <span>Sincronización Universal en Cualquier PC y Enlace</span>
+                    </div>
+                    <p class="text-[11px] text-slate-700">
+                        Cada cambio que guarde el Administrador se sincroniza en la nube global, en el código fuente y en el <strong>Enlace Compartible</strong> para que cualquier usuario en cualquier computadora vea los mismos permisos y actualizaciones al instante.
+                    </p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="copyUniversalSyncedLink()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-xs transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="share-2" aria-hidden="true" class="lucide lucide-share-2 w-3.5 h-3.5"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"></line><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"></line></svg> Copiar Enlace Actualizado
+                    </button>
+                    <span id="profilesCountIndicator" class="px-3 py-1.5 rounded-xl bg-blue-950 text-amber-300 font-extrabold text-[11px]">12 Perfiles</span>
+                </div>
+            </div>
+
+            <div id="profilesManagerGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-4"></div>
+        </section>
+
+    </main>
+
+    <!-- MODAL: PERIODOS ACADÉMICOS -->
+    <div id="periodsModal" class="no-print hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                <h3 class="text-sm font-extrabold text-blue-950 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="calendar-range" aria-hidden="true" class="lucide lucide-calendar-range w-4 h-4 text-amber-600"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M16 2v3"></path><path d="M3 9h18"></path><path d="M8 2v3"></path><path d="M17 13h-6"></path><path d="M13 17H7"></path><path d="M7 13h.01"></path><path d="M17 17h.01"></path></svg>
+                    Gestión de Periodos Escolares
+                </h3>
+                <button type="button" onclick="closePeriodsModal()" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="x" aria-hidden="true" class="lucide lucide-x w-4 h-4"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+                </button>
+            </div>
+
+            <form onsubmit="saveCustomAcademicPeriod(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                <input type="hidden" id="editPeriodIdInput">
+                <input type="text" id="periodNameInput" required="" placeholder="Nombre (Ej. OTOÑO 2026)" class="rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold uppercase">
+                <input type="text" id="periodStartInput" required="" placeholder="Inicio (Ej. 04 DE SEPTIEMBRE DE 2026)" class="rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold">
+                <div class="flex gap-1.5">
+                    <input type="text" id="periodEndInput" required="" placeholder="Fin (Ej. 18 DE DICIEMBRE DE 2026)" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold">
+                    <button type="submit" class="bg-blue-950 text-white px-3 py-2 rounded-xl text-xs font-extrabold shrink-0">Guardar</button>
+                </div>
+            </form>
+
+            <div id="periodsModalList" class="space-y-2 max-h-60 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: HISTORIAL DE CONSTANCIAS -->
+    <div id="historyModal" class="no-print hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                <h3 class="text-sm font-extrabold text-blue-950 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="folder-clock" aria-hidden="true" class="lucide lucide-folder-clock w-4 h-4 text-amber-600"><path d="M17 15.5v1.7l1 .625"></path><path d="M8.512 20H4a2 2 0 01-2-2V5a2 2 0 012-2h3.9a2 2 0 011.69.9l.81 1.2a2 2 0 001.67.9H20a2 2 0 012 2v1.516"></path><circle cx="17" cy="17" r="5"></circle></svg>
+                    Historial de Constancias Emitidas
+                </h3>
+                <button type="button" onclick="closeHistoryModal()" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="x" aria-hidden="true" class="lucide lucide-x w-4 h-4"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+                </button>
+            </div>
+            <div id="historyModalList" class="space-y-2 max-h-80 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: BASE EXCEL (.XLSX) -->
+    <div id="databaseVaultModal" class="no-print hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                <h3 class="text-sm font-extrabold text-blue-950 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="file-spreadsheet" aria-hidden="true" class="lucide lucide-file-spreadsheet w-4 h-4 text-teal-600"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M8 13h2"></path><path d="M14 13h2"></path><path d="M8 17h2"></path><path d="M14 17h2"></path></svg>
+                    Base de Datos Excel (.xlsx)
+                </h3>
+                <button type="button" onclick="closeDatabaseVaultModal()" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="x" aria-hidden="true" class="lucide lucide-x w-4 h-4"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+                </button>
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+                Carga un archivo Excel con columnas <strong>MATRICULA, ALUMNO, LICENCIATURA, GRADO</strong> para autocompletar alumnos al instante, o exporta el historial emitido a Excel.
+            </p>
+            <div class="flex flex-wrap gap-2">
+                <label class="cursor-pointer flex-1 bg-teal-700 hover:bg-teal-600 text-white font-extrabold py-2.5 px-4 rounded-xl text-xs text-center transition">
+                    Cargar Padrón Excel (.xlsx)
+                    <input type="file" accept=".xlsx,.xls,.csv" onchange="importStudentsExcel(event)" class="hidden">
+                </label>
+                <button type="button" onclick="exportHistoryToExcel()" class="flex-1 bg-blue-950 hover:bg-blue-900 text-white font-extrabold py-2.5 px-4 rounded-xl text-xs transition">
+                    Exportar Historial (.xlsx)
+                </button>
+            </div>
+            <div id="loadedStudentsBox" class="hidden pt-2 border-t border-slate-200 space-y-2">
+                <label class="block text-[11px] font-bold text-slate-700">Seleccionar Alumno del Padrón Cargado:</label>
+                <select id="selectImportedStudent" onchange="applyImportedStudent(this.value)" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold"></select>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: MODIFICAR Y GUARDAR CÓDIGO FUENTE PARA CUALQUIER ENLACE -->
+    <div id="sourceCodeSyncModal" class="no-print hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                <h3 class="text-sm font-extrabold text-blue-950 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="file-code-2" aria-hidden="true" class="lucide lucide-file-code-2 w-5 h-5 text-amber-600"><path d="M4 12.15V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2h-3.35"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="m5 16-3 3 3 3"></path><path d="m9 22 3-3-3-3"></path></svg>
+                    Modificar y Guardar en Código Fuente (Acceso Universal desde Cualquier Enlace)
+                </h3>
+                <button type="button" onclick="closeSourceCodeSyncModal()" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="x" aria-hidden="true" class="lucide lucide-x w-4 h-4"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed">
+                Todos los usuarios, permisos y cambios del Administrador se vinculan automáticamente con la nube y con el enlace de la página. Puedes copiar el <strong>Enlace Universal Sincronizado</strong> (para abrirlo desde cualquier PC) o descargar el archivo HTML actualizado:
+            </p>
+
+            <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2">
+                <div class="text-[11px] text-emerald-950 font-bold">
+                    Enlace directo con todos los permisos y cambios actuales listos para cualquier PC:
+                </div>
+                <button type="button" onclick="copyUniversalSyncedLink()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-xs transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="link" aria-hidden="true" class="lucide lucide-link w-3.5 h-3.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg> Copiar Enlace para Cualquier PC
+                </button>
+            </div>
+
+            <div class="space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <label for="sourceVaultJsonEditor" class="text-[11px] font-extrabold text-blue-950">Bloque Incrustado en Código Fuente (Perfiles, Permisos y Catálogos):</label>
+                    <span id="sourceProfilesSummaryBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900"></span>
+                </div>
+                <textarea id="sourceVaultJsonEditor" rows="10" class="w-full rounded-2xl border border-slate-300 bg-slate-950 text-emerald-300 p-3.5 text-[11px] font-mono leading-relaxed focus:ring-2 focus:ring-amber-500 outline-none"></textarea>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200">
+                <button type="button" onclick="applyEditedSourceVaultJson()" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-blue-950 text-xs font-extrabold flex items-center gap-1.5 shadow-sm transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="check-circle" aria-hidden="true" class="lucide lucide-check-circle w-4 h-4"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg> Aplicar Modificación al Código Fuente
+                </button>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" onclick="copyFullUpdatedSourceHtml()" class="px-4 py-2.5 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="copy" aria-hidden="true" class="lucide lucide-copy w-4 h-4 text-amber-400"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg> Copiar Código Fuente Completo
+                    </button>
+                    <button type="button" onclick="downloadSelfContainedPageWithData()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="download" aria-hidden="true" class="lucide lucide-download w-4 h-4"><path d="M12 15V3"></path><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path></svg> Guardar y Descargar HTML
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOTIFICACIÓN TOAST -->
+    <div id="toastNotification" class="no-print fixed bottom-5 right-5 z-50 transform transition-all duration-200 hidden">
+        <div class="bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl border border-slate-700 flex items-center gap-2.5 text-xs font-bold">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="check-circle-2" aria-hidden="true" class="lucide lucide-check-circle-2 w-4 h-4 text-emerald-400 shrink-0"><circle cx="12" cy="12" r="10"></circle><path d="m16 9-5.5 5.5L8 12"></path></svg>
+            <span id="toastMessageText">Acceso correcto.</span>
+        </div>
+    </div>
+
+</div>
+<script data-cookieconsent="ignore" src="https://d3fit27i5nzkqh.cloudfront.net/sales/vendors.d3668682ba8aafd1.js" async=""></script>
