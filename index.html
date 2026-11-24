@@ -1215,7 +1215,7 @@
                     vacEnd: p.vacEnd || '07 DE ENERO DE 2027'
                 })),
                 customTemplates: rawTemplates,
-                savedVisualLayouts: { ...(baseData.savedVisualLayouts || {}), ...(merged.savedVisualLayouts || {}) },
+                savedVisualLayouts: {},
                 globalDefaults: { ...(baseData.globalDefaults || {}), ...(merged.globalDefaults || {}) },
                 typography: {
                     fontFamily: merged.typography?.fontFamily || 'Arial, Helvetica, sans-serif',
@@ -1553,16 +1553,6 @@
         }
 
         function onDirectSheetVisualInput() {
-            const bodyEl = document.getElementById('documentRenderedBody');
-            if (bodyEl) {
-                if (!vaultState.savedVisualLayouts) vaultState.savedVisualLayouts = {};
-                const parameterizedHtml = convertVisualSheetToTemplateHtml(bodyEl);
-                vaultState.savedVisualLayouts[currentDocType] = {
-                    templateHtml: parameterizedHtml,
-                    lastValuesSnapshot: getCurrentDocumentTokenValues().map,
-                    typography: JSON.parse(JSON.stringify(vaultState.typography))
-                };
-            }
             fitDocumentToSingleLetterSheet();
         }
 
@@ -1725,9 +1715,7 @@
             }
             const baseTpl = DEFAULT_TEMPLATES[currentDocType] || '';
             vaultState.customTemplates[currentDocType] = baseTpl;
-            if (vaultState.savedVisualLayouts && vaultState.savedVisualLayouts[currentDocType]) {
-                delete vaultState.savedVisualLayouts[currentDocType];
-            }
+            vaultState.savedVisualLayouts = {};
             const customTa = document.getElementById('customDocFormatText');
             if (customTa) customTa.value = baseTpl;
             persistVaultData(true);
@@ -1746,19 +1734,10 @@
             if (customTa) {
                 vaultState.customTemplates[currentDocType] = customTa.value;
             }
-            const bodyEl = document.getElementById('documentRenderedBody');
-            if (bodyEl) {
-                if (!vaultState.savedVisualLayouts) vaultState.savedVisualLayouts = {};
-                const currentSnapshot = getCurrentDocumentTokenValues().map;
-                const parameterizedHtml = convertVisualSheetToTemplateHtml(bodyEl, currentSnapshot);
-                vaultState.savedVisualLayouts[currentDocType] = {
-                    templateHtml: parameterizedHtml,
-                    lastValuesSnapshot: currentSnapshot,
-                    typography: JSON.parse(JSON.stringify(vaultState.typography))
-                };
-            }
+            vaultState.savedVisualLayouts = {};
             persistVaultData(false);
-            showToast('Formato guardado y vinculado con todos los campos del formulario.');
+            updateDocument(true);
+            showToast('Formato guardado y sincronizado automáticamente con todos los campos.');
         }
 
         function insertFormatToken(token) {
@@ -1905,22 +1884,9 @@
             return withMarkers.replace(/ {2,}/g, (spaces) => '&nbsp;'.repeat(spaces.length));
         }
 
-        function updateDocument(forceTemplateRender = false) {
+        function updateDocument() {
             const bodyEl = document.getElementById('documentRenderedBody');
             if (!bodyEl) return;
-
-            const savedLayout = !forceTemplateRender && vaultState.savedVisualLayouts?.[currentDocType];
-            if (savedLayout && (savedLayout.templateHtml || savedLayout.html)) {
-                const tplHtml = savedLayout.templateHtml || savedLayout.html;
-                const boundHtml = renderBoundVisualLayoutHtml(tplHtml, savedLayout.lastValuesSnapshot || null);
-                bodyEl.innerHTML = boundHtml;
-                if (savedLayout.typography) {
-                    vaultState.typography = JSON.parse(JSON.stringify(savedLayout.typography));
-                }
-                applyGlobalTypographyVariables();
-                fitDocumentToSingleLetterSheet();
-                return;
-            }
 
             const data = getCurrentDocumentTokenValues();
             const {
