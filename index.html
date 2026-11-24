@@ -462,13 +462,11 @@
                         </div>
                         <div>
                             <label class="block text-[10px] font-bold text-slate-400 mb-1">Personal Access Token (Actualizable en cada envío)</label>
-                            <input type="password" id="inpGithubToken" oninput="saveGithubIntegrationSettings()" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" class="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white font-mono text-xs outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-400 mb-1">Rama / Archivo Destino</label>
                             <div class="flex gap-1.5">
-                                <input type="text" id="inpGithubBranch" value="main" oninput="saveGithubIntegrationSettings()" placeholder="main" class="w-1/2 px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white font-mono text-xs outline-none">
-                                <input type="text" id="inpGithubFilePath" value="index.html" readonly title="Siempre se despliega como index.html" class="w-1/2 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-amber-400 font-mono font-bold text-xs outline-none cursor-not-allowed">
+                                <input type="password" id="inpGithubToken" oninput="saveGithubIntegrationSettings()" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" class="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white font-mono text-xs outline-none">
+                                <button type="button" onclick="updateSystemGithubToken()" class="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[10px] whitespace-nowrap transition" title="Actualizar y guardar el token del sistema">
+                                    Actualizar Token
+                                </button>
                             </div>
                         </div>
                         <div>
@@ -1070,18 +1068,31 @@
             }
         }
         // INTERVENTOR DE CACHÉ Y ACTUALIZACIÓN EN VIVO PARA TODOS LOS USUARIOS CONECTADOS
+        async function purgeAllBrowserCaches() {
+            try {
+                if ('caches' in window) {
+                    const cacheKeys = await caches.keys();
+                    await Promise.all(cacheKeys.map(key => caches.delete(key)));
+                }
+            } catch (e) {
+                console.warn('No se pudo limpiar CacheStorage:', e);
+            }
+        }
+
         async function checkRemoteDeploymentVersion(manualNotify = false) {
             try {
+                await purgeAllBrowserCaches();
                 if (window.location.protocol === 'file:' || window.location.href.startsWith('about:') || window.location.href.startsWith('blob:')) {
                     if (manualNotify) showToast('Modo local activo. Sube index.html a GitHub para verificar despliegues remotos.');
                     return;
                 }
                 const cleanUrl = window.location.href.split('#')[0].split('?')[0];
-                const response = await fetch(`${cleanUrl}?nocache=${Date.now()}`, {
+                const response = await fetch(`${cleanUrl}?nocache=${Date.now()}&r=${Math.random().toString(36).slice(2)}`, {
                     cache: 'no-store',
                     headers: {
-                        'Cache-Control': 'no-cache, no-store, must-revalidate',
-                        'Pragma': 'no-cache'
+                        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
                     }
                 });
                 if (!response.ok) return;
@@ -1091,12 +1102,19 @@
                     const remoteVault = JSON.parse(match[1]);
                     const remoteVer = remoteVault?.deploymentVersion || 0;
                     if (remoteVer > (appState.deploymentVersion || 0)) {
+                        // Preservar token local del administrador si el remoto viene vacío
+                        const preservedToken = appState.githubConfig?.token || '';
                         applyParsedStateObject(remoteVault);
+                        if (!appState.githubConfig.token && preservedToken) {
+                            appState.githubConfig.token = preservedToken;
+                        }
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(buildSerializableVaultPayload()));
                         const vaultTag = document.getElementById('embeddedInternalVaultData');
                         if (vaultTag) vaultTag.textContent = JSON.stringify(buildSerializableVaultPayload());
-                        refreshAllUI();
-                        showToast('Información actualizada automáticamente desde el sistema.');
+                        if (appState.activeSession) {
+                            refreshAllUI();
+                        }
+                        showToast('Versión más reciente cargada automáticamente (caché limpiada).');
                     } else if (manualNotify) {
                         showToast('Ya tienes la versión más reciente desplegada.');
                     }
@@ -1106,15 +1124,33 @@
             }
         }
 
-        function forceReloadLatestDeployment() {
+        async function forceReloadLatestDeployment() {
+            await purgeAllBrowserCaches();
             const baseUrl = window.location.href.split('#')[0].split('?')[0];
             window.location.replace(`${baseUrl}?v=${Date.now()}`);
         }
 
-        function unlockProfileByFrontLogin(e) {
+        function updateSystemGithubToken() {
+            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
+                return showToast('Solo el Administrador puede actualizar el token del sistema.');
+            }
+            const tokenVal = (document.getElementById('inpGithubToken')?.value || '').trim();
+            if (!tokenVal) {
+                return showToast('Escribe el nuevo Personal Access Token antes de actualizar.');
+            }
+            saveGithubIntegrationSettings();
+            const badge = document.getElementById('githubSyncStatusBadge');
+            if (badge) {
+                badge.textContent = `Token actualizado (${new Date().toLocaleTimeString('es-MX')}) ✓`;
+            }
+            showToast('Token del sistema actualizado y guardado correctamente.');
+        }
+
+        async function unlockProfileByFrontLogin(e) {
             if (e) e.preventDefault();
+            await purgeAllBrowserCaches();
             loadPersistedState(true);
-            checkRemoteDeploymentVersion(false);
+            await checkRemoteDeploymentVersion(false);
             const input = document.getElementById('frontLoginCodeInput');
             const errBox = document.getElementById('frontLoginError');
             const entered = (input?.value || '').trim();
@@ -2353,6 +2389,16 @@
                 appState.extractedFormState = extractCurrentSystemFields();
                 persistBaseState(true, true, true);
             }
+        });
+
+        window.addEventListener('load', async () => {
+            await purgeAllBrowserCaches();
+            loadPersistedState(false);
+            await checkRemoteDeploymentVersion(false);
+            setTodayExpeditionDate(true);
+            setInterval(() => {
+                checkRemoteDeploymentVersion(false);
+            }, 10000);
         });
     </script>
 </div>
