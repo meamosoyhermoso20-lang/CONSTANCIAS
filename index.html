@@ -110,7 +110,7 @@
             font-size: var(--doc-font-size, 12pt);
             line-height: var(--doc-line-height, 1.15);
             color: #000000;
-            text-align: justify;
+            text-align: justify !important;
         }
 
         .doc-body-text strong,
@@ -125,6 +125,8 @@
         .doc-para {
             margin-bottom: var(--doc-para-mb, 10pt);
             white-space: pre-wrap;
+            text-align: justify !important;
+            text-justify: inter-word;
         }
 
         .doc-para-right {
