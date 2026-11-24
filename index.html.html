@@ -1,0 +1,2136 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>SISTEMA BUBU 1.0 · Generador Oficial de Constancias UAMP</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f1f5f9;
+        color: #0f172a;
+    }
+    .letter-page {
+        width: 215.9mm;
+        min-height: 279.4mm;
+        padding: 18mm 20mm;
+        box-sizing: border-box;
+    }
+    @media print {
+        body * {
+            visibility: hidden !important;
+        }
+        #constanciaPaper, #constanciaPaper * {
+            visibility: visible !important;
+        }
+        #constanciaPaper {
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 215.9mm !important;
+            min-height: 279.4mm !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            border: none !important;
+        }
+        .no-print {
+            display: none !important;
+        }
+    }
+</style>
+
+<div class="bg-slate-100 text-slate-900 min-h-screen">
+
+    <!-- PANTALLA DE INICIO DE SESIÓN OBLIGATORIA (SISTEMA BUBU 1.0) -->
+    <div id="frontLoginScreen" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 p-4">
+        <div class="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-md w-full p-7 sm:p-8">
+            <div class="flex flex-col items-center text-center mb-6">
+                <div class="w-16 h-16 rounded-2xl bg-blue-950 text-amber-400 flex items-center justify-center font-black text-xl shadow-lg border border-blue-800 mb-3">
+                    UAMP
+                </div>
+                <span class="text-[11px] font-extrabold uppercase tracking-widest text-blue-900 bg-blue-50 px-3 py-1 rounded-full border border-blue-200 mb-2">
+                    Control Escolar Oficial
+                </span>
+                <h1 class="text-2xl font-black tracking-tight text-slate-900">SISTEMA BUBU 1.0</h1>
+                <p class="text-xs text-slate-500 mt-1">Ingresa tu código de usuario o administrador para acceder al panel.</p>
+            </div>
+
+            <form onsubmit="unlockProfileByFrontLogin(event)" class="space-y-4">
+                <div>
+                    <label for="frontLoginCodeInput" class="block text-xs font-bold text-slate-700 mb-1.5">Código de Acceso</label>
+                    <input type="password" id="frontLoginCodeInput" autocomplete="off" placeholder="Escribe tu código asignado..." class="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 tracking-wider focus:ring-2 focus:ring-blue-900 outline-none">
+                </div>
+
+                <div id="frontLoginError" class="hidden text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2"></div>
+
+                <button type="submit" class="w-full py-3 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-sm font-extrabold shadow-lg transition cursor-pointer">
+                    Iniciar Sesión
+                </button>
+            </form>
+
+            <p class="mt-5 text-[10px] text-center text-slate-400">Acceso autorizado para personal administrativo y usuarios registrados.</p>
+        </div>
+    </div>
+
+    <!-- CONTENEDOR PRINCIPAL DE TRABAJO (OCULTO HASTA INICIAR SESIÓN) -->
+    <div id="mainAppWorkspace" class="hidden min-h-screen flex flex-col">
+
+        <!-- ENCABEZADO SUPERIOR DE SISTEMA BUBU 1.0 -->
+        <header class="no-print bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40 shadow-md">
+            <div class="max-w-[1600px] mx-auto px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-blue-900 border border-blue-700 flex items-center justify-center font-black text-amber-400 text-xs shadow-inner">UAMP</div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-black tracking-tight text-white">SISTEMA BUBU 1.0</span>
+                            <span id="activeSessionBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">Sesión Activa</span>
+                        </div>
+                        <p class="text-[10px] text-slate-400">Generador Oficial de Constancias Académicas · UAMP</p>
+                    </div>
+                </div>
+
+                <!-- PESTAÑAS DE NAVEGACIÓN PRINCIPAL -->
+                <nav class="flex items-center gap-1.5 bg-slate-800/90 p-1 rounded-xl border border-slate-700">
+                    <button type="button" id="tabBtnGenerador" data-header-btn="tab_generador" onclick="switchMainWorkspaceTab('generador')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-700 text-white shadow-sm transition">
+                        Generador de Constancias
+                    </button>
+                    <button type="button" id="tabBtnCatalogos" data-header-btn="tab_catalogos" onclick="switchMainWorkspaceTab('catalogos')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-700 transition">
+                        Licenciaturas y RVOE
+                    </button>
+                    <button type="button" id="tabBtnControlPanel" data-header-btn="tab_control_panel" onclick="switchMainWorkspaceTab('control_panel')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-700 transition">
+                        Panel de Control
+                    </button>
+                </nav>
+
+                <!-- ACCIONES DEL ENCABEZADO -->
+                <div class="flex flex-wrap items-center gap-1.5">
+                    <button type="button" data-header-btn="btn_pdf" onclick="saveAndDownloadConstanciaPDF()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow transition">
+                        Descargar PDF
+                    </button>
+                    <button type="button" data-header-btn="btn_print" onclick="printConstanciaDocument()" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold transition">
+                        Imprimir
+                    </button>
+                    <button type="button" data-header-btn="btn_history" onclick="openHistoryModal()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition">
+                        Historial
+                    </button>
+                    <button type="button" data-header-btn="btn_excel" onclick="openDatabaseVaultModal()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition">
+                        Base Excel
+                    </button>
+                    <button type="button" data-header-btn="btn_periods" onclick="openPeriodsModal()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition">
+                        Periodos
+                    </button>
+                    <button type="button" data-header-btn="btn_save_html" onclick="downloadSelfContainedPageWithData()" class="px-2.5 py-1.5 rounded-lg bg-indigo-900/80 hover:bg-indigo-800 border border-indigo-700 text-indigo-100 text-xs font-semibold transition">
+                        Exportar index.html
+                    </button>
+                    <button type="button" onclick="lockProfileQuickAccess()" class="px-2.5 py-1.5 rounded-lg bg-rose-900/80 hover:bg-rose-800 border border-rose-700 text-rose-100 text-xs font-bold transition">
+                        Cerrar Sesión
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- AVISO DE NUEVA VERSIÓN DESPLEGADA (INTERVENTOR DE CACHÉ) -->
+        <div id="newDeploymentBanner" class="hidden no-print bg-amber-500 text-slate-950 px-4 py-2 text-xs font-extrabold flex items-center justify-center gap-3 shadow-md">
+            <span>Se detectó una nueva actualización oficial desplegada por el Administrador.</span>
+            <button type="button" onclick="forceReloadLatestDeployment()" class="px-3 py-1 rounded-lg bg-slate-950 text-white text-[11px] font-bold hover:bg-slate-800">
+                Cargar Nueva Versión Ahora
+            </button>
+        </div>
+
+        <!-- VISTA 1: GENERADOR DE CONSTANCIAS (IZQUIERDA: CAMPOS / DERECHA: CONSTANCIA) -->
+        <main id="workspaceViewGenerador" class="flex-1 max-w-[1600px] w-full mx-auto px-3 sm:px-5 py-4">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+                <!-- COLUMNA IZQUIERDA: PANEL DE CAMPOS Y CONFIGURACIÓN -->
+                <section class="no-print lg:col-span-5 xl:col-span-5 space-y-4 lg:max-h-[calc(100vh-5.5rem)] lg:overflow-y-auto lg:pr-1">
+
+                    <!-- SELECTOR DE TIPO DE CONSTANCIA -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+                        <div class="flex items-center justify-between mb-2.5">
+                            <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-700">1. Modalidad de Documento</h2>
+                            <span id="currentDocTypeBadge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-900 border border-blue-200">ESTUDIOS</span>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5" id="docTypeSelectorGrid">
+                            <button type="button" data-doc-btn="estudios" onclick="selectDocType('estudios')" class="doc-type-btn px-2.5 py-2 rounded-xl text-xs font-bold border border-blue-900 bg-blue-900 text-white text-left transition">Estudios</button>
+                            <button type="button" data-doc-btn="calificaciones" onclick="selectDocType('calificaciones')" class="doc-type-btn px-2.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 text-left transition">Calificaciones</button>
+                            <button type="button" data-doc-btn="periodos_anteriores" onclick="selectDocType('periodos_anteriores')" class="doc-type-btn px-2.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 text-left transition">Periodos Anteriores</button>
+                            <button type="button" data-doc-btn="montos" onclick="selectDocType('montos')" class="doc-type-btn px-2.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 text-left transition">Montos y Cuotas</button>
+                            <button type="button" data-doc-btn="kardex" onclick="selectDocType('kardex')" class="doc-type-btn px-2.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 text-left transition">Kardex</button>
+                            <button type="button" data-doc-btn="resguardo" onclick="selectDocType('resguardo')" class="doc-type-btn px-2.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 text-left transition">Resguardo</button>
+                        </div>
+
+                        <!-- BARRA DE COMANDOS RÁPIDOS -->
+                        <div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-1.5">
+                            <button type="button" data-header-btn="cmd_folio" onclick="incrementFolioByOne()" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition">+1 Folio</button>
+                            <button type="button" data-header-btn="cmd_clear" onclick="clearStudentQuickCommand()" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition">Limpiar Alumno</button>
+                            <button type="button" data-header-btn="cmd_copy" onclick="copyDocumentTextCommand()" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition">Copiar Texto</button>
+                            <button type="button" data-header-btn="cmd_today" onclick="setTodayExpeditionDate()" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition">Fecha Hoy</button>
+                            <button type="button" data-header-btn="cmd_reset_all" onclick="resetFormToDefaultsCommand()" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition">Restablecer Ejemplo</button>
+                        </div>
+                    </div>
+
+                    <!-- DATOS DEL ALUMNO Y FOLIO -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
+                        <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-700">2. Datos Generales y Control</h2>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div data-field-wrap="folio">
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Folio / Número de Oficio</label>
+                                <input type="text" id="inpFolio" value="DIR.C.E. 552/2025" oninput="updateDocument()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
+                            </div>
+                            <div data-field-wrap="fecha_expedicion">
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Fecha de Expedición</label>
+                                <input type="date" id="inpFechaExpedicion" oninput="updateDocument()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
+                            </div>
+                        </div>
+
+                        <div data-field-wrap="nombre_alumno">
+                            <label class="block text-[11px] font-bold text-slate-600 mb-1">Nombre Completo del Alumno</label>
+                            <input type="text" id="inpNombre" value="GOMEZ AMORES ENRIQUE" oninput="updateDocument()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none" placeholder="Ej. GOMEZ AMORES ENRIQUE">
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div data-field-wrap="matricula">
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Matrícula</label>
+                                <input type="text" id="inpMatricula" value="2211899" oninput="updateDocument()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
+                            </div>
+                            <div data-field-wrap="curp">
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">CURP</label>
+                                <input type="text" id="inpCurp" value="GOAE010412HPLRND09" oninput="updateDocument()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
+                            </div>
+                        </div>
+
+                        <div data-field-wrap="licenciatura">
+                            <label class="block text-[11px] font-bold text-slate-600 mb-1">Licenciatura / Programa Académico</label>
+                            <select id="selLicenciatura" onchange="updateDocument()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 bg-white focus:ring-2 focus:ring-blue-800 outline-none"></select>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div data-field-wrap="grado">
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Grado (Ej. 7° semestre / 1° Cuatrimestre)</label>
+                                <div class="flex gap-1.5">
+                                    <input type="text" id="inpPeriodoGrado" value="7° semestre" oninput="updateDocument()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
+                                    <select onchange="if(this.value){document.getElementById('inpPeriodoGrado').value=this.value;updateDocument();}" class="px-2 py-2 rounded-xl border border-slate-300 text-[11px] bg-slate-50 text-slate-700 font-semibold">
+                                        <option value="">Elegir...</option>
+                                        <option value="1° semestre">1° semestre</option>
+                                        <option value="2° semestre">2° semestre</option>
+                                        <option value="3° semestre">3° semestre</option>
+                                        <option value="4° semestre">4° semestre</option>
+                                        <option value="5° semestre">5° semestre</option>
+                                        <option value="6° semestre">6° semestre</option>
+                                        <option value="7° semestre">7° semestre</option>
+                                        <option value="8° semestre">8° semestre</option>
+                                        <option value="1° cuatrimestre">1° cuatrimestre</option>
+                                        <option value="2° cuatrimestre">2° cuatrimestre</option>
+                                        <option value="3° cuatrimestre">3° cuatrimestre</option>
+                                        <option value="4° cuatrimestre">4° cuatrimestre</option>
+                                        <option value="5° cuatrimestre">5° cuatrimestre</option>
+                                        <option value="6° cuatrimestre">6° cuatrimestre</option>
+                                        <option value="7° cuatrimestre">7° cuatrimestre</option>
+                                        <option value="8° cuatrimestre">8° cuatrimestre</option>
+                                        <option value="9° cuatrimestre">9° cuatrimestre</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div data-field-wrap="periodo_escolar">
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Periodo Escolar y Ciclo</label>
+                                <select id="selPeriodoEscolar" onchange="updateDocument()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 bg-white focus:ring-2 focus:ring-blue-800 outline-none"></select>
+                            </div>
+                        </div>
+
+                        <!-- OPCIÓN DESPLEGABLE PARA PERIODOS ANTERIORES -->
+                        <div id="periodosAnterioresControls" class="hidden pt-2 border-t border-slate-100 space-y-2" data-field-wrap="verbo_cursado">
+                            <label class="block text-[11px] font-bold text-blue-900">Estatus de Periodo (Periodos Anteriores)</label>
+                            <select id="selVerboCursado" onchange="updateDocument()" class="w-full px-3 py-2 rounded-xl border border-blue-300 bg-blue-50/50 text-xs font-bold text-slate-800 outline-none">
+                                <option value="cursó">cursó</option>
+                                <option value="cursó hasta">cursó hasta</option>
+                                <option value="cursará">cursará</option>
+                                <option value="cursará hasta">cursará hasta</option>
+                            </select>
+                        </div>
+
+                        <!-- TABLA EDITABLE DE CALIFICACIONES -->
+                        <div id="calificacionesControls" class="hidden pt-2 border-t border-slate-100 space-y-2.5" data-field-wrap="tabla_calificaciones">
+                            <div class="bg-blue-50/70 border border-blue-200 rounded-xl p-2.5 space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <label class="text-[11px] font-bold text-blue-950">Pegado Rápido (Separa en Grupo, Código, Materia y Calificación)</label>
+                                    <button type="button" onclick="parseGradesBulkInput()" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-extrabold shadow-xs transition">
+                                        Separar en Tabla
+                                    </button>
+                                </div>
+                                <textarea id="txtGradesBulkInput" rows="3" placeholder="Pega aquí tus renglones desde Excel o texto (Ej: 7A | FIS-701 | Fisioterapia Neurológica | 9.5)..." class="w-full px-2.5 py-1.5 rounded-lg border border-blue-200 bg-white text-[11px] font-mono text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none"></textarea>
+                            </div>
+
+                            <div class="flex items-center justify-between">
+                                <label class="text-[11px] font-bold text-blue-900">Grupo, Código, Materia y Calificación</label>
+                                <button type="button" onclick="addGradeRow()" class="px-2.5 py-1 rounded-lg bg-blue-900 text-white text-[11px] font-bold hover:bg-blue-800">+ Agregar Materia</button>
+                            </div>
+                            <div id="gradesRowsContainer" class="space-y-1.5"></div>
+                        </div>
+
+                        <!-- TABLA EDITABLE DE MONTOS Y CUOTAS -->
+                        <div id="montosControls" class="hidden pt-2 border-t border-slate-100 space-y-2" data-field-wrap="tabla_montos">
+                            <div class="flex items-center justify-between">
+                                <label class="text-[11px] font-bold text-blue-900">Tabla de Conceptos y Montos</label>
+                                <button type="button" onclick="addMontoRow()" class="px-2.5 py-1 rounded-lg bg-blue-900 text-white text-[11px] font-bold hover:bg-blue-800">+ Agregar Concepto</button>
+                            </div>
+                            <div id="montosRowsContainer" class="space-y-1.5"></div>
+                        </div>
+
+                        <!-- TABLA EDITABLE DE KARDEX ACADÉMICO -->
+                        <div id="kardexControls" class="hidden pt-2 border-t border-slate-100 space-y-2" data-field-wrap="tabla_kardex">
+                            <div class="flex items-center justify-between">
+                                <label class="text-[11px] font-bold text-blue-900">Historial Académico (Kardex)</label>
+                                <button type="button" onclick="addKardexRow()" class="px-2.5 py-1 rounded-lg bg-blue-900 text-white text-[11px] font-bold hover:bg-blue-800">+ Agregar Materia Kardex</button>
+                            </div>
+                            <div id="kardexRowsContainer" class="space-y-1.5"></div>
+                        </div>
+
+                        <!-- TABLA EDITABLE DE RESGUARDO -->
+                        <div id="resguardoControls" class="hidden pt-2 border-t border-slate-100 space-y-2" data-field-wrap="tabla_resguardo">
+                            <div class="flex items-center justify-between">
+                                <label class="text-[11px] font-bold text-blue-900">Relación de Bienes / Documentos en Resguardo</label>
+                                <button type="button" onclick="addResguardoRow()" class="px-2.5 py-1 rounded-lg bg-blue-900 text-white text-[11px] font-bold hover:bg-blue-800">+ Agregar Artículo</button>
+                            </div>
+                            <div id="resguardoRowsContainer" class="space-y-1.5"></div>
+                        </div>
+
+                        <div data-field-wrap="observaciones">
+                            <label class="block text-[11px] font-bold text-slate-600 mb-1">Cierre / Nota Adicional</label>
+                            <input type="text" id="inpDestinoNota" value="Sin más por el momento y para los fines del interesado se extiende la presente." oninput="updateDocument()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
+                        </div>
+                    </div>
+
+                    <!-- CUADRO DE MODIFICACIÓN DE FORMATO Y PLANTILLA POR MODALIDAD -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3" data-field-wrap="editor_formato">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-700">3. Editor de Formato de esta Modalidad</h2>
+                                <p class="text-[10px] text-slate-500">Personaliza el título y redacción oficial; se guarda permanente hasta volver a editar.</p>
+                            </div>
+                            <div class="flex gap-1.5">
+                                <button type="button" onclick="resetCurrentFormatTemplate()" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold">Restaurar</button>
+                                <button type="button" onclick="saveCurrentFormatTemplate()" class="px-3 py-1 rounded-lg bg-blue-900 hover:bg-blue-800 text-white text-[11px] font-bold shadow-sm transition">Guardar Formato</button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 mb-1">Título Oficial del Documento</label>
+                            <input type="text" id="inpCustomFormatTitle" oninput="previewCustomFormatLive()" class="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-800 outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 mb-1">Redacción / Estructura HTML del Cuerpo</label>
+                            <textarea id="txtCustomFormatBody" rows="5" oninput="previewCustomFormatLive()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono text-slate-800 leading-relaxed focus:ring-2 focus:ring-blue-800 outline-none"></textarea>
+                            <p class="mt-1 text-[10px] text-slate-500">
+                                Etiquetas disponibles: <code>{FIRMANTE}</code>, <code>{CARGO}</code>, <code>{RVOE}</code>, <code>{NOMBRE}</code>, <code>{MATRICULA}</code>, <code>{CURP}</code>, <code>{LICENCIATURA}</code>, <code>{GRADO}</code>, <code>{PERIODO}</code>, <code>{VERBO_CURSADO}</code>, <code>{TABLA_CALIFICACIONES}</code>, <code>{TABLA_MONTOS}</code>, <code>{TABLA_KARDEX}</code>, <code>{TABLA_RESGUARDO}</code>, <code>{NOTA}</code>, <code>{FECHA}</code>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- FIRMA OFICIAL Y TIPOGRAFÍA -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-700">4. Firma Responsable y Tipografía</h2>
+                            <button type="button" onclick="saveResponsibleSignature()" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shadow-sm transition">
+                                Guardar Firma
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div data-field-wrap="firmante_nombre">
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Nombre del Responsable</label>
+                                <input type="text" id="inpFirmanteNombre" value="Lic. Luis Enrique Hernández Melgarejo" oninput="updateDocument()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 outline-none">
+                            </div>
+                            <div data-field-wrap="firmante_cargo">
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Cargo Oficial</label>
+                                <input type="text" id="inpFirmanteCargo" value="Control Escolar" oninput="updateDocument()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 outline-none">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2 pt-1">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Fuente</label>
+                                <select id="selDocFontFamily" onchange="updateDocument()" class="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white">
+                                    <option value="Arial, Helvetica, sans-serif">Arial</option>
+                                    <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Tamaño (pt)</label>
+                                <input type="number" id="inpDocFontSize" value="11" min="9" max="14" step="0.5" oninput="updateDocument()" class="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Interlineado</label>
+                                <input type="number" id="inpDocLineHeight" value="1.3" min="1.0" max="2.0" step="0.05" oninput="updateDocument()" class="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- COLUMNA DERECHA: VISTA PREVIA EN TIEMPO REAL DE LA CONSTANCIA -->
+                <section class="lg:col-span-7 xl:col-span-7 lg:sticky lg:top-16">
+                    <div class="bg-slate-200/80 p-3 sm:p-5 rounded-2xl border border-slate-300 overflow-x-auto">
+                        <div id="constanciaPaper" class="letter-page bg-white text-black mx-auto shadow-xl flex flex-col justify-start overflow-hidden" style="font-family: Arial, Helvetica, sans-serif; font-size: 11pt; line-height: 1.3; height: 279.4mm; max-height: 279.4mm;">
+                            <div id="constanciaInnerContent">
+                                <!-- BLOQUE SUPERIOR DERECHO (OFICIO, ASUNTO Y LUGAR/FECHA) -->
+                                <div class="text-right mb-8" style="line-height: 1.35;">
+                                    <div id="docPreviewFolio">DIR.C.E. 552/2025</div>
+                                    <div>Asunto: <span id="docPreviewTitle">Constancia de Estudios</span></div>
+                                    <div id="docPreviewHeaderDate">Teziutlán, Puebla, 23 de Septiembre de 2025</div>
+                                </div>
+
+                                <!-- DESTINATARIO ALINEADO A LA IZQUIERDA -->
+                                <div class="mb-6" style="line-height: 1.3;">
+                                    <div class="font-bold">A QUIEN CORRESPONDA</div>
+                                    <div style="letter-spacing: 0.25em;">PRESENTE</div>
+                                </div>
+
+                                <!-- CUERPO DINÁMICO DE LA CONSTANCIA -->
+                                <div id="docDynamicBody" class="text-justify space-y-5"></div>
+
+                                <!-- BLOQUE DE FIRMA CENTRADO A 4 RENGLONES DE LA INFORMACIÓN -->
+                                <div style="margin-top: 4em;" class="text-center">
+                                    <div class="font-bold" style="margin-bottom: 3em;">ATENTAMENTE</div>
+                                    <div class="w-80 mx-auto border-t-2 border-black pt-1.5">
+                                        <div id="docPreviewFirmanteNombre" class="font-bold">Lic. Luis Enrique Hernández Melgarejo</div>
+                                        <div id="docPreviewFirmanteCargo" class="font-bold">Control Escolar</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- VISTA 2: CATÁLOGO DE LICENCIATURAS Y RVOE -->
+        <section id="workspaceViewCatalogos" class="hidden flex-1 max-w-5xl w-full mx-auto px-4 py-6 space-y-4">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <h2 class="text-base font-black text-slate-800 mb-1">Catálogo Oficial de Licenciaturas y RVOE</h2>
+                <p class="text-xs text-slate-500 mb-4">Agrega o administra los programas académicos y acuerdos RVOE que aparecen en las constancias.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
+                    <input type="text" id="newMajorName" placeholder="Nombre de la Licenciatura" class="px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold">
+                    <input type="text" id="newMajorRvoe" placeholder="Acuerdo RVOE (Ej. RVOE-SEP-123/2020)" class="px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold">
+                    <button type="button" onclick="addNewMajorRvoe()" class="px-4 py-2 rounded-xl bg-blue-900 hover:bg-blue-800 text-white text-xs font-bold transition">+ Agregar Licenciatura</button>
+                </div>
+                <div id="majorsCatalogList" class="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden"></div>
+            </div>
+        </section>
+
+        <!-- VISTA 3: PANEL DE CONTROL DE USUARIOS Y PERMISOS -->
+        <section id="workspaceViewControlPanel" class="hidden flex-1 max-w-6xl w-full mx-auto px-4 py-6 space-y-5">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                    <div>
+                        <h2 class="text-base font-black text-slate-800">Panel de Control · Usuarios y Permisos Granulares</h2>
+                        <p class="text-xs text-slate-500">Asigna códigos de acceso, permisos de modificación o solo selección por campo y botones del panel superior.</p>
+                    </div>
+                <!-- VINCULACIÓN Y DESPLIEGUE AUTOMÁTICO EN GITHUB (SOLO ADMINISTRADOR) -->
+                <div id="adminOnlyGithubSection" class="bg-slate-900 text-white rounded-2xl p-4 space-y-3 border border-slate-800 shadow-md">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded bg-amber-400 text-slate-950 text-[10px] font-black uppercase">Solo Administrador</span>
+                                <h3 class="text-xs font-black uppercase tracking-wider text-amber-400">Vinculación GitHub y Despliegue Automático (index.html)</h3>
+                            </div>
+                            <p class="text-[11px] text-slate-300 mt-1">Sigue los pasos numerados: al guardar cambios se sincroniza y sube el despliegue en tiempo real.</p>
+                        </div>
+                        <span id="githubSyncStatusBadge" class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">Listo para vincular</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 mb-1">Repositorio (usuario/repositorio)</label>
+                            <input type="text" id="inpGithubRepo" placeholder="ej. miusuario/constancias-uap" class="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white font-mono text-xs outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 mb-1">Personal Access Token (GitHub)</label>
+                            <input type="password" id="inpGithubToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" class="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white font-mono text-xs outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 mb-1">Rama / Archivo Destino</label>
+                            <div class="flex gap-1.5">
+                                <input type="text" id="inpGithubBranch" value="main" placeholder="main" class="w-1/2 px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white font-mono text-xs outline-none">
+                                <input type="text" id="inpGithubFilePath" value="index.html" readonly title="Siempre se despliega como index.html" class="w-1/2 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-amber-400 font-mono font-bold text-xs outline-none cursor-not-allowed">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 mb-1">URL Pública GitHub Pages</label>
+                            <input type="text" id="inpCustomDomainUrl" placeholder="https://usuario.github.io/repo/" class="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs outline-none">
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button type="button" onclick="saveGithubIntegrationAndAutoDeploy()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow transition flex items-center gap-1.5">
+                                <span class="px-1.5 py-0.5 rounded bg-slate-950 text-amber-400 text-[10px]">1° CLICK</span>
+                                Guardar Vinculación y Actualizar
+                            </button>
+                            <button type="button" onclick="downloadSelfContainedPageWithData()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1.5">
+                                <span class="px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-200 text-[10px]">2° OPCIONAL</span>
+                                Exportar Base como index.html
+                            </button>
+                            <button type="button" onclick="deployUpdateToGithub(true)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow transition flex items-center gap-1.5">
+                                <span class="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-200 text-[10px]">3° PUBLICAR</span>
+                                Subir Despliegue a GitHub
+                            </button>
+                        </div>
+                        <button type="button" onclick="checkRemoteDeploymentVersion(true)" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-[11px] font-bold transition">
+                            Verificar Nueva Versión Online
+                        </button>
+                    </div>
+                </div>
+
+                <!-- LISTA DE PERFILES DE USUARIO -->
+                <div id="profilesManagerContainer" class="space-y-4"></div>
+            </div>
+        </section>
+    </div>
+
+    <!-- MODAL: HISTORIAL DE CONSTANCIAS -->
+    <div id="historyModal" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-3xl w-full p-5 shadow-2xl border border-slate-200 space-y-4 max-h-[85vh] flex flex-col">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="text-sm font-black text-slate-800">Historial de Constancias Generadas</h3>
+                <div class="flex gap-2">
+                    <button type="button" onclick="exportHistoryToExcel()" class="px-3 py-1 rounded-lg bg-emerald-600 text-white text-xs font-bold">Exportar CSV/Excel</button>
+                    <button type="button" onclick="closeHistoryModal()" class="px-3 py-1 rounded-lg bg-slate-200 text-slate-700 text-xs font-bold">Cerrar</button>
+                </div>
+            </div>
+            <div id="historyListContainer" class="flex-1 overflow-y-auto divide-y divide-slate-100 text-xs"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: BASE DE DATOS EXCEL -->
+    <div id="databaseVaultModal" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full p-5 shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="text-sm font-black text-slate-800">Base de Datos de Alumnos (.xlsx / .csv)</h3>
+                <button type="button" onclick="closeDatabaseVaultModal()" class="px-3 py-1 rounded-lg bg-slate-200 text-slate-700 text-xs font-bold">Cerrar</button>
+            </div>
+            <div class="space-y-3 text-xs">
+                <p class="text-slate-600">Carga un archivo Excel (.xlsx o .csv) con columnas <b>Nombre</b>, <b>Matricula</b>, <b>CURP</b>, <b>Licenciatura</b> y <b>Grado</b> para autocompletar constancias.</p>
+                <input type="file" id="inpExcelStudentsFile" accept=".xlsx,.xls,.csv" onchange="importStudentsExcel(event)" class="block w-full text-xs border border-slate-300 rounded-xl p-2">
+                <div id="studentsVaultList" class="max-h-60 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-xl"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: PERIODOS ESCOLARES -->
+    <div id="periodsModal" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="text-sm font-black text-slate-800">Gestión de Periodos Escolares</h3>
+                <button type="button" onclick="closePeriodsModal()" class="px-3 py-1 rounded-lg bg-slate-200 text-slate-700 text-xs font-bold">Cerrar</button>
+            </div>
+            <div class="flex gap-2">
+                <input type="text" id="newAcademicPeriodInput" placeholder="Ej. Agosto 2026 - Enero 2027" class="flex-1 px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold">
+                <button type="button" onclick="saveCustomAcademicPeriod()" class="px-4 py-2 rounded-xl bg-blue-900 text-white text-xs font-bold">Agregar</button>
+            </div>
+            <div id="periodsModalList" class="max-h-60 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-xl"></div>
+        </div>
+    </div>
+
+    <!-- NOTIFICACIÓN FLOTANTE (TOAST) -->
+    <div id="toastNotification" class="hidden fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-2xl border border-slate-700"></div>
+
+    <!-- ALMACÉN EMBEBIDO EN EL CÓDIGO BASE -->
+    <script type="application/json" id="embeddedInternalVaultData">{}</script>
+
+    <script>
+        const ADMIN_MASTER_CODE = 'bubu03';
+        const STORAGE_KEY = 'SISTEMA_BUBU_1_0_UAMP_STATE_V3';
+
+        const HEADER_BUTTON_DEFINITIONS = [
+            { id: 'tab_generador', label: 'Pestaña Generador' },
+            { id: 'tab_catalogos', label: 'Pestaña Licenciaturas y RVOE' },
+            { id: 'tab_control_panel', label: 'Pestaña Panel de Control' },
+            { id: 'btn_pdf', label: 'Botón Descargar PDF' },
+            { id: 'btn_print', label: 'Botón Imprimir' },
+            { id: 'btn_history', label: 'Botón Historial' },
+            { id: 'btn_excel', label: 'Botón Base Excel' },
+            { id: 'btn_periods', label: 'Botón Periodos' },
+            { id: 'btn_save_html', label: 'Botón Exportar index.html' },
+            { id: 'cmd_folio', label: 'Atajo +1 Folio' },
+            { id: 'cmd_clear', label: 'Atajo Limpiar' },
+            { id: 'cmd_copy', label: 'Atajo Copiar' },
+            { id: 'cmd_today', label: 'Atajo Fecha Hoy' },
+            { id: 'cmd_reset_all', label: 'Atajo Restablecer' }
+        ];
+
+        const DOC_FIELD_DEFINITIONS = [
+            { id: 'folio', label: 'Folio / Control' },
+            { id: 'fecha_expedicion', label: 'Fecha de Expedición' },
+            { id: 'nombre_alumno', label: 'Nombre del Alumno' },
+            { id: 'matricula', label: 'Matrícula' },
+            { id: 'curp', label: 'CURP' },
+            { id: 'licenciatura', label: 'Licenciatura y RVOE' },
+            { id: 'grado', label: 'Grado (Semestre/Cuatrimestre)' },
+            { id: 'periodo_escolar', label: 'Periodo Escolar' },
+            { id: 'verbo_cursado', label: 'Estatus Periodos Anteriores' },
+            { id: 'tabla_calificaciones', label: 'Tabla de Calificaciones' },
+            { id: 'tabla_montos', label: 'Tabla de Montos y Cuotas' },
+            { id: 'tabla_kardex', label: 'Tabla de Kardex Académico' },
+            { id: 'tabla_resguardo', label: 'Tabla de Resguardo' },
+            { id: 'editor_formato', label: 'Cuadro Editor de Formato' },
+            { id: 'observaciones', label: 'Nota / A petición' },
+            { id: 'firmante_nombre', label: 'Nombre del Firmante' },
+            { id: 'firmante_cargo', label: 'Cargo del Firmante' }
+        ];
+
+        const DOC_MODALITIES_LIST = [
+            { id: 'estudios', label: 'Constancia de Estudios' },
+            { id: 'calificaciones', label: 'Constancia de Calificaciones' },
+            { id: 'periodos_anteriores', label: 'Periodos Anteriores' },
+            { id: 'montos', label: 'Montos y Cuotas' },
+            { id: 'kardex', label: 'Kardex Académico' },
+            { id: 'resguardo', label: 'Constancia de Resguardo' }
+        ];
+
+        const DEFAULT_DOC_TEMPLATES = {
+            estudios: {
+                title: 'Constancia de Estudios',
+                body: `<p style="text-indent: 42px;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que el alumno (a): <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}, cursa el {GRADO}, {PERIODO}.</p>
+<p>{NOTA}</p>`
+            },
+            calificaciones: {
+                title: 'Constancia de Calificaciones',
+                body: `<p style="text-indent: 42px;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que el alumno (a): <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}, obtuvo en el {GRADO}, {PERIODO}, las siguientes calificaciones:</p>
+{TABLA_CALIFICACIONES}
+<p>{NOTA}</p>`
+            },
+            periodos_anteriores: {
+                title: 'Constancia de Periodos Anteriores',
+                body: `<p style="text-indent: 42px;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que el alumno (a): <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}, <b>{VERBO_CURSADO}</b> el {GRADO}, {PERIODO}.</p>
+<p>{NOTA}</p>`
+            },
+            montos: {
+                title: 'Constancia de Montos y Cuotas',
+                body: `<p style="text-indent: 42px;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que el alumno (a): <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}, en el {GRADO}, {PERIODO}, presenta el siguiente desglose de montos y cuotas:</p>
+{TABLA_MONTOS}
+<p>{NOTA}</p>`
+            },
+            kardex: {
+                title: 'Kardex Académico',
+                body: `<p style="text-indent: 42px;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que el alumno (a): <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}, cuenta con el siguiente historial académico (Kardex) hasta el {GRADO}, {PERIODO}:</p>
+{TABLA_KARDEX}
+<p>{NOTA}</p>`
+            },
+            resguardo: {
+                title: 'Constancia de Resguardo',
+                body: `<p style="text-indent: 42px;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que el alumno (a): <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}, correspondiente al {GRADO}, {PERIODO}, mantiene bajo resguardo institucional lo siguiente:</p>
+{TABLA_RESGUARDO}
+<p>{NOTA}</p>`
+            }
+        };
+
+        function createDefaultFieldMatrix(mode = 'edit') {
+            const matrix = {};
+            DOC_FIELD_DEFINITIONS.forEach(f => { matrix[f.id] = mode; });
+            return matrix;
+        }
+
+        function createDefaultHeaderMatrix(mode = 'edit') {
+            const matrix = {};
+            HEADER_BUTTON_DEFINITIONS.forEach(b => { matrix[b.id] = mode; });
+            return matrix;
+        }
+
+        function createDefaultDocAccessMatrix(allowed = true) {
+            const matrix = {};
+            DOC_MODALITIES_LIST.forEach(d => { matrix[d.id] = allowed; });
+            return matrix;
+        }
+
+        const DEFAULT_USER_PROFILES = [
+            { id: 'usr_1', name: 'Perfil Operativo 1', roleLabel: 'Operativo Editor', code: 'UAMP01', docAccess: createDefaultDocAccessMatrix(true), headerPerms: createDefaultHeaderMatrix('edit'), fieldPerms: createDefaultFieldMatrix('edit') },
+            { id: 'usr_2', name: 'Perfil Operativo 2', roleLabel: 'Operativo Editor', code: 'UAMP02', docAccess: createDefaultDocAccessMatrix(true), headerPerms: createDefaultHeaderMatrix('edit'), fieldPerms: createDefaultFieldMatrix('edit') },
+            { id: 'usr_3', name: 'Perfil Operativo 3', roleLabel: 'Operativo Consulta (Solo Selección)', code: 'UAMP03', docAccess: createDefaultDocAccessMatrix(true), headerPerms: createDefaultHeaderMatrix('select'), fieldPerms: createDefaultFieldMatrix('select') },
+            { id: 'usr_4', name: 'Perfil Operativo 4', roleLabel: 'Operativo Consulta (Solo Selección)', code: 'UAMP04', docAccess: createDefaultDocAccessMatrix(true), headerPerms: createDefaultHeaderMatrix('select'), fieldPerms: createDefaultFieldMatrix('select') },
+            { id: 'usr_abraham', name: 'Abraham', roleLabel: 'Capturista / Control Escolar', code: 'UAMP09', docAccess: createDefaultDocAccessMatrix(true), headerPerms: createDefaultHeaderMatrix('edit'), fieldPerms: createDefaultFieldMatrix('edit') },
+            { id: 'usr_giselle', name: 'Giselle', roleLabel: 'Capturista / Control Escolar', code: 'UAMP10', docAccess: createDefaultDocAccessMatrix(true), headerPerms: createDefaultHeaderMatrix('edit'), fieldPerms: createDefaultFieldMatrix('edit') },
+            { id: 'usr_nataly', name: 'Nataly', roleLabel: 'Capturista / Control Escolar', code: 'UAMP11', docAccess: createDefaultDocAccessMatrix(true), headerPerms: createDefaultHeaderMatrix('edit'), fieldPerms: createDefaultFieldMatrix('edit') },
+            { id: 'usr_adriana', name: 'Adriana', roleLabel: 'Capturista / Control Escolar', code: 'UAMP12', docAccess: createDefaultDocAccessMatrix(true), headerPerms: createDefaultHeaderMatrix('edit'), fieldPerms: createDefaultFieldMatrix('edit') }
+        ];
+
+        let appState = {
+            deploymentVersion: 1,
+            currentDocType: 'estudios',
+            activeSession: null,
+            profiles: JSON.parse(JSON.stringify(DEFAULT_USER_PROFILES)),
+            deletedIds: [],
+            templates: JSON.parse(JSON.stringify(DEFAULT_DOC_TEMPLATES)),
+            majors: [
+                { id: 'maj_1', name: 'Licenciatura en Fisioterapia', rvoe: 'SEP/SES/21/174/01/1272/2015/ACT1/2017 de fecha 01 de junio de 2017' },
+                { id: 'maj_2', name: 'Licenciatura en Derecho', rvoe: 'RVOE-SEP-20190412' },
+                { id: 'maj_3', name: 'Licenciatura en Administración de Empresas', rvoe: 'RVOE-SEP-20190415' },
+                { id: 'maj_4', name: 'Licenciatura en Contaduría Pública', rvoe: 'RVOE-SEP-20190418' },
+                { id: 'maj_5', name: 'Licenciatura en Psicología', rvoe: 'RVOE-SEP-20200109' },
+                { id: 'maj_6', name: 'Licenciatura en Pedagogía', rvoe: 'RVOE-SEP-20200114' },
+                { id: 'maj_7', name: 'Ingeniería en Sistemas Computacionales', rvoe: 'RVOE-SEP-20210302' }
+            ],
+            periods: [
+                'a partir del 11 de Agosto de 2025 al 21 de Enero del 2026, correspondiente al ciclo escolar 2025/2026',
+                'a partir del 02 de Febrero de 2026 al 17 de Julio del 2026, correspondiente al ciclo escolar 2025/2026',
+                'a partir del 10 de Agosto de 2026 al 22 de Enero del 2027, correspondiente al ciclo escolar 2026/2027'
+            ],
+            periods: [
+                'Agosto 2026 - Enero 2027',
+                'Febrero 2026 - Julio 2026',
+                'Septiembre 2026 - Diciembre 2026',
+                'Enero 2026 - Abril 2026'
+            ],
+            grades: [
+                { group: '7A', code: 'DER-701', subject: 'Derecho Constitucional', score: '9.5' },
+                { group: '7A', code: 'DER-702', subject: 'Teoría General del Proceso', score: '9.0' },
+                { group: '7A', code: 'DER-703', subject: 'Metodología de la Investigación', score: '10.0' }
+            ],
+            montos: [
+                { concepto: 'Inscripción Semestral', periodo: 'Agosto 2026 - Enero 2027', importe: 2500 },
+                { concepto: 'Colegiatura Mensual (5 pagos)', periodo: 'Agosto - Diciembre 2026', importe: 9000 }
+            ],
+            kardex: [
+                { clave: 'DER-101', asignatura: 'Introducción al Estudio del Derecho', ciclo: '1° Semestre', creditos: '8', calif: '9.5' },
+                { clave: 'DER-102', asignatura: 'Derecho Romano I', ciclo: '1° Semestre', creditos: '8', calif: '9.0' },
+                { clave: 'DER-201', asignatura: 'Derecho Civil I', ciclo: '2° Semestre', creditos: '8', calif: '9.8' }
+            ],
+            resguardo: [
+                { cantidad: '1', descripcion: 'Certificado Original de Bachillerato', serie: 'FOLIO-BACH-8821', estado: 'Original / Buen Estado' },
+                { cantidad: '1', descripcion: 'Acta de Nacimiento Certificada', serie: 'ACTA-2026-091', estado: 'Original / Buen Estado' }
+            ],
+            signer: {
+                name: 'Lic. Luis Enrique Hernández Melgarejo',
+                title: 'Control Escolar'
+            },
+            githubConfig: {
+                repo: '',
+                token: '',
+                branch: 'main',
+                filePath: 'index.html',
+                publicUrl: ''
+            },
+            history: [],
+            studentsVault: []
+        };
+
+        const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('bubu_uamp_realtime_channel') : null;
+        if (syncChannel) {
+            syncChannel.onmessage = (ev) => {
+                if (ev.data && ev.data.type === 'STATE_UPDATED') {
+                    loadPersistedState(true);
+                    refreshAllUI();
+                }
+            };
+        }
+
+        function showToast(msg) {
+            const el = document.getElementById('toastNotification');
+            if (!el) return;
+            el.textContent = msg;
+            el.classList.remove('hidden');
+            clearTimeout(window.__toastTimer);
+            window.__toastTimer = setTimeout(() => el.classList.add('hidden'), 3400);
+        }
+
+        function buildSerializableVaultPayload() {
+            return {
+                deploymentVersion: appState.deploymentVersion,
+                profiles: appState.profiles,
+                deletedIds: appState.deletedIds,
+                templates: appState.templates,
+                majors: appState.majors,
+                periods: appState.periods,
+                signer: appState.signer,
+                githubConfig: appState.githubConfig,
+                history: appState.history,
+                studentsVault: appState.studentsVault
+            };
+        }
+
+        function persistBaseState(broadcast = true, bumpVersion = true) {
+            try {
+                if (bumpVersion) {
+                    appState.deploymentVersion = Date.now();
+                }
+                const payload = buildSerializableVaultPayload();
+                const json = JSON.stringify(payload);
+                localStorage.setItem(STORAGE_KEY, json);
+                const vaultTag = document.getElementById('embeddedInternalVaultData');
+                if (vaultTag) vaultTag.textContent = json;
+                if (broadcast && syncChannel) {
+                    syncChannel.postMessage({ type: 'STATE_UPDATED', version: appState.deploymentVersion });
+                }
+            } catch (err) {
+                console.warn('Error al guardar estado:', err);
+            }
+        }
+
+        function applyParsedStateObject(parsed) {
+            if (!parsed || typeof parsed !== 'object') return;
+            if (typeof parsed.deploymentVersion === 'number') {
+                appState.deploymentVersion = Math.max(appState.deploymentVersion, parsed.deploymentVersion);
+            }
+            if (Array.isArray(parsed.deletedIds)) {
+                appState.deletedIds = Array.from(new Set([...appState.deletedIds, ...parsed.deletedIds]));
+            }
+            if (Array.isArray(parsed.profiles)) {
+                appState.profiles = parsed.profiles.filter(p => !appState.deletedIds.includes(p.id));
+            }
+            if (parsed.templates && typeof parsed.templates === 'object') {
+                Object.keys(DEFAULT_DOC_TEMPLATES).forEach(k => {
+                    if (parsed.templates[k]) {
+                        appState.templates[k] = {
+                            title: parsed.templates[k].title || DEFAULT_DOC_TEMPLATES[k].title,
+                            body: parsed.templates[k].body || DEFAULT_DOC_TEMPLATES[k].body
+                        };
+                    }
+                });
+            }
+            if (Array.isArray(parsed.majors)) {
+                const filteredMajors = parsed.majors.filter(m => !appState.deletedIds.includes(m.id));
+                if (filteredMajors.length) appState.majors = filteredMajors;
+            }
+            if (Array.isArray(parsed.periods)) {
+                appState.periods = parsed.periods.filter(p => !appState.deletedIds.includes('period:' + p));
+            }
+            if (parsed.signer) appState.signer = parsed.signer;
+            if (parsed.githubConfig) appState.githubConfig = { ...appState.githubConfig, ...parsed.githubConfig };
+            if (Array.isArray(parsed.history)) appState.history = parsed.history.filter(h => !appState.deletedIds.includes(h.id));
+            if (Array.isArray(parsed.studentsVault)) appState.studentsVault = parsed.studentsVault;
+        }
+
+        function loadPersistedState(skipHash = false) {
+            try {
+                const vaultTag = document.getElementById('embeddedInternalVaultData');
+                let embeddedParsed = null;
+                if (vaultTag && vaultTag.textContent && vaultTag.textContent.trim() !== '{}') {
+                    embeddedParsed = JSON.parse(vaultTag.textContent);
+                }
+                let localParsed = null;
+                const localRaw = localStorage.getItem(STORAGE_KEY);
+                if (localRaw) localParsed = JSON.parse(localRaw);
+
+                // Priorizar la versión más reciente entre el código desplegado y localStorage
+                const embeddedVer = embeddedParsed?.deploymentVersion || 0;
+                const localVer = localParsed?.deploymentVersion || 0;
+
+                if (embeddedVer >= localVer) {
+                    if (localParsed) applyParsedStateObject(localParsed);
+                    if (embeddedParsed) applyParsedStateObject(embeddedParsed);
+                } else {
+                    if (embeddedParsed) applyParsedStateObject(embeddedParsed);
+                    if (localParsed) applyParsedStateObject(localParsed);
+                }
+
+                if (!skipHash && window.location.hash && window.location.hash.startsWith('#bubuSync=')) {
+                    const raw = decodeURIComponent(window.location.hash.replace('#bubuSync=', ''));
+                    const hashParsed = JSON.parse(raw);
+                    applyParsedStateObject(hashParsed);
+                    persistBaseState(false, false);
+                }
+            } catch (err) {
+                console.warn('Error al cargar estado:', err);
+            }
+        }
+
+        // INTERVENTOR DE CACHÉ: CONSULTA LA VERSIÓN MÁS RECIENTE DESPLEGADA EN EL SERVIDOR
+        async function checkRemoteDeploymentVersion(manualNotify = false) {
+            try {
+                if (window.location.protocol === 'file:' || window.location.href.startsWith('about:') || window.location.href.startsWith('blob:')) {
+                    if (manualNotify) showToast('Modo local activo. Sube index.html a GitHub para verificar despliegues remotos.');
+                    return;
+                }
+                const cleanUrl = window.location.href.split('#')[0].split('?')[0];
+                const response = await fetch(`${cleanUrl}?nocache=${Date.now()}`, {
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                if (!response.ok) return;
+                const remoteHtml = await response.text();
+                const match = remoteHtml.match(/<script type="application\/json" id="embeddedInternalVaultData">([\s\S]*?)<\/script>/);
+                if (match && match[1]) {
+                    const remoteVault = JSON.parse(match[1]);
+                    const remoteVer = remoteVault?.deploymentVersion || 0;
+                    if (remoteVer > (appState.deploymentVersion || 0)) {
+                        applyParsedStateObject(remoteVault);
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(buildSerializableVaultPayload()));
+                        document.getElementById('newDeploymentBanner')?.classList.remove('hidden');
+                        refreshAllUI();
+                        if (manualNotify) showToast('Nueva versión remota detectada y aplicada.');
+                    } else if (manualNotify) {
+                        showToast('Ya tienes la versión más reciente desplegada.');
+                    }
+                }
+            } catch (e) {
+                if (manualNotify) showToast('No se pudo consultar el servidor remoto.');
+            }
+        }
+
+        function forceReloadLatestDeployment() {
+            const baseUrl = window.location.href.split('#')[0].split('?')[0];
+            window.location.replace(`${baseUrl}?v=${Date.now()}`);
+        }
+
+        function unlockProfileByFrontLogin(e) {
+            if (e) e.preventDefault();
+            loadPersistedState(true);
+            checkRemoteDeploymentVersion(false);
+            const input = document.getElementById('frontLoginCodeInput');
+            const errBox = document.getElementById('frontLoginError');
+            const entered = (input?.value || '').trim();
+
+            if (!entered) {
+                if (errBox) {
+                    errBox.textContent = 'Por favor ingresa tu código de acceso.';
+                    errBox.classList.remove('hidden');
+                }
+                return;
+            }
+
+            if (entered === ADMIN_MASTER_CODE) {
+                appState.activeSession = { role: 'admin', profileId: 'admin', name: 'Administrador General' };
+            } else {
+                const found = appState.profiles.find(p => (p.code || '').toLowerCase() === entered.toLowerCase());
+                if (!found) {
+                    if (errBox) {
+                        errBox.textContent = 'Código de acceso no válido o usuario eliminado.';
+                        errBox.classList.remove('hidden');
+                    }
+                    return;
+                }
+                appState.activeSession = { role: 'user', profileId: found.id, name: found.name };
+            }
+
+            if (errBox) errBox.classList.add('hidden');
+            if (input) input.value = '';
+            document.getElementById('frontLoginScreen').classList.add('hidden');
+            document.getElementById('mainAppWorkspace').classList.remove('hidden');
+            switchMainWorkspaceTab('generador');
+            refreshAllUI();
+            showToast(`Bienvenido(a), ${appState.activeSession.name}`);
+        }
+
+        function lockProfileQuickAccess() {
+            appState.activeSession = null;
+            document.getElementById('mainAppWorkspace').classList.add('hidden');
+            document.getElementById('frontLoginScreen').classList.remove('hidden');
+            showToast('Sesión cerrada correctamente.');
+        }
+
+        function getActiveUserProfile() {
+            if (!appState.activeSession || appState.activeSession.role === 'admin') return null;
+            return appState.profiles.find(p => p.id === appState.activeSession.profileId) || null;
+        }
+
+        function applySessionPermissions() {
+            const session = appState.activeSession;
+            const badge = document.getElementById('activeSessionBadge');
+            if (badge && session) {
+                badge.textContent = session.role === 'admin' ? `Admin: ${session.name}` : `Usuario: ${session.name}`;
+            }
+
+            const profile = getActiveUserProfile();
+            const isAdmin = !session || session.role === 'admin';
+
+            // Mostrar sección de vinculación GitHub estrictamente solo al Administrador
+            const githubSection = document.getElementById('adminOnlyGithubSection');
+            if (githubSection) {
+                githubSection.classList.toggle('hidden', !isAdmin);
+            }
+
+            // Permisos sobre modalidades de constancias
+            document.querySelectorAll('[data-doc-btn]').forEach(btn => {
+                const docKey = btn.getAttribute('data-doc-btn');
+                if (isAdmin) {
+                    btn.classList.remove('hidden');
+                    return;
+                }
+                const allowed = profile?.docAccess?.[docKey] !== false;
+                btn.classList.toggle('hidden', !allowed);
+            });
+
+            if (!isAdmin && profile?.docAccess?.[appState.currentDocType] === false) {
+                const firstAllowed = DOC_MODALITIES_LIST.find(d => profile?.docAccess?.[d.id] !== false);
+                if (firstAllowed) {
+                    appState.currentDocType = firstAllowed.id;
+                }
+            }
+
+            document.querySelectorAll('[data-header-btn]').forEach(btn => {
+                const key = btn.getAttribute('data-header-btn');
+                if (isAdmin) {
+                    btn.classList.remove('hidden', 'opacity-60', 'pointer-events-none');
+                    return;
+                }
+                const perm = profile?.headerPerms?.[key] || 'edit';
+                if (perm === 'hide' || perm === 'deny') {
+                    btn.classList.add('hidden');
+                } else if (perm === 'select') {
+                    btn.classList.remove('hidden');
+                    btn.classList.add('opacity-60', 'pointer-events-none');
+                } else {
+                    btn.classList.remove('hidden', 'opacity-60', 'pointer-events-none');
+                }
+            });
+
+            document.querySelectorAll('[data-field-wrap]').forEach(wrap => {
+                const fieldKey = wrap.getAttribute('data-field-wrap');
+                const inputs = wrap.querySelectorAll('input, select, textarea, button');
+                if (isAdmin) {
+                    wrap.classList.remove('hidden');
+                    inputs.forEach(el => { el.disabled = false; });
+                    return;
+                }
+                const perm = profile?.fieldPerms?.[fieldKey] || 'edit';
+                if (perm === 'hide') {
+                    wrap.classList.add('hidden');
+                } else if (perm === 'select') {
+                    wrap.classList.remove('hidden');
+                    inputs.forEach(el => {
+                        el.disabled = el.tagName !== 'SELECT';
+                    });
+                } else {
+                    wrap.classList.remove('hidden');
+                    inputs.forEach(el => { el.disabled = false; });
+                }
+            });
+        }
+
+        function switchMainWorkspaceTab(tabName) {
+            const views = {
+                generador: document.getElementById('workspaceViewGenerador'),
+                catalogos: document.getElementById('workspaceViewCatalogos'),
+                control_panel: document.getElementById('workspaceViewControlPanel')
+            };
+            const btns = {
+                generador: document.getElementById('tabBtnGenerador'),
+                catalogos: document.getElementById('tabBtnCatalogos'),
+                control_panel: document.getElementById('tabBtnControlPanel')
+            };
+
+            Object.keys(views).forEach(k => {
+                if (views[k]) views[k].classList.toggle('hidden', k !== tabName);
+                if (btns[k]) {
+                    btns[k].className = k === tabName
+                        ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-700 text-white shadow-sm transition'
+                        : 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-700 transition';
+                }
+            });
+
+            if (tabName === 'catalogos') renderMajorsCatalogList();
+            if (tabName === 'control_panel') {
+                loadGithubConfigToInputs();
+                renderProfilesManager();
+            }
+        }
+
+        function loadFormatTemplateEditorForCurrentDoc() {
+            const tpl = appState.templates[appState.currentDocType] || DEFAULT_DOC_TEMPLATES[appState.currentDocType];
+            const titleInp = document.getElementById('inpCustomFormatTitle');
+            const bodyTxt = document.getElementById('txtCustomFormatBody');
+            if (titleInp && tpl) titleInp.value = tpl.title;
+            if (bodyTxt && tpl) bodyTxt.value = tpl.body;
+        }
+
+        function previewCustomFormatLive() {
+            const titleVal = document.getElementById('inpCustomFormatTitle')?.value || '';
+            const bodyVal = document.getElementById('txtCustomFormatBody')?.value || '';
+            appState.templates[appState.currentDocType] = { title: titleVal, body: bodyVal };
+            updateDocument();
+        }
+
+        function saveCurrentFormatTemplate() {
+            const titleVal = (document.getElementById('inpCustomFormatTitle')?.value || '').trim();
+            const bodyVal = (document.getElementById('txtCustomFormatBody')?.value || '').trim();
+            if (!titleVal || !bodyVal) return showToast('El título y el cuerpo del formato no pueden estar vacíos.');
+            appState.templates[appState.currentDocType] = { title: titleVal, body: bodyVal };
+            persistBaseState(true, true);
+            updateDocument();
+            showToast('Formato guardado permanentemente hasta que decidas volver a modificarlo.');
+        }
+
+        function resetCurrentFormatTemplate() {
+            const def = DEFAULT_DOC_TEMPLATES[appState.currentDocType];
+            if (!def) return;
+            appState.templates[appState.currentDocType] = JSON.parse(JSON.stringify(def));
+            loadFormatTemplateEditorForCurrentDoc();
+            persistBaseState(true, true);
+            updateDocument();
+            showToast('Formato restaurado al diseño predeterminado.');
+        }
+
+        function selectDocType(docType) {
+            appState.currentDocType = docType;
+            document.querySelectorAll('.doc-type-btn').forEach(btn => {
+                const active = btn.getAttribute('data-doc-btn') === docType;
+                const hidden = btn.classList.contains('hidden');
+                btn.className = (active
+                    ? 'doc-type-btn px-2.5 py-2 rounded-xl text-xs font-bold border border-blue-900 bg-blue-900 text-white text-left transition'
+                    : 'doc-type-btn px-2.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 text-left transition') + (hidden ? ' hidden' : '');
+            });
+
+            document.getElementById('periodosAnterioresControls')?.classList.toggle('hidden', docType !== 'periodos_anteriores');
+            document.getElementById('calificacionesControls')?.classList.toggle('hidden', docType !== 'calificaciones');
+            document.getElementById('montosControls')?.classList.toggle('hidden', docType !== 'montos');
+            document.getElementById('kardexControls')?.classList.toggle('hidden', docType !== 'kardex');
+            document.getElementById('resguardoControls')?.classList.toggle('hidden', docType !== 'resguardo');
+
+            const badge = document.getElementById('currentDocTypeBadge');
+            if (badge) badge.textContent = docType.replace(/_/g, ' ').toUpperCase();
+
+            loadFormatTemplateEditorForCurrentDoc();
+            updateDocument();
+        }
+
+        function formatSpanishDate(isoDate) {
+            if (!isoDate) return '';
+            const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            const parts = isoDate.split('-');
+            if (parts.length !== 3) return isoDate;
+            const year = parts[0];
+            const month = months[parseInt(parts[1], 10) - 1] || '';
+            const day = String(parseInt(parts[2], 10)).padStart(2, '0');
+            return `${day} de ${month} de ${year}`;
+        }
+
+        function populateMajorsSelect() {
+            const sel = document.getElementById('selLicenciatura');
+            if (!sel) return;
+            const prev = sel.value;
+            sel.innerHTML = appState.majors.map(m => `<option value="${m.id}">${m.name} (${m.rvoe})</option>`).join('');
+            if (prev && appState.majors.some(m => m.id === prev)) sel.value = prev;
+        }
+
+        function populatePeriodsSelect() {
+            const sel = document.getElementById('selPeriodoEscolar');
+            if (!sel) return;
+            const prev = sel.value;
+            sel.innerHTML = appState.periods.map(p => `<option value="${p}">${p}</option>`).join('');
+            if (prev && appState.periods.includes(prev)) sel.value = prev;
+        }
+
+        function renderGradesEditor() {
+            const box = document.getElementById('gradesRowsContainer');
+            if (!box) return;
+            box.innerHTML = appState.grades.map((g, idx) => `
+                <div class="grid grid-cols-12 gap-1 items-center">
+                    <input type="text" value="${g.group || ''}" oninput="appState.grades[${idx}].group=this.value;updateDocument();" placeholder="Grupo" class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] text-center font-bold">
+                    <input type="text" value="${g.code || ''}" oninput="appState.grades[${idx}].code=this.value;updateDocument();" placeholder="Código" class="col-span-3 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] font-mono">
+                    <input type="text" value="${g.subject || ''}" oninput="appState.grades[${idx}].subject=this.value;updateDocument();" placeholder="Materia" class="col-span-4 px-2 py-1.5 rounded-lg border border-slate-300 text-[11px]">
+                    <input type="text" value="${g.score || ''}" oninput="appState.grades[${idx}].score=this.value;updateDocument();" placeholder="Calif." class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] text-center font-bold">
+                    <button type="button" onclick="removeGradeRow(${idx})" class="col-span-1 px-1.5 py-1 rounded-lg bg-rose-100 text-rose-700 text-xs font-bold">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function parseGradesBulkInput() {
+            const raw = (document.getElementById('txtGradesBulkInput')?.value || '').trim();
+            if (!raw) return showToast('Pega o escribe primero la información de las materias.');
+
+            const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+            const parsedRows = [];
+
+            lines.forEach(line => {
+                // Soporta separación por tabulador (Excel), barra vertical |, punto y coma ; o espacios múltiples
+                let parts = line.includes('\t')
+                    ? line.split('\t')
+                    : line.includes('|')
+                        ? line.split('|')
+                        : line.includes(';')
+                            ? line.split(';')
+                            : line.split(/\s{2,}/);
+
+                parts = parts.map(p => p.trim()).filter(Boolean);
+
+                if (parts.length >= 4) {
+                    const group = parts[0];
+                    const code = parts[1];
+                    const score = parts[parts.length - 1];
+                    const subject = parts.slice(2, parts.length - 1).join(' ');
+                    parsedRows.push({ group, code, subject, score });
+                } else if (parts.length === 3) {
+                    parsedRows.push({ group: '', code: parts[0], subject: parts[1], score: parts[2] });
+                } else if (parts.length === 2) {
+                    parsedRows.push({ group: '', code: '', subject: parts[0], score: parts[1] });
+                } else {
+                    // Extracción inteligente por tokens si viene separado por un solo espacio: [GRUPO] [CODIGO] [MATERIA...] [CALIFICACION]
+                    const tokens = line.split(/\s+/);
+                    if (tokens.length >= 4) {
+                        const group = tokens[0];
+                        const code = tokens[1];
+                        const score = tokens[tokens.length - 1];
+                        const subject = tokens.slice(2, tokens.length - 1).join(' ');
+                        parsedRows.push({ group, code, subject, score });
+                    } else {
+                        parsedRows.push({ group: '', code: '', subject: line, score: '' });
+                    }
+                }
+            });
+
+            if (parsedRows.length) {
+                appState.grades = parsedRows;
+                renderGradesEditor();
+                updateDocument();
+                showToast(`${parsedRows.length} renglones separados en Grupo, Código, Materia y Calificación.`);
+            }
+        }
+
+        function addGradeRow() {
+            appState.grades.push({ group: '7A', code: 'MAT-001', subject: 'Nueva Materia', score: '9.0' });
+            renderGradesEditor();
+            updateDocument();
+        }
+
+        function removeGradeRow(idx) {
+            appState.grades.splice(idx, 1);
+            renderGradesEditor();
+            updateDocument();
+        }
+
+        function renderMontosEditor() {
+            const box = document.getElementById('montosRowsContainer');
+            if (!box) return;
+            box.innerHTML = appState.montos.map((m, idx) => `
+                <div class="grid grid-cols-12 gap-1 items-center">
+                    <input type="text" value="${m.concepto || ''}" oninput="appState.montos[${idx}].concepto=this.value;updateDocument();" placeholder="Concepto" class="col-span-5 px-2 py-1.5 rounded-lg border border-slate-300 text-[11px]">
+                    <input type="text" value="${m.periodo || ''}" oninput="appState.montos[${idx}].periodo=this.value;updateDocument();" placeholder="Periodo" class="col-span-4 px-2 py-1.5 rounded-lg border border-slate-300 text-[11px]">
+                    <input type="number" value="${m.importe ?? 0}" oninput="appState.montos[${idx}].importe=parseFloat(this.value)||0;updateDocument();" placeholder="Importe" class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] text-right font-bold">
+                    <button type="button" onclick="removeMontoRow(${idx})" class="col-span-1 px-1.5 py-1 rounded-lg bg-rose-100 text-rose-700 text-xs font-bold">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function addMontoRow() {
+            appState.montos.push({ concepto: 'Nuevo Concepto', periodo: 'Periodo Actual', importe: 1500 });
+            renderMontosEditor();
+            updateDocument();
+        }
+
+        function removeMontoRow(idx) {
+            appState.montos.splice(idx, 1);
+            renderMontosEditor();
+            updateDocument();
+        }
+
+        function renderKardexEditor() {
+            const box = document.getElementById('kardexRowsContainer');
+            if (!box) return;
+            box.innerHTML = appState.kardex.map((k, idx) => `
+                <div class="grid grid-cols-12 gap-1 items-center">
+                    <input type="text" value="${k.clave || ''}" oninput="appState.kardex[${idx}].clave=this.value;updateDocument();" placeholder="Clave" class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] font-mono">
+                    <input type="text" value="${k.asignatura || ''}" oninput="appState.kardex[${idx}].asignatura=this.value;updateDocument();" placeholder="Asignatura" class="col-span-4 px-2 py-1.5 rounded-lg border border-slate-300 text-[11px]">
+                    <input type="text" value="${k.ciclo || ''}" oninput="appState.kardex[${idx}].ciclo=this.value;updateDocument();" placeholder="Ciclo" class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] text-center">
+                    <input type="text" value="${k.creditos || ''}" oninput="appState.kardex[${idx}].creditos=this.value;updateDocument();" placeholder="Créd." class="col-span-1 px-1 py-1.5 rounded-lg border border-slate-300 text-[11px] text-center">
+                    <input type="text" value="${k.calif || ''}" oninput="appState.kardex[${idx}].calif=this.value;updateDocument();" placeholder="Calif." class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] text-center font-bold">
+                    <button type="button" onclick="removeKardexRow(${idx})" class="col-span-1 px-1.5 py-1 rounded-lg bg-rose-100 text-rose-700 text-xs font-bold">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function addKardexRow() {
+            appState.kardex.push({ clave: 'MAT-101', asignatura: 'Nueva Asignatura', ciclo: '1° Semestre', creditos: '8', calif: '9.5' });
+            renderKardexEditor();
+            updateDocument();
+        }
+
+        function removeKardexRow(idx) {
+            appState.kardex.splice(idx, 1);
+            renderKardexEditor();
+            updateDocument();
+        }
+
+        function renderResguardoEditor() {
+            const box = document.getElementById('resguardoRowsContainer');
+            if (!box) return;
+            box.innerHTML = appState.resguardo.map((r, idx) => `
+                <div class="grid grid-cols-12 gap-1 items-center">
+                    <input type="text" value="${r.cantidad || ''}" oninput="appState.resguardo[${idx}].cantidad=this.value;updateDocument();" placeholder="Cant." class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] text-center font-bold">
+                    <input type="text" value="${r.descripcion || ''}" oninput="appState.resguardo[${idx}].descripcion=this.value;updateDocument();" placeholder="Descripción" class="col-span-4 px-2 py-1.5 rounded-lg border border-slate-300 text-[11px]">
+                    <input type="text" value="${r.serie || ''}" oninput="appState.resguardo[${idx}].serie=this.value;updateDocument();" placeholder="Folio/Serie" class="col-span-3 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] font-mono">
+                    <input type="text" value="${r.estado || ''}" oninput="appState.resguardo[${idx}].estado=this.value;updateDocument();" placeholder="Estado" class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px]">
+                    <button type="button" onclick="removeResguardoRow(${idx})" class="col-span-1 px-1.5 py-1 rounded-lg bg-rose-100 text-rose-700 text-xs font-bold">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function addResguardoRow() {
+            appState.resguardo.push({ cantidad: '1', descripcion: 'Documento Oficial', serie: 'FOLIO-001', estado: 'Original / Buen Estado' });
+            renderResguardoEditor();
+            updateDocument();
+        }
+
+        function removeResguardoRow(idx) {
+            appState.resguardo.splice(idx, 1);
+            renderResguardoEditor();
+            updateDocument();
+        }
+
+        function buildGradesTableHtml() {
+            if (!appState.grades.length) return '';
+            const numericScores = appState.grades.map(g => parseFloat(g.score)).filter(n => !isNaN(n));
+            const avg = numericScores.length
+                ? (numericScores.reduce((acc, n) => acc + n, 0) / numericScores.length).toFixed(2)
+                : '0.00';
+            const rows = appState.grades.map(g => `
+                <tr>
+                    <td style="border:1px solid #1e293b;padding:4px 6px;text-align:center;">${g.group || ''}</td>
+                    <td style="border:1px solid #1e293b;padding:4px 6px;text-align:center;font-family:monospace;">${g.code || ''}</td>
+                    <td style="border:1px solid #1e293b;padding:4px 8px;">${g.subject || ''}</td>
+                    <td style="border:1px solid #1e293b;padding:4px 6px;text-align:center;font-weight:bold;">${g.score || ''}</td>
+                </tr>
+            `).join('');
+            return `
+                <table style="width:100%;border-collapse:collapse;margin:10px 0;font-size:9.5pt;">
+                    <thead>
+                        <tr style="background:#f1f5f9;">
+                            <th style="border:1px solid #1e293b;padding:5px 6px;text-align:center;width:70px;">GRUPO</th>
+                            <th style="border:1px solid #1e293b;padding:5px 6px;text-align:center;width:105px;">CÓDIGO</th>
+                            <th style="border:1px solid #1e293b;padding:5px 8px;text-align:left;">MATERIA</th>
+                            <th style="border:1px solid #1e293b;padding:5px 6px;text-align:center;width:95px;">CALIFICACIÓN</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                    <tfoot>
+                        <tr style="background:#f8fafc;">
+                            <td colspan="3" style="border:1px solid #1e293b;padding:4px 8px;text-align:right;font-weight:bold;">PROMEDIO GENERAL:</td>
+                            <td style="border:1px solid #1e293b;padding:4px 6px;text-align:center;font-weight:bold;">${avg}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            `;
+        }
+
+        function buildMontosTableHtml() {
+            if (!appState.montos.length) return '';
+            const total = appState.montos.reduce((acc, m) => acc + (parseFloat(m.importe) || 0), 0);
+            const fmt = (n) => n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+            const rows = appState.montos.map(m => `
+                <tr>
+                    <td style="border:1px solid #1e293b;padding:4px 8px;">${m.concepto}</td>
+                    <td style="border:1px solid #1e293b;padding:4px 8px;">${m.periodo}</td>
+                    <td style="border:1px solid #1e293b;padding:4px 8px;text-align:right;font-weight:bold;">${fmt(parseFloat(m.importe) || 0)}</td>
+                </tr>
+            `).join('');
+            return `
+                <table style="width:100%;border-collapse:collapse;margin:10px 0;font-size:10pt;">
+                    <thead>
+                        <tr style="background:#f1f5f9;">
+                            <th style="border:1px solid #1e293b;padding:5px 8px;text-align:left;">CONCEPTO</th>
+                            <th style="border:1px solid #1e293b;padding:5px 8px;text-align:left;">PERIODO</th>
+                            <th style="border:1px solid #1e293b;padding:5px 8px;text-align:right;width:120px;">IMPORTE</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                    <tfoot>
+                        <tr style="background:#f8fafc;">
+                            <td colspan="2" style="border:1px solid #1e293b;padding:4px 8px;text-align:right;font-weight:bold;">TOTAL:</td>
+                            <td style="border:1px solid #1e293b;padding:4px 8px;text-align:right;font-weight:bold;">${fmt(total)}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            `;
+        }
+
+        function buildKardexTableHtml() {
+            if (!appState.kardex.length) return '';
+            const totalCreds = appState.kardex.reduce((acc, k) => acc + (parseFloat(k.creditos) || 0), 0);
+            const avg = (appState.kardex.reduce((acc, k) => acc + (parseFloat(k.calif) || 0), 0) / appState.kardex.length).toFixed(2);
+            const rows = appState.kardex.map(k => `
+                <tr>
+                    <td style="border:1px solid #1e293b;padding:3px 6px;font-family:monospace;">${k.clave}</td>
+                    <td style="border:1px solid #1e293b;padding:3px 6px;">${k.asignatura}</td>
+                    <td style="border:1px solid #1e293b;padding:3px 6px;text-align:center;">${k.ciclo}</td>
+                    <td style="border:1px solid #1e293b;padding:3px 6px;text-align:center;">${k.creditos}</td>
+                    <td style="border:1px solid #1e293b;padding:3px 6px;text-align:center;font-weight:bold;">${k.calif}</td>
+                </tr>
+            `).join('');
+            return `
+                <table style="width:100%;border-collapse:collapse;margin:10px 0;font-size:9.5pt;">
+                    <thead>
+                        <tr style="background:#f1f5f9;">
+                            <th style="border:1px solid #1e293b;padding:4px 6px;text-align:left;">CLAVE</th>
+                            <th style="border:1px solid #1e293b;padding:4px 6px;text-align:left;">ASIGNATURA</th>
+                            <th style="border:1px solid #1e293b;padding:4px 6px;text-align:center;">CICLO</th>
+                            <th style="border:1px solid #1e293b;padding:4px 6px;text-align:center;">CRÉD.</th>
+                            <th style="border:1px solid #1e293b;padding:4px 6px;text-align:center;">CALIF.</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                    <tfoot>
+                        <tr style="background:#f8fafc;">
+                            <td colspan="3" style="border:1px solid #1e293b;padding:4px 6px;text-align:right;font-weight:bold;">TOTAL CRÉDITOS Y PROMEDIO ACUMULADO:</td>
+                            <td style="border:1px solid #1e293b;padding:4px 6px;text-align:center;font-weight:bold;">${totalCreds}</td>
+                            <td style="border:1px solid #1e293b;padding:4px 6px;text-align:center;font-weight:bold;">${avg}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            `;
+        }
+
+        function buildResguardoTableHtml() {
+            if (!appState.resguardo.length) return '';
+            const rows = appState.resguardo.map(r => `
+                <tr>
+                    <td style="border:1px solid #1e293b;padding:4px 8px;text-align:center;font-weight:bold;">${r.cantidad}</td>
+                    <td style="border:1px solid #1e293b;padding:4px 8px;">${r.descripcion}</td>
+                    <td style="border:1px solid #1e293b;padding:4px 8px;">${r.serie}</td>
+                    <td style="border:1px solid #1e293b;padding:4px 8px;">${r.estado}</td>
+                </tr>
+            `).join('');
+            return `
+                <table style="width:100%;border-collapse:collapse;margin:10px 0;font-size:10pt;">
+                    <thead>
+                        <tr style="background:#f1f5f9;">
+                            <th style="border:1px solid #1e293b;padding:5px 8px;text-align:center;width:65px;">CANT.</th>
+                            <th style="border:1px solid #1e293b;padding:5px 8px;text-align:left;">DESCRIPCIÓN DEL BIEN / DOCUMENTO</th>
+                            <th style="border:1px solid #1e293b;padding:5px 8px;text-align:left;">FOLIO / SERIE</th>
+                            <th style="border:1px solid #1e293b;padding:5px 8px;text-align:left;">ESTADO</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+        }
+
+        function updateDocument() {
+            const paper = document.getElementById('constanciaPaper');
+            if (!paper) return;
+
+            const fontFamily = document.getElementById('selDocFontFamily')?.value || 'Arial, Helvetica, sans-serif';
+            const fontSize = document.getElementById('inpDocFontSize')?.value || '11';
+            const lineHeight = document.getElementById('inpDocLineHeight')?.value || '1.3';
+
+            paper.style.fontFamily = fontFamily;
+            paper.style.fontSize = `${fontSize}pt`;
+            paper.style.lineHeight = lineHeight;
+
+            const folio = document.getElementById('inpFolio')?.value || '';
+            const fechaIso = document.getElementById('inpFechaExpedicion')?.value || '';
+            const fechaTexto = formatSpanishDate(fechaIso);
+            const nombre = document.getElementById('inpNombre')?.value || '';
+            const matricula = document.getElementById('inpMatricula')?.value || '';
+            const curp = document.getElementById('inpCurp')?.value || '';
+            const grado = document.getElementById('inpPeriodoGrado')?.value || '';
+            const periodo = document.getElementById('selPeriodoEscolar')?.value || '';
+            const verboCursado = document.getElementById('selVerboCursado')?.value || 'cursó';
+            const nota = document.getElementById('inpDestinoNota')?.value || '';
+            const firmanteNombre = document.getElementById('inpFirmanteNombre')?.value || appState.signer.name;
+            const firmanteCargo = document.getElementById('inpFirmanteCargo')?.value || appState.signer.title;
+
+            const majorId = document.getElementById('selLicenciatura')?.value;
+            const major = appState.majors.find(m => m.id === majorId) || appState.majors[0] || { name: '', rvoe: '' };
+
+            const activeTpl = appState.templates[appState.currentDocType] || DEFAULT_DOC_TEMPLATES[appState.currentDocType];
+
+            document.getElementById('docPreviewFolio').textContent = folio;
+            document.getElementById('docPreviewHeaderDate').textContent = `Teziutlán, Puebla, ${fechaTexto}`;
+            document.getElementById('docPreviewTitle').textContent = activeTpl.title || 'Constancia de Estudios';
+            document.getElementById('docPreviewFirmanteNombre').textContent = firmanteNombre;
+            document.getElementById('docPreviewFirmanteCargo').textContent = firmanteCargo;
+
+            const replacements = {
+                '{FIRMANTE}': firmanteNombre,
+                '{CARGO}': firmanteCargo,
+                '{RVOE}': major.rvoe,
+                '{NOMBRE}': nombre,
+                '{MATRICULA}': matricula,
+                '{CURP}': curp,
+                '{LICENCIATURA}': major.name,
+                '{GRADO}': grado,
+                '{PERIODO}': periodo,
+                '{VERBO_CURSADO}': verboCursado,
+                '{TABLA_CALIFICACIONES}': buildGradesTableHtml(),
+                '{TABLA_MONTOS}': buildMontosTableHtml(),
+                '{TABLA_KARDEX}': buildKardexTableHtml(),
+                '{TABLA_RESGUARDO}': buildResguardoTableHtml(),
+                '{NOTA}': nota,
+                '{FECHA}': fechaTexto
+            };
+
+            let renderedBody = activeTpl.body;
+            Object.keys(replacements).forEach(token => {
+                renderedBody = renderedBody.split(token).join(replacements[token]);
+            });
+
+            document.getElementById('docDynamicBody').innerHTML = renderedBody;
+            fitDocumentToSingleLetterPage();
+        }
+
+        function fitDocumentToSingleLetterPage() {
+            const paper = document.getElementById('constanciaPaper');
+            const inner = document.getElementById('constanciaInnerContent');
+            if (!paper || !inner) return;
+
+            const baseFontSize = parseFloat(document.getElementById('inpDocFontSize')?.value) || 11;
+            const baseLineHeight = parseFloat(document.getElementById('inpDocLineHeight')?.value) || 1.3;
+
+            paper.style.fontSize = `${baseFontSize}pt`;
+            paper.style.lineHeight = String(baseLineHeight);
+
+            const maxInnerHeight = paper.clientHeight - 125;
+            let currentPt = baseFontSize;
+            let currentLh = baseLineHeight;
+
+            while (inner.scrollHeight > maxInnerHeight && currentPt > 8.2) {
+                currentPt = +(currentPt - 0.3).toFixed(2);
+                currentLh = Math.max(1.12, +(currentLh - 0.03).toFixed(2));
+                paper.style.fontSize = `${currentPt}pt`;
+                paper.style.lineHeight = String(currentLh);
+            }
+        }
+
+        function saveResponsibleSignature() {
+            const nameVal = (document.getElementById('inpFirmanteNombre')?.value || '').trim();
+            const titleVal = (document.getElementById('inpFirmanteCargo')?.value || '').trim();
+            if (!nameVal || !titleVal) return showToast('Ingresa el nombre y el cargo del responsable.');
+            appState.signer = { name: nameVal, title: titleVal };
+            persistBaseState(true, true);
+            updateDocument();
+            showToast('Firma de la responsable guardada permanentemente.');
+        }
+
+        function printConstanciaDocument() {
+            fitDocumentToSingleLetterPage();
+            window.print();
+        }
+
+        function saveAndDownloadConstanciaPDF() {
+            if (!window.jspdf || !window.jspdf.jsPDF) {
+                return showToast('La librería PDF aún se está cargando.');
+            }
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+
+            const fontSel = document.getElementById('selDocFontFamily')?.value || 'Arial';
+            const selectedFont = fontSel.includes('Times') ? 'times' : 'helvetica';
+            const fontSizePt = parseFloat(document.getElementById('inpDocFontSize')?.value) || 11;
+            const lineHeightVal = parseFloat(document.getElementById('inpDocLineHeight')?.value) || 1.3;
+
+            const folio = document.getElementById('inpFolio')?.value || '';
+            const title = document.getElementById('docPreviewTitle')?.textContent || 'Constancia de Estudios';
+            const headerDate = document.getElementById('docPreviewHeaderDate')?.textContent || '';
+
+            pdf.setFont(selectedFont, 'normal');
+            pdf.setFontSize(fontSizePt);
+            pdf.text(folio, 194, 22, { align: 'right' });
+            pdf.text(`Asunto: ${title}`, 194, 27, { align: 'right' });
+            pdf.text(headerDate, 194, 32, { align: 'right' });
+
+            pdf.setFont(selectedFont, 'bold');
+            pdf.text('A QUIEN CORRESPONDA', 22, 46);
+            pdf.setFont(selectedFont, 'normal');
+            pdf.text('P R E S E N T E', 22, 51);
+
+            const bodyText = document.getElementById('docDynamicBody')?.innerText || '';
+            const startBodyY = 66;
+            const maxBodyBottomY = 235;
+            let effectiveFontSize = fontSizePt;
+            let effectiveLineHeight = lineHeightVal;
+            let wrappedLines = pdf.splitTextToSize(`          ${bodyText}`, 172);
+
+            while ((startBodyY + wrappedLines.length * ((effectiveFontSize * 0.352778) * effectiveLineHeight)) > maxBodyBottomY && effectiveFontSize > 8.2) {
+                effectiveFontSize = +(effectiveFontSize - 0.3).toFixed(2);
+                effectiveLineHeight = Math.max(1.12, +(effectiveLineHeight - 0.03).toFixed(2));
+                pdf.setFontSize(effectiveFontSize);
+                wrappedLines = pdf.splitTextToSize(`          ${bodyText}`, 172);
+            }
+
+            pdf.setFontSize(effectiveFontSize);
+            pdf.text(wrappedLines, 22, startBodyY, { lineHeightFactor: effectiveLineHeight, align: 'justify', maxWidth: 172 });
+
+            const bodyEndY = startBodyY + (wrappedLines.length * ((effectiveFontSize * 0.352778) * effectiveLineHeight));
+            const fourLinesOffset = 4 * ((effectiveFontSize * 0.352778) * effectiveLineHeight);
+            const sigY = Math.min(242, bodyEndY + fourLinesOffset);
+
+            pdf.setFont(selectedFont, 'bold');
+            pdf.text('ATENTAMENTE', 108, sigY, { align: 'center' });
+            pdf.setLineWidth(0.5);
+            pdf.line(66, sigY + 14, 150, sigY + 14);
+            pdf.text(document.getElementById('inpFirmanteNombre')?.value || '', 108, sigY + 19, { align: 'center' });
+            pdf.text(document.getElementById('inpFirmanteCargo')?.value || '', 108, sigY + 24, { align: 'center' });
+
+            const studentName = document.getElementById('inpNombre')?.value || 'Constancia';
+            appState.history.unshift({
+                id: 'hist_' + Date.now(),
+                folio,
+                type: title,
+                student: studentName,
+                date: new Date().toLocaleDateString('es-MX')
+            });
+            persistBaseState(true, true);
+
+            const cleanStudent = studentName.replace(/\s+/g, '_');
+            pdf.save(`${appState.currentDocType}_${cleanStudent}.pdf`);
+            showToast('PDF ajustado a 1 hoja tamaño carta y descargado.');
+        }
+
+        function renderMajorsCatalogList() {
+            const box = document.getElementById('majorsCatalogList');
+            if (!box) return;
+            box.innerHTML = appState.majors.map((m, idx) => `
+                <div class="px-4 py-2.5 flex items-center justify-between gap-2 text-xs">
+                    <div>
+                        <div class="font-bold text-slate-800">${m.name}</div>
+                        <div class="text-[11px] text-slate-500 font-mono">${m.rvoe}</div>
+                    </div>
+                    <button type="button" onclick="deleteMajorRvoe(${idx})" class="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold">Eliminar</button>
+                </div>
+            `).join('');
+        }
+
+        function addNewMajorRvoe() {
+            const nameInp = document.getElementById('newMajorName');
+            const rvoeInp = document.getElementById('newMajorRvoe');
+            const name = (nameInp?.value || '').trim();
+            const rvoe = (rvoeInp?.value || '').trim();
+            if (!name || !rvoe) return showToast('Completa el nombre de la licenciatura y su acuerdo RVOE.');
+            appState.majors.push({ id: 'maj_' + Date.now(), name, rvoe });
+            nameInp.value = '';
+            rvoeInp.value = '';
+            persistBaseState(true, true);
+            populateMajorsSelect();
+            renderMajorsCatalogList();
+            updateDocument();
+            showToast('Licenciatura agregada al catálogo.');
+        }
+
+        function deleteMajorRvoe(idx) {
+            const item = appState.majors[idx];
+            if (item?.id) appState.deletedIds.push(item.id);
+            appState.majors.splice(idx, 1);
+            persistBaseState(true, true);
+            populateMajorsSelect();
+            renderMajorsCatalogList();
+            updateDocument();
+            showToast('Licenciatura eliminada permanentemente.');
+        }
+
+        function updateProfileDocAccess(idx, docId, checked) {
+            const p = appState.profiles[idx];
+            if (!p) return;
+            if (!p.docAccess) p.docAccess = createDefaultDocAccessMatrix(true);
+            p.docAccess[docId] = checked;
+            persistBaseState(true, true);
+        }
+
+        function updateProfileFieldPerm(idx, fieldId, perm) {
+            const p = appState.profiles[idx];
+            if (!p) return;
+            if (!p.fieldPerms) p.fieldPerms = createDefaultFieldMatrix('edit');
+            p.fieldPerms[fieldId] = perm;
+            persistBaseState(true, true);
+        }
+
+        function updateProfileHeaderPerm(idx, btnId, perm) {
+            const p = appState.profiles[idx];
+            if (!p) return;
+            if (!p.headerPerms) p.headerPerms = createDefaultHeaderMatrix('edit');
+            p.headerPerms[btnId] = perm;
+            persistBaseState(true, true);
+        }
+
+        function saveProfileModifications(idx) {
+            persistBaseState(true, true);
+            renderProfilesManager();
+            showToast(`Permisos y datos de "${appState.profiles[idx]?.name || 'Usuario'}" guardados.`);
+        }
+
+        function detectUserRoleLabel(profile) {
+            if (profile.roleLabel && profile.roleLabel.trim()) return profile.roleLabel;
+            const fieldVals = Object.values(profile.fieldPerms || {});
+            const canEditCount = fieldVals.filter(v => v === 'edit').length;
+            if (canEditCount >= fieldVals.length * 0.7) return 'Operativo Editor';
+            if (canEditCount === 0) return 'Operativo Consulta (Solo Selección)';
+            return 'Operativo Mixto';
+        }
+
+        function applyQuickRolePreset(idx, roleType) {
+            const p = appState.profiles[idx];
+            if (!p) return;
+            if (roleType === 'Operativo Editor') {
+                p.roleLabel = 'Operativo Editor';
+                p.headerPerms = createDefaultHeaderMatrix('edit');
+                p.fieldPerms = createDefaultFieldMatrix('edit');
+            } else if (roleType === 'Operativo Consulta (Solo Selección)') {
+                p.roleLabel = 'Operativo Consulta (Solo Selección)';
+                p.headerPerms = createDefaultHeaderMatrix('select');
+                p.fieldPerms = createDefaultFieldMatrix('select');
+            } else {
+                p.roleLabel = roleType;
+            }
+            persistBaseState(true, true);
+            renderProfilesManager();
+            showToast(`Rol actualizado a "${p.roleLabel}".`);
+        }
+
+        function renderProfilesManager() {
+            const container = document.getElementById('profilesManagerContainer');
+            if (!container) return;
+            container.innerHTML = appState.profiles.map((p, idx) => {
+                const roleName = detectUserRoleLabel(p);
+                const docChecks = DOC_MODALITIES_LIST.map(d => {
+                    const allowed = p.docAccess?.[d.id] !== false;
+                    return `
+                        <label class="flex items-center justify-between py-1 px-2 rounded-lg bg-slate-50 border border-slate-100 text-[11px] cursor-pointer">
+                            <span class="font-semibold text-slate-700">${d.label}</span>
+                            <input type="checkbox" ${allowed ? 'checked' : ''} onchange="updateProfileDocAccess(${idx}, '${d.id}', this.checked)" class="rounded text-blue-900">
+                        </label>
+                    `;
+                }).join('');
+
+                const fieldChecks = DOC_FIELD_DEFINITIONS.map(f => {
+                    const current = p.fieldPerms?.[f.id] || 'edit';
+                    return `
+                        <div class="flex items-center justify-between py-1 px-2 rounded-lg bg-slate-50 border border-slate-100 text-[11px]">
+                            <span class="font-semibold text-slate-700">${f.label}</span>
+                            <select onchange="updateProfileFieldPerm(${idx}, '${f.id}', this.value)" class="px-2 py-0.5 rounded border border-slate-300 bg-white font-bold text-[10px]">
+                                <option value="edit" ${current === 'edit' ? 'selected' : ''}>Modificar</option>
+                                <option value="select" ${current === 'select' ? 'selected' : ''}>Solo Seleccionar</option>
+                                <option value="hide" ${current === 'hide' ? 'selected' : ''}>Ocultar</option>
+                            </select>
+                        </div>
+                    `;
+                }).join('');
+
+                const headerChecks = HEADER_BUTTON_DEFINITIONS.map(b => {
+                    const current = p.headerPerms?.[b.id] || 'edit';
+                    const isAllowed = current !== 'hide' && current !== 'deny';
+                    return `
+                        <div class="flex items-center justify-between py-1 px-2 rounded-lg bg-slate-50 border border-slate-100 text-[11px]">
+                            <span class="font-semibold text-slate-700">${b.label}</span>
+                            <select onchange="updateProfileHeaderPerm(${idx}, '${b.id}', this.value)" class="px-2 py-0.5 rounded border ${isAllowed ? 'border-emerald-300 bg-emerald-50 text-emerald-900' : 'border-rose-300 bg-rose-50 text-rose-900'} font-bold text-[10px]">
+                                <option value="edit" ${isAllowed ? 'selected' : ''}>Permitir Acceso</option>
+                                <option value="hide" ${!isAllowed ? 'selected' : ''}>Denegar / Ocultar</option>
+                            </select>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="border border-slate-200 rounded-2xl p-4 bg-white shadow-xs space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <input type="text" value="${p.name}" onchange="appState.profiles[${idx}].name=this.value" class="px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-800">
+                                <input type="text" value="${p.code}" onchange="appState.profiles[${idx}].code=this.value" class="w-28 px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-mono font-bold text-blue-900">
+                                <span class="px-2.5 py-1 rounded-full bg-blue-50 text-blue-900 border border-blue-200 text-[11px] font-extrabold">
+                                    Rol: ${roleName}
+                                </span>
+                                <select onchange="if(this.value) applyQuickRolePreset(${idx}, this.value)" class="px-2.5 py-1.5 rounded-xl border border-slate-300 bg-slate-50 text-[11px] font-bold text-slate-700">
+                                    <option value="">Cambiar Rol...</option>
+                                    <option value="Operativo Editor">Operativo Editor (Modificar)</option>
+                                    <option value="Operativo Consulta (Solo Selección)">Operativo Consulta (Solo Selección)</option>
+                                    <option value="Capturista / Control Escolar">Capturista / Control Escolar</option>
+                                </select>
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="button" onclick="saveProfileModifications(${idx})" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">Guardar Perfil Modificado</button>
+                                <button type="button" onclick="deleteUserProfilePermanently(${idx})" class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold">Borrar para Siempre</button>
+                            </div>
+                        </div>
+                        <details class="text-xs">
+                            <summary class="cursor-pointer font-bold text-blue-900 select-none">Configurar Lista de Cotejo (Modalidades, Campos y Panel Superior)</summary>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+                                <div class="space-y-1">
+                                    <div class="text-[11px] font-extrabold uppercase text-slate-500 mb-1">Constancias Habilitadas</div>
+                                    ${docChecks}
+                                </div>
+                                <div class="space-y-1">
+                                    <div class="text-[11px] font-extrabold uppercase text-slate-500 mb-1">Campos y Editores</div>
+                                    ${fieldChecks}
+                                </div>
+                                <div class="space-y-1">
+                                    <div class="text-[11px] font-extrabold uppercase text-slate-500 mb-1">Botones Panel Superior</div>
+                                    ${headerChecks}
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openHistoryModal() {
+            const modal = document.getElementById('historyModal');
+            const box = document.getElementById('historyListContainer');
+            if (box) {
+                box.innerHTML = appState.history.length
+                    ? appState.history.map((h, idx) => `
+                        <div class="py-2.5 px-3 flex items-center justify-between gap-2">
+                            <div>
+                                <div class="font-bold text-slate-800">${h.student} · <span class="text-blue-900">${h.type}</span></div>
+                                <div class="text-[11px] text-slate-500">Folio: ${h.folio} · Fecha: ${h.date}</div>
+                            </div>
+                            <button type="button" onclick="deleteHistoryEntryPermanently(${idx})" class="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-700 font-bold">Borrar</button>
+                        </div>
+                    `).join('')
+                    : '<p class="p-4 text-center text-slate-400">Aún no hay constancias registradas en el historial.</p>';
+            }
+            modal?.classList.remove('hidden');
+        }
+
+        function exportHistoryToExcel() {
+            if (!appState.history.length) return showToast('No hay registros en el historial para exportar.');
+            if (window.XLSX) {
+                const ws = XLSX.utils.json_to_sheet(appState.history);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Historial_UAMP');
+                XLSX.writeFile(wb, 'Historial_Constancias_UAMP.xlsx');
+                showToast('Historial exportado a Excel.');
+            }
+        }
+
+        function deleteHistoryEntryPermanently(idx) {
+            const item = appState.history[idx];
+            if (item?.id) appState.deletedIds.push(item.id);
+            appState.history.splice(idx, 1);
+            persistBaseState(true, true);
+            openHistoryModal();
+        }
+
+        function closeHistoryModal() { document.getElementById('historyModal')?.classList.add('hidden'); }
+        function deleteUserProfilePermanently(idx) {
+            const target = appState.profiles[idx];
+            if (!target) return;
+            appState.deletedIds.push(target.id);
+            appState.profiles.splice(idx, 1);
+            persistBaseState(true, true);
+            renderProfilesManager();
+            showToast(`Usuario "${target.name}" eliminado permanentemente.`);
+        }
+
+        function createNewUserProfile() {
+            const num = appState.profiles.length + 13;
+            appState.profiles.push({
+                id: 'usr_' + Date.now(),
+                name: `Nuevo Usuario ${num}`,
+                roleLabel: 'Operativo Editor',
+                code: `UAMP${String(num).padStart(2, '0')}`,
+                docAccess: createDefaultDocAccessMatrix(true),
+                headerPerms: createDefaultHeaderMatrix('edit'),
+                fieldPerms: createDefaultFieldMatrix('edit')
+            });
+            persistBaseState(true, true);
+            renderProfilesManager();
+            showToast('Nuevo usuario agregado.');
+        }
+
+        // VINCULACIÓN Y DESPLIEGUE DIRECTO A GITHUB (SOLO ADMINISTRADOR)
+        function loadGithubConfigToInputs() {
+            const cfg = appState.githubConfig || {};
+            if (document.getElementById('inpGithubRepo')) document.getElementById('inpGithubRepo').value = cfg.repo || '';
+            if (document.getElementById('inpGithubToken')) document.getElementById('inpGithubToken').value = cfg.token || '';
+            if (document.getElementById('inpGithubBranch')) document.getElementById('inpGithubBranch').value = cfg.branch || 'main';
+            if (document.getElementById('inpGithubFilePath')) document.getElementById('inpGithubFilePath').value = 'index.html';
+            if (document.getElementById('inpCustomDomainUrl')) document.getElementById('inpCustomDomainUrl').value = cfg.publicUrl || '';
+        }
+
+        function saveGithubIntegrationSettings() {
+            if (!appState.activeSession || appState.activeSession.role !== 'admin') return;
+            appState.githubConfig = {
+                repo: (document.getElementById('inpGithubRepo')?.value || '').trim(),
+                token: (document.getElementById('inpGithubToken')?.value || '').trim(),
+                branch: (document.getElementById('inpGithubBranch')?.value || 'main').trim() || 'main',
+                filePath: 'index.html',
+                publicUrl: (document.getElementById('inpCustomDomainUrl')?.value || '').trim()
+            };
+            if (document.getElementById('inpGithubFilePath')) {
+                document.getElementById('inpGithubFilePath').value = 'index.html';
+            }
+            persistBaseState(true, true);
+            const badge = document.getElementById('githubSyncStatusBadge');
+            if (badge && appState.githubConfig.repo) {
+                badge.textContent = `Vinculado: ${appState.githubConfig.repo} (index.html)`;
+                badge.className = 'text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+            }
+        }
+
+        async function saveGithubIntegrationAndAutoDeploy() {
+            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
+                return showToast('Solo el Administrador puede modificar la vinculación.');
+            }
+            saveGithubIntegrationSettings();
+            const { repo, token } = appState.githubConfig;
+            if (repo && repo.includes('/') && token) {
+                showToast('Vinculación guardada. Subiendo despliegue en tiempo real y actualizando página...');
+                await deployUpdateToGithub(true);
+            } else {
+                showToast('Configuración guardada localmente. Agrega Repo y Token para desplegar en tiempo real.');
+            }
+        }
+
+        function buildSelfContainedIndexHtml() {
+            persistBaseState(false, true);
+            return '<!DOCTYPE html>\n<html lang="es">\n' + document.documentElement.innerHTML + '\n</html>';
+        }
+
+        function downloadSelfContainedPageWithData() {
+            const htmlContent = buildSelfContainedIndexHtml();
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'index.html';
+            link.click();
+            showToast('Base exportada con el nombre index.html.');
+        }
+
+        async function deployUpdateToGithub(autoRefreshAfter = false) {
+            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
+                return showToast('Acción permitida únicamente para el Administrador.');
+            }
+            saveGithubIntegrationSettings();
+            const { repo, token, branch } = appState.githubConfig;
+            const filePath = 'index.html';
+            if (!repo || !repo.includes('/') || !token) {
+                return showToast('Ingresa el repositorio (usuario/repo) y tu Token de GitHub.');
+            }
+
+            const badge = document.getElementById('githubSyncStatusBadge');
+            if (badge) badge.textContent = 'Subiendo index.html en tiempo real...';
+
+            try {
+                const apiUrl = `https://api.github.com/repos/${repo}/contents/${filePath}`;
+                let sha = undefined;
+
+                const getRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(branch)}&nocache=${Date.now()}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/vnd.github+json'
+                    }
+                });
+                if (getRes.ok) {
+                    const existing = await getRes.json();
+                    sha = existing.sha;
+                }
+
+                const htmlContent = buildSelfContainedIndexHtml();
+                const utf8Bytes = new TextEncoder().encode(htmlContent);
+                let binary = '';
+                utf8Bytes.forEach(b => { binary += String.fromCharCode(b); });
+                const base64Content = btoa(binary);
+
+                const putBody = {
+                    message: `Despliegue SISTEMA BUBU 1.0 · v${appState.deploymentVersion}`,
+                    content: base64Content,
+                    branch: branch
+                };
+                if (sha) putBody.sha = sha;
+
+                const putRes = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/vnd.github+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(putBody)
+                });
+
+                if (!putRes.ok) {
+                    const errData = await putRes.json().catch(() => ({}));
+                    throw new Error(errData.message || `Error HTTP ${putRes.status}`);
+                }
+
+                if (badge) {
+                    badge.textContent = `Desplegado index.html · v${appState.deploymentVersion}`;
+                    badge.className = 'text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+                }
+                showToast('Modificaciones subidas siempre como index.html. Actualizando la página...');
+
+                if (autoRefreshAfter && window.location.protocol.startsWith('http')) {
+                    setTimeout(() => {
+                        const baseUrl = window.location.href.split('#')[0].split('?')[0];
+                        window.location.replace(`${baseUrl}?v=${appState.deploymentVersion}`);
+                    }, 1200);
+                }
+            } catch (err) {
+                if (badge) {
+                    badge.textContent = 'Error en despliegue';
+                    badge.className = 'text-[10px] font-bold px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40';
+                }
+                showToast(`Error al subir a GitHub: ${err.message}`);
+            }
+        }
+
+        function openDatabaseVaultModal() {
+            renderStudentsVaultList();
+            document.getElementById('databaseVaultModal')?.classList.remove('hidden');
+        }
+
+        function closeDatabaseVaultModal() { document.getElementById('databaseVaultModal')?.classList.add('hidden'); }
+
+        function importStudentsExcel(e) {
+            const file = e.target.files?.[0];
+            if (!file || !window.XLSX) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                const wb = XLSX.read(evt.target.result, { type: 'binary' });
+                const sheet = wb.Sheets[wb.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet);
+                appState.studentsVault = rows;
+                persistBaseState(false);
+                renderStudentsVaultList();
+                showToast(`${rows.length} alumnos cargados desde Excel.`);
+            };
+            reader.readAsBinaryString(file);
+        }
+
+        function renderStudentsVaultList() {
+            const box = document.getElementById('studentsVaultList');
+            if (!box) return;
+            box.innerHTML = appState.studentsVault.length
+                ? appState.studentsVault.map((s, idx) => `
+                    <div class="px-3 py-2 flex items-center justify-between hover:bg-slate-50">
+                        <span><b>${s.Nombre || s.nombre || ''}</b> (${s.Matricula || s.matricula || ''})</span>
+                        <button type="button" onclick="applyStudentFromVault(${idx})" class="px-2.5 py-1 rounded bg-blue-900 text-white text-[11px] font-bold">Usar</button>
+                    </div>
+                `).join('')
+                : '<p class="p-4 text-center text-slate-400">Sin alumnos importados.</p>';
+        }
+
+        function applyStudentFromVault(idx) {
+            const s = appState.studentsVault[idx];
+            if (!s) return;
+            if (s.Nombre || s.nombre) document.getElementById('inpNombre').value = s.Nombre || s.nombre;
+            if (s.Matricula || s.matricula) document.getElementById('inpMatricula').value = s.Matricula || s.matricula;
+            if (s.CURP || s.curp) document.getElementById('inpCurp').value = s.CURP || s.curp;
+            if (s.Grado || s.grado) document.getElementById('inpPeriodoGrado').value = s.Grado || s.grado;
+            updateDocument();
+            closeDatabaseVaultModal();
+            showToast('Datos del alumno aplicados.');
+        }
+
+        function openPeriodsModal() {
+            renderPeriodsModalList();
+            document.getElementById('periodsModal')?.classList.remove('hidden');
+        }
+
+        function closePeriodsModal() { document.getElementById('periodsModal')?.classList.add('hidden'); }
+
+        function renderPeriodsModalList() {
+            const box = document.getElementById('periodsModalList');
+            if (!box) return;
+            box.innerHTML = appState.periods.map((p, idx) => `
+                <div class="px-3 py-2 flex items-center justify-between text-xs">
+                    <span class="font-semibold">${p}</span>
+                    <button type="button" onclick="deleteAcademicPeriodPermanently(${idx})" class="text-rose-600 font-bold">Eliminar</button>
+                </div>
+            `).join('');
+        }
+
+        function deleteAcademicPeriodPermanently(idx) {
+            const periodVal = appState.periods[idx];
+            if (periodVal) appState.deletedIds.push('period:' + periodVal);
+            appState.periods.splice(idx, 1);
+            persistBaseState(true, true);
+            populatePeriodsSelect();
+            renderPeriodsModalList();
+            showToast('Periodo eliminado permanentemente.');
+        }
+
+        function saveCustomAcademicPeriod() {
+            const inp = document.getElementById('newAcademicPeriodInput');
+            const val = (inp?.value || '').trim();
+            if (!val) return;
+            appState.deletedIds = appState.deletedIds.filter(id => id !== 'period:' + val);
+            appState.periods.unshift(val);
+            inp.value = '';
+            persistBaseState(true, true);
+            populatePeriodsSelect();
+            renderPeriodsModalList();
+            showToast('Periodo agregado.');
+        }
+
+        function setTodayExpeditionDate(silent = false) {
+            const inp = document.getElementById('inpFechaExpedicion');
+            if (inp) {
+                const now = new Date();
+                const yyyy = now.getFullYear();
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const dd = String(now.getDate()).padStart(2, '0');
+                inp.value = `${yyyy}-${mm}-${dd}`;
+            }
+            updateDocument();
+            if (!silent) showToast('Fecha de expedición actualizada a hoy.');
+        }
+
+        function incrementFolioByOne() {
+            const inp = document.getElementById('inpFolio');
+            if (!inp) return;
+            const match = inp.value.match(/^(.*?)(\d+)([^\d]*)$/);
+            if (match) {
+                const prefix = match[1];
+                const numStr = match[2];
+                const suffix = match[3];
+                const nextNum = String(parseInt(numStr, 10) + 1).padStart(numStr.length, '0');
+                inp.value = `${prefix}${nextNum}${suffix}`;
+            } else {
+                inp.value = `${inp.value}-1`;
+            }
+            updateDocument();
+            showToast(`Folio incrementado: ${inp.value}`);
+        }
+
+        function clearStudentQuickCommand() {
+            ['inpNombre', 'inpMatricula', 'inpCurp'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            updateDocument();
+            showToast('Campos del alumno limpiados.');
+        }
+
+        function resetFormToDefaultsCommand() {
+            document.getElementById('inpFolio').value = 'DIR.C.E. 552/2025';
+            document.getElementById('inpNombre').value = 'GOMEZ AMORES ENRIQUE';
+            document.getElementById('inpMatricula').value = '2211899';
+            document.getElementById('inpCurp').value = 'GOAE010412HPLRND09';
+            document.getElementById('inpPeriodoGrado').value = '7° semestre';
+            document.getElementById('inpDestinoNota').value = 'Sin más por el momento y para los fines del interesado se extiende la presente.';
+            setTodayExpeditionDate(true);
+            updateDocument();
+            showToast('Datos de ejemplo restablecidos.');
+        }
+
+        function copyDocumentTextCommand() {
+            const paper = document.getElementById('constanciaPaper');
+            if (!paper) return;
+            const temp = document.createElement('textarea');
+            temp.value = paper.innerText;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+            showToast('Texto de la constancia copiado al portapapeles.');
+        }
+
+        function refreshAllUI() {
+            populateMajorsSelect();
+            populatePeriodsSelect();
+            renderGradesEditor();
+            renderMontosEditor();
+            renderKardexEditor();
+            renderResguardoEditor();
+            if (document.getElementById('inpFirmanteNombre')) document.getElementById('inpFirmanteNombre').value = appState.signer.name;
+            if (document.getElementById('inpFirmanteCargo')) document.getElementById('inpFirmanteCargo').value = appState.signer.title;
+            applySessionPermissions();
+            selectDocType(appState.currentDocType);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadPersistedState(false);
+            setTodayExpeditionDate(true);
+            refreshAllUI();
+            checkRemoteDeploymentVersion(false);
+            setInterval(() => checkRemoteDeploymentVersion(false), 60000);
+        });
+    </script>
+</div>
