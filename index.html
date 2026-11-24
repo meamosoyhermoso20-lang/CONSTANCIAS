@@ -127,6 +127,9 @@
                     <button type="button" data-header-btn="btn_save_html" onclick="downloadSelfContainedPageWithData()" class="px-2.5 py-1.5 rounded-lg bg-indigo-900/80 hover:bg-indigo-800 border border-indigo-700 text-indigo-100 text-xs font-semibold transition">
                         Exportar index.html
                     </button>
+                    <button type="button" id="btnRealtimeSaveAndRefresh" data-header-btn="btn_realtime_sync" onclick="realtimeSaveAndRefreshSystem()" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow transition">
+                        Guardar y Actualizar en Tiempo Real
+                    </button>
                     <button type="button" onclick="lockProfileQuickAccess()" class="px-2.5 py-1.5 rounded-lg bg-rose-900/80 hover:bg-rose-800 border border-rose-700 text-rose-100 text-xs font-bold transition">
                         Cerrar Sesión
                     </button>
@@ -189,11 +192,18 @@
                         </div>
 
                         <div data-field-wrap="nombre_alumno">
-                            <label class="block text-[11px] font-bold text-slate-600 mb-1">Nombre Completo del Alumno</label>
-                            <input type="text" id="inpNombre" value="GOMEZ AMORES ENRIQUE" oninput="updateDocument()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none" placeholder="Ej. GOMEZ AMORES ENRIQUE">
+                            <label class="block text-[11px] font-bold text-slate-600 mb-1">Nombre Completo del Alumno(a)</label>
+                            <input type="text" id="inpNombre" value="GOMEZ AMORES ENRIQUE" oninput="updateDocument()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div data-field-wrap="genero_alumno">
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Género del Estudiante</label>
+                                <select id="selGeneroAlumno" onchange="updateDocument()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-800 bg-white focus:ring-2 focus:ring-blue-800 outline-none">
+                                    <option value="M">Niño / Hombre (el alumno · inscrito)</option>
+                                    <option value="F">Niña / Mujer (la alumna · inscrita)</option>
+                                </select>
+                            </div>
                             <div data-field-wrap="matricula">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1">Matrícula</label>
                                 <input type="text" id="inpMatricula" value="2211899" oninput="updateDocument()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
@@ -328,7 +338,7 @@
                             <label class="block text-[11px] font-bold text-slate-600 mb-1">Redacción / Estructura HTML del Cuerpo</label>
                             <textarea id="txtCustomFormatBody" rows="5" oninput="previewCustomFormatLive()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono text-slate-800 leading-relaxed focus:ring-2 focus:ring-blue-800 outline-none"></textarea>
                             <p class="mt-1 text-[10px] text-slate-500">
-                                Etiquetas disponibles: <code>{FIRMANTE}</code>, <code>{CARGO}</code>, <code>{RVOE}</code>, <code>{NOMBRE}</code>, <code>{MATRICULA}</code>, <code>{CURP}</code>, <code>{LICENCIATURA}</code>, <code>{GRADO}</code>, <code>{PERIODO}</code>, <code>{VERBO_CURSADO}</code>, <code>{TABLA_CALIFICACIONES}</code>, <code>{TABLA_MONTOS}</code>, <code>{TABLA_KARDEX}</code>, <code>{TABLA_RESGUARDO}</code>, <code>{NOTA}</code>, <code>{FECHA}</code>
+                                Etiquetas disponibles: <code>{ARTICULO_ALUMNO}</code>, <code>{INSCRITO_GENERO}</code>, <code>{NOMBRE}</code>, <code>{MATRICULA}</code>, <code>{CURP}</code>, <code>{LICENCIATURA}</code>, <code>{RVOE}</code>, <code>{FECHA_RVOE}</code>, <code>{GRADO}</code>, <code>{PERIODO}</code>, <code>{VERBO_CURSADO}</code>, <code>{TABLA_CALIFICACIONES}</code>, <code>{TABLA_MONTOS}</code>, <code>{TABLA_KARDEX}</code>, <code>{TABLA_RESGUARDO}</code>, <code>{NOTA}</code>, <code>{FECHA}</code>
                             </p>
                         </div>
                     </div>
@@ -392,7 +402,7 @@
                                 </div>
 
                                 <!-- CUERPO DINÁMICO DE LA CONSTANCIA -->
-                                <div id="docDynamicBody" class="text-justify space-y-5"></div>
+                                <div id="docDynamicBody" class="text-justify space-y-5" style="white-space: pre-line;"></div>
 
                                 <!-- BLOQUE DE FIRMA CENTRADO A 4 RENGLONES DE LA INFORMACIÓN -->
                                 <div style="margin-top: 4em;" class="text-center">
@@ -413,10 +423,11 @@
         <section id="workspaceViewCatalogos" class="hidden flex-1 max-w-5xl w-full mx-auto px-4 py-6 space-y-4">
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
                 <h2 class="text-base font-black text-slate-800 mb-1">Catálogo Oficial de Licenciaturas y RVOE</h2>
-                <p class="text-xs text-slate-500 mb-4">Agrega o administra los programas académicos y acuerdos RVOE que aparecen en las constancias.</p>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
+                <p class="text-xs text-slate-500 mb-4">Agrega o administra los programas académicos, número de RVOE y fecha del RVOE (se respeta exactamente como lo escribas).</p>
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5 mb-4">
                     <input type="text" id="newMajorName" placeholder="Nombre de la Licenciatura" class="px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold">
-                    <input type="text" id="newMajorRvoe" placeholder="Acuerdo RVOE (Ej. RVOE-SEP-123/2020)" class="px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold">
+                    <input type="text" id="newMajorRvoe" placeholder="Número de RVOE (Ej. RVOE-SEP-123/2020)" class="px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold">
+                    <input type="text" id="newMajorRvoeDate" placeholder="Fecha RVOE (ej. 01 de junio de 2017)" class="px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold">
                     <button type="button" onclick="addNewMajorRvoe()" class="px-4 py-2 rounded-xl bg-blue-900 hover:bg-blue-800 text-white text-xs font-bold transition">+ Agregar Licenciatura</button>
                 </div>
                 <div id="majorsCatalogList" class="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden"></div>
@@ -447,38 +458,39 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
                         <div>
                             <label class="block text-[10px] font-bold text-slate-400 mb-1">Repositorio (usuario/repositorio)</label>
-                            <input type="text" id="inpGithubRepo" placeholder="ej. miusuario/constancias-uap" class="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white font-mono text-xs outline-none">
+                            <input type="text" id="inpGithubRepo" oninput="saveGithubIntegrationSettings()" placeholder="ej. miusuario/constancias-uap" class="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white font-mono text-xs outline-none">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-400 mb-1">Personal Access Token (GitHub)</label>
-                            <input type="password" id="inpGithubToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" class="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white font-mono text-xs outline-none">
+                            <label class="block text-[10px] font-bold text-slate-400 mb-1">Personal Access Token (Actualizable en cada envío)</label>
+                            <input type="password" id="inpGithubToken" oninput="saveGithubIntegrationSettings()" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" class="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white font-mono text-xs outline-none">
                         </div>
                         <div>
                             <label class="block text-[10px] font-bold text-slate-400 mb-1">Rama / Archivo Destino</label>
                             <div class="flex gap-1.5">
-                                <input type="text" id="inpGithubBranch" value="main" placeholder="main" class="w-1/2 px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white font-mono text-xs outline-none">
+                                <input type="text" id="inpGithubBranch" value="main" oninput="saveGithubIntegrationSettings()" placeholder="main" class="w-1/2 px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white font-mono text-xs outline-none">
                                 <input type="text" id="inpGithubFilePath" value="index.html" readonly title="Siempre se despliega como index.html" class="w-1/2 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-amber-400 font-mono font-bold text-xs outline-none cursor-not-allowed">
                             </div>
                         </div>
                         <div>
                             <label class="block text-[10px] font-bold text-slate-400 mb-1">URL Pública GitHub Pages</label>
-                            <input type="text" id="inpCustomDomainUrl" placeholder="https://usuario.github.io/repo/" class="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs outline-none">
+                            <input type="text" id="inpCustomDomainUrl" oninput="saveGithubIntegrationSettings()" placeholder="https://usuario.github.io/repo/" class="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs outline-none">
                         </div>
                     </div>
 
                     <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
                         <div class="flex flex-wrap items-center gap-2">
-                            <button type="button" onclick="saveGithubIntegrationAndAutoDeploy()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow transition flex items-center gap-1.5">
-                                <span class="px-1.5 py-0.5 rounded bg-slate-950 text-amber-400 text-[10px]">1° CLICK</span>
-                                Guardar Vinculación y Actualizar
+                            <button type="button" id="btnExtractAndAutoLoad" data-header-btn="btn_extract_data" onclick="extractAndAutoLoadSystemData()" class="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-extrabold shadow transition flex items-center gap-1.5">
+                                Extraer Datos
+                            </button>
+                            <button type="button" onclick="saveAllDataAndAutoUploadIndex()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow transition flex items-center gap-1.5">
+                                <span class="px-1.5 py-0.5 rounded bg-slate-950 text-amber-400 text-[10px]">1 CLICK</span>
+                                Guardar Datos y Subir Base index.html
                             </button>
                             <button type="button" onclick="downloadSelfContainedPageWithData()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1.5">
-                                <span class="px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-200 text-[10px]">2° OPCIONAL</span>
-                                Exportar Base como index.html
+                                Descargar Respaldo index.html
                             </button>
-                            <button type="button" onclick="deployUpdateToGithub(true)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow transition flex items-center gap-1.5">
-                                <span class="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-200 text-[10px]">3° PUBLICAR</span>
-                                Subir Despliegue a GitHub
+                            <button type="button" onclick="deployUpdateToGithub(true, false, true)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow transition flex items-center gap-1.5">
+                                Subir Despliegue a GitHub y Actualizar Página
                             </button>
                         </div>
                         <button type="button" onclick="checkRemoteDeploymentVersion(true)" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-[11px] font-bold transition">
@@ -557,6 +569,8 @@
             { id: 'btn_excel', label: 'Botón Base Excel' },
             { id: 'btn_periods', label: 'Botón Periodos' },
             { id: 'btn_save_html', label: 'Botón Exportar index.html' },
+            { id: 'btn_extract_data', label: 'Botón Extraer Datos' },
+            { id: 'btn_realtime_sync', label: 'Botón Guardar y Actualizar en Tiempo Real' },
             { id: 'cmd_folio', label: 'Atajo +1 Folio' },
             { id: 'cmd_clear', label: 'Atajo Limpiar' },
             { id: 'cmd_copy', label: 'Atajo Copiar' },
@@ -568,6 +582,7 @@
             { id: 'folio', label: 'Folio / Control' },
             { id: 'fecha_expedicion', label: 'Fecha de Expedición' },
             { id: 'nombre_alumno', label: 'Nombre del Alumno' },
+            { id: 'genero_alumno', label: 'Género (el alumno / la alumna)' },
             { id: 'matricula', label: 'Matrícula' },
             { id: 'curp', label: 'CURP' },
             { id: 'licenciatura', label: 'Licenciatura y RVOE' },
@@ -596,37 +611,27 @@
         const DEFAULT_DOC_TEMPLATES = {
             estudios: {
                 title: 'Constancia de Estudios',
-                body: `<p style="text-indent: 42px;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que el alumno (a): <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}, cursa el {GRADO}, {PERIODO}.</p>
-<p>{NOTA}</p>`
+                body: `<p style="text-indent: 42px; margin: 0;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que {ARTICULO_ALUMNO}: <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, {INSCRITO_GENERO} en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}{FECHA_RVOE_TEXTO}, cursa el {GRADO}, {PERIODO}.</p>\n<p style="margin: 0;">{NOTA}</p>`
             },
             calificaciones: {
                 title: 'Constancia de Calificaciones',
-                body: `<p style="text-indent: 42px;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que el alumno (a): <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}, obtuvo en el {GRADO}, {PERIODO}, las siguientes calificaciones:</p>
-{TABLA_CALIFICACIONES}
-<p>{NOTA}</p>`
+                body: `<p style="text-indent: 42px; margin: 0;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que {ARTICULO_ALUMNO}: <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, {INSCRITO_GENERO} en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}{FECHA_RVOE_TEXTO}, obtuvo en el {GRADO}, {PERIODO}, las siguientes calificaciones:</p>\n{TABLA_CALIFICACIONES}\n<p style="margin: 0;">{NOTA}</p>`
             },
             periodos_anteriores: {
                 title: 'Constancia de Periodos Anteriores',
-                body: `<p style="text-indent: 42px;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que el alumno (a): <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}, <b>{VERBO_CURSADO}</b> el {GRADO}, {PERIODO}.</p>
-<p>{NOTA}</p>`
+                body: `<p style="text-indent: 42px; margin: 0;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que {ARTICULO_ALUMNO}: <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, {INSCRITO_GENERO} en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}{FECHA_RVOE_TEXTO}, <b>{VERBO_CURSADO}</b> el {GRADO}, {PERIODO}.</p>\n<p style="margin: 0;">{NOTA}</p>`
             },
             montos: {
                 title: 'Constancia de Montos y Cuotas',
-                body: `<p style="text-indent: 42px;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que el alumno (a): <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}, en el {GRADO}, {PERIODO}, presenta el siguiente desglose de montos y cuotas:</p>
-{TABLA_MONTOS}
-<p>{NOTA}</p>`
+                body: `<p style="text-indent: 42px; margin: 0;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que {ARTICULO_ALUMNO}: <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, {INSCRITO_GENERO} en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}{FECHA_RVOE_TEXTO}, en el {GRADO}, {PERIODO}, presenta el siguiente desglose de montos y cuotas:</p>\n{TABLA_MONTOS}\n<p style="margin: 0;">{NOTA}</p>`
             },
             kardex: {
                 title: 'Kardex Académico',
-                body: `<p style="text-indent: 42px;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que el alumno (a): <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}, cuenta con el siguiente historial académico (Kardex) hasta el {GRADO}, {PERIODO}:</p>
-{TABLA_KARDEX}
-<p>{NOTA}</p>`
+                body: `<p style="text-indent: 42px; margin: 0;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que {ARTICULO_ALUMNO}: <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, {INSCRITO_GENERO} en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}{FECHA_RVOE_TEXTO}, cuenta con el siguiente historial académico (Kardex) hasta el {GRADO}, {PERIODO}:</p>\n{TABLA_KARDEX}\n<p style="margin: 0;">{NOTA}</p>`
             },
             resguardo: {
                 title: 'Constancia de Resguardo',
-                body: `<p style="text-indent: 42px;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que el alumno (a): <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, inscrito (a) en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}, correspondiente al {GRADO}, {PERIODO}, mantiene bajo resguardo institucional lo siguiente:</p>
-{TABLA_RESGUARDO}
-<p>{NOTA}</p>`
+                body: `<p style="text-indent: 42px; margin: 0;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que {ARTICULO_ALUMNO}: <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b>, {INSCRITO_GENERO} en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}{FECHA_RVOE_TEXTO}, correspondiente al {GRADO}, {PERIODO}, mantiene bajo resguardo institucional lo siguiente:</p>\n{TABLA_RESGUARDO}\n<p style="margin: 0;">{NOTA}</p>`
             }
         };
 
@@ -667,24 +672,18 @@
             deletedIds: [],
             templates: JSON.parse(JSON.stringify(DEFAULT_DOC_TEMPLATES)),
             majors: [
-                { id: 'maj_1', name: 'Licenciatura en Fisioterapia', rvoe: 'SEP/SES/21/174/01/1272/2015/ACT1/2017 de fecha 01 de junio de 2017' },
-                { id: 'maj_2', name: 'Licenciatura en Derecho', rvoe: 'RVOE-SEP-20190412' },
-                { id: 'maj_3', name: 'Licenciatura en Administración de Empresas', rvoe: 'RVOE-SEP-20190415' },
-                { id: 'maj_4', name: 'Licenciatura en Contaduría Pública', rvoe: 'RVOE-SEP-20190418' },
-                { id: 'maj_5', name: 'Licenciatura en Psicología', rvoe: 'RVOE-SEP-20200109' },
-                { id: 'maj_6', name: 'Licenciatura en Pedagogía', rvoe: 'RVOE-SEP-20200114' },
-                { id: 'maj_7', name: 'Ingeniería en Sistemas Computacionales', rvoe: 'RVOE-SEP-20210302' }
+                { id: 'maj_1', name: 'Licenciatura en Fisioterapia', rvoe: 'SEP/SES/21/174/01/1272/2015/ACT1/2017', rvoeDate: '01 de junio de 2017' },
+                { id: 'maj_2', name: 'Licenciatura en Derecho', rvoe: 'RVOE-SEP-20190412', rvoeDate: '12 de abril de 2019' },
+                { id: 'maj_3', name: 'Licenciatura en Administración de Empresas', rvoe: 'RVOE-SEP-20190415', rvoeDate: '15 de abril de 2019' },
+                { id: 'maj_4', name: 'Licenciatura en Contaduría Pública', rvoe: 'RVOE-SEP-20190418', rvoeDate: '18 de abril de 2019' },
+                { id: 'maj_5', name: 'Licenciatura en Psicología', rvoe: 'RVOE-SEP-20200109', rvoeDate: '09 de enero de 2020' },
+                { id: 'maj_6', name: 'Licenciatura en Pedagogía', rvoe: 'RVOE-SEP-20200114', rvoeDate: '14 de enero de 2020' },
+                { id: 'maj_7', name: 'Ingeniería en Sistemas Computacionales', rvoe: 'RVOE-SEP-20210302', rvoeDate: '02 de marzo de 2021' }
             ],
             periods: [
                 'a partir del 11 de Agosto de 2025 al 21 de Enero del 2026, correspondiente al ciclo escolar 2025/2026',
                 'a partir del 02 de Febrero de 2026 al 17 de Julio del 2026, correspondiente al ciclo escolar 2025/2026',
                 'a partir del 10 de Agosto de 2026 al 22 de Enero del 2027, correspondiente al ciclo escolar 2026/2027'
-            ],
-            periods: [
-                'Agosto 2026 - Enero 2027',
-                'Febrero 2026 - Julio 2026',
-                'Septiembre 2026 - Diciembre 2026',
-                'Enero 2026 - Abril 2026'
             ],
             grades: [
                 { group: '7A', code: 'DER-701', subject: 'Derecho Constitucional', score: '9.5' },
@@ -741,11 +740,17 @@
         function buildSerializableVaultPayload() {
             return {
                 deploymentVersion: appState.deploymentVersion,
+                currentDocType: appState.currentDocType,
+                extractedFormState: extractCurrentSystemFields(),
                 profiles: appState.profiles,
                 deletedIds: appState.deletedIds,
                 templates: appState.templates,
                 majors: appState.majors,
                 periods: appState.periods,
+                grades: appState.grades,
+                montos: appState.montos,
+                kardex: appState.kardex,
+                resguardo: appState.resguardo,
                 signer: appState.signer,
                 githubConfig: appState.githubConfig,
                 history: appState.history,
@@ -753,11 +758,109 @@
             };
         }
 
-        function persistBaseState(broadcast = true, bumpVersion = true) {
+        function extractCurrentSystemFields() {
+            return {
+                currentDocType: appState.currentDocType,
+                folio: document.getElementById('inpFolio')?.value || '',
+                fechaExpedicion: document.getElementById('inpFechaExpedicion')?.value || '',
+                nombre: document.getElementById('inpNombre')?.value || '',
+                genero: document.getElementById('selGeneroAlumno')?.value || 'M',
+                matricula: document.getElementById('inpMatricula')?.value || '',
+                curp: document.getElementById('inpCurp')?.value || '',
+                licenciaturaId: document.getElementById('selLicenciatura')?.value || '',
+                grado: document.getElementById('inpPeriodoGrado')?.value || '',
+                periodoEscolar: document.getElementById('selPeriodoEscolar')?.value || '',
+                verboCursado: document.getElementById('selVerboCursado')?.value || 'cursó',
+                nota: document.getElementById('inpDestinoNota')?.value || '',
+                firmanteNombre: document.getElementById('inpFirmanteNombre')?.value || appState.signer.name,
+                firmanteCargo: document.getElementById('inpFirmanteCargo')?.value || appState.signer.title,
+                fontFamily: document.getElementById('selDocFontFamily')?.value || 'Arial, Helvetica, sans-serif',
+                fontSize: document.getElementById('inpDocFontSize')?.value || '11',
+                lineHeight: document.getElementById('inpDocLineHeight')?.value || '1.3'
+            };
+        }
+
+        function applyExtractedSystemFields(fields) {
+            if (!fields || typeof fields !== 'object') return;
+            if (fields.currentDocType) appState.currentDocType = fields.currentDocType;
+            if (fields.folio && document.getElementById('inpFolio')) document.getElementById('inpFolio').value = fields.folio;
+            if (fields.fechaExpedicion && document.getElementById('inpFechaExpedicion')) document.getElementById('inpFechaExpedicion').value = fields.fechaExpedicion;
+            if (fields.nombre && document.getElementById('inpNombre')) document.getElementById('inpNombre').value = fields.nombre;
+            if (fields.genero && document.getElementById('selGeneroAlumno')) document.getElementById('selGeneroAlumno').value = fields.genero;
+            if (fields.matricula && document.getElementById('inpMatricula')) document.getElementById('inpMatricula').value = fields.matricula;
+            if (fields.curp && document.getElementById('inpCurp')) document.getElementById('inpCurp').value = fields.curp;
+            if (fields.licenciaturaId && document.getElementById('selLicenciatura')) document.getElementById('selLicenciatura').value = fields.licenciaturaId;
+            if (fields.grado && document.getElementById('inpPeriodoGrado')) document.getElementById('inpPeriodoGrado').value = fields.grado;
+            if (fields.periodoEscolar && document.getElementById('selPeriodoEscolar')) document.getElementById('selPeriodoEscolar').value = fields.periodoEscolar;
+            if (fields.verboCursado && document.getElementById('selVerboCursado')) document.getElementById('selVerboCursado').value = fields.verboCursado;
+            if (fields.nota && document.getElementById('inpDestinoNota')) document.getElementById('inpDestinoNota').value = fields.nota;
+            if (fields.firmanteNombre && document.getElementById('inpFirmanteNombre')) document.getElementById('inpFirmanteNombre').value = fields.firmanteNombre;
+            if (fields.firmanteCargo && document.getElementById('inpFirmanteCargo')) document.getElementById('inpFirmanteCargo').value = fields.firmanteCargo;
+            if (fields.fontFamily && document.getElementById('selDocFontFamily')) document.getElementById('selDocFontFamily').value = fields.fontFamily;
+            if (fields.fontSize && document.getElementById('inpDocFontSize')) document.getElementById('inpDocFontSize').value = fields.fontSize;
+            if (fields.lineHeight && document.getElementById('inpDocLineHeight')) document.getElementById('inpDocLineHeight').value = fields.lineHeight;
+        }
+
+        async function extractAndAutoLoadSystemData() {
+            showToast('Extrayendo datos del sistema y cargando automáticamente...');
+            // 1. Consultar versión más reciente desplegada en el servidor (si existe)
+            await checkRemoteDeploymentVersion(false);
+            // 2. Recargar datos guardados de la base local y embebida
+            loadPersistedState(true);
+            // 3. Si el usuario escribió una matrícula o nombre que coincide con la Base Excel importada, autocompletar sus datos
+            const currentMat = (document.getElementById('inpMatricula')?.value || '').trim().toLowerCase();
+            const currentName = (document.getElementById('inpNombre')?.value || '').trim().toLowerCase();
+            if (Array.isArray(appState.studentsVault) && appState.studentsVault.length > 0) {
+                const matchedStudent = appState.studentsVault.find(s => {
+                    const m = String(s.Matricula || s.matricula || '').trim().toLowerCase();
+                    const n = String(s.Nombre || s.nombre || '').trim().toLowerCase();
+                    return (currentMat && m === currentMat) || (currentName && n === currentName);
+                });
+                if (matchedStudent) {
+                    if (matchedStudent.Nombre || matchedStudent.nombre) document.getElementById('inpNombre').value = matchedStudent.Nombre || matchedStudent.nombre;
+                    if (matchedStudent.Matricula || matchedStudent.matricula) document.getElementById('inpMatricula').value = matchedStudent.Matricula || matchedStudent.matricula;
+                    if (matchedStudent.CURP || matchedStudent.curp) document.getElementById('inpCurp').value = matchedStudent.CURP || matchedStudent.curp;
+                    if (matchedStudent.Grado || matchedStudent.grado) document.getElementById('inpPeriodoGrado').value = matchedStudent.Grado || matchedStudent.grado;
+                    const licText = String(matchedStudent.Licenciatura || matchedStudent.licenciatura || '').trim().toLowerCase();
+                    if (licText) {
+                        const foundMajor = appState.majors.find(mj => mj.name.toLowerCase().includes(licText));
+                        if (foundMajor && document.getElementById('selLicenciatura')) {
+                            document.getElementById('selLicenciatura').value = foundMajor.id;
+                        }
+                    }
+                }
+            }
+            // 4. Sincronizar campos extraídos y refrescar toda la interfaz y vista previa
+            if (appState.extractedFormState) {
+                applyExtractedSystemFields(appState.extractedFormState);
+            }
+            refreshAllUI();
+            updateDocument();
+            showToast('Datos extraídos y cargados automáticamente en la constancia.');
+        }
+
+        let autoDeployDebounceTimer = null;
+
+        function persistBaseState(broadcast = true, bumpVersion = true, autoPushGithub = true) {
             try {
                 if (bumpVersion) {
                     appState.deploymentVersion = Date.now();
                 }
+                // Sincronizar siempre el token y configuración más reciente desde los inputs si existen
+                const repoInp = document.getElementById('inpGithubRepo');
+                const tokenInp = document.getElementById('inpGithubToken');
+                const branchInp = document.getElementById('inpGithubBranch');
+                const urlInp = document.getElementById('inpCustomDomainUrl');
+                if (repoInp && repoInp.value.trim()) appState.githubConfig.repo = repoInp.value.trim();
+                if (tokenInp && tokenInp.value.trim()) appState.githubConfig.token = tokenInp.value.trim();
+                if (branchInp && branchInp.value.trim()) appState.githubConfig.branch = branchInp.value.trim();
+                if (urlInp && urlInp.value.trim()) appState.githubConfig.publicUrl = urlInp.value.trim();
+                appState.githubConfig.filePath = 'index.html';
+                appState.githubConfig.tokenUpdatedAt = new Date().toLocaleString('es-MX');
+
+                // Capturar siempre los campos y desplegables actuales en la base index.html
+                appState.extractedFormState = extractCurrentSystemFields();
+
                 const payload = buildSerializableVaultPayload();
                 const json = JSON.stringify(payload);
                 localStorage.setItem(STORAGE_KEY, json);
@@ -765,6 +868,13 @@
                 if (vaultTag) vaultTag.textContent = json;
                 if (broadcast && syncChannel) {
                     syncChannel.postMessage({ type: 'STATE_UPDATED', version: appState.deploymentVersion });
+                }
+                // Sincronización automática en tiempo real hacia index.html cuando el Administrador modifica datos o desplegables
+                if (autoPushGithub && appState.activeSession?.role === 'admin' && appState.githubConfig?.repo && appState.githubConfig?.token) {
+                    clearTimeout(autoDeployDebounceTimer);
+                    autoDeployDebounceTimer = setTimeout(() => {
+                        deployUpdateToGithub(false, true, false);
+                    }, 900);
                 }
             } catch (err) {
                 console.warn('Error al guardar estado:', err);
@@ -799,47 +909,167 @@
             if (Array.isArray(parsed.periods)) {
                 appState.periods = parsed.periods.filter(p => !appState.deletedIds.includes('period:' + p));
             }
+            if (Array.isArray(parsed.grades)) appState.grades = parsed.grades;
+            if (Array.isArray(parsed.montos)) appState.montos = parsed.montos;
+            if (Array.isArray(parsed.kardex)) appState.kardex = parsed.kardex;
+            if (Array.isArray(parsed.resguardo)) appState.resguardo = parsed.resguardo;
             if (parsed.signer) appState.signer = parsed.signer;
             if (parsed.githubConfig) appState.githubConfig = { ...appState.githubConfig, ...parsed.githubConfig };
             if (Array.isArray(parsed.history)) appState.history = parsed.history.filter(h => !appState.deletedIds.includes(h.id));
             if (Array.isArray(parsed.studentsVault)) appState.studentsVault = parsed.studentsVault;
-        }
-
-        function loadPersistedState(skipHash = false) {
-            try {
-                const vaultTag = document.getElementById('embeddedInternalVaultData');
-                let embeddedParsed = null;
-                if (vaultTag && vaultTag.textContent && vaultTag.textContent.trim() !== '{}') {
-                    embeddedParsed = JSON.parse(vaultTag.textContent);
-                }
-                let localParsed = null;
-                const localRaw = localStorage.getItem(STORAGE_KEY);
-                if (localRaw) localParsed = JSON.parse(localRaw);
-
-                // Priorizar la versión más reciente entre el código desplegado y localStorage
-                const embeddedVer = embeddedParsed?.deploymentVersion || 0;
-                const localVer = localParsed?.deploymentVersion || 0;
-
-                if (embeddedVer >= localVer) {
-                    if (localParsed) applyParsedStateObject(localParsed);
-                    if (embeddedParsed) applyParsedStateObject(embeddedParsed);
-                } else {
-                    if (embeddedParsed) applyParsedStateObject(embeddedParsed);
-                    if (localParsed) applyParsedStateObject(localParsed);
-                }
-
-                if (!skipHash && window.location.hash && window.location.hash.startsWith('#bubuSync=')) {
-                    const raw = decodeURIComponent(window.location.hash.replace('#bubuSync=', ''));
-                    const hashParsed = JSON.parse(raw);
-                    applyParsedStateObject(hashParsed);
-                    persistBaseState(false, false);
-                }
-            } catch (err) {
-                console.warn('Error al cargar estado:', err);
+            if (parsed.extractedFormState) {
+                appState.extractedFormState = parsed.extractedFormState;
+                applyExtractedSystemFields(parsed.extractedFormState);
             }
         }
 
-        // INTERVENTOR DE CACHÉ: CONSULTA LA VERSIÓN MÁS RECIENTE DESPLEGADA EN EL SERVIDOR
+        function loadPersistedState(preferStorage = true) {
+            try {
+                let embeddedObj = null;
+                const vaultTag = document.getElementById('embeddedInternalVaultData');
+                if (vaultTag && vaultTag.textContent && vaultTag.textContent.trim() !== '{}') {
+                    embeddedObj = JSON.parse(vaultTag.textContent);
+                }
+
+                let localObj = null;
+                const rawLocal = localStorage.getItem(STORAGE_KEY);
+                if (rawLocal) {
+                    localObj = JSON.parse(rawLocal);
+                }
+
+                if (preferStorage) {
+                    if (embeddedObj) applyParsedStateObject(embeddedObj);
+                    if (localObj) applyParsedStateObject(localObj);
+                } else {
+                    if (localObj) applyParsedStateObject(localObj);
+                    if (embeddedObj && (embeddedObj.deploymentVersion || 0) >= (localObj?.deploymentVersion || 0)) {
+                        applyParsedStateObject(embeddedObj);
+                    }
+                }
+            } catch (err) {
+                console.warn('Error al cargar estado persistente:', err);
+            }
+        }
+
+        function buildSelfContainedIndexHtml() {
+            const payload = buildSerializableVaultPayload();
+            const jsonStr = JSON.stringify(payload);
+            const vaultTag = document.getElementById('embeddedInternalVaultData');
+            if (vaultTag) vaultTag.textContent = jsonStr;
+            const docClone = document.documentElement.cloneNode(true);
+            const cloneVault = docClone.querySelector('#embeddedInternalVaultData');
+            if (cloneVault) cloneVault.textContent = jsonStr;
+            const loginScreen = docClone.querySelector('#frontLoginScreen');
+            const mainWorkspace = docClone.querySelector('#mainAppWorkspace');
+            if (loginScreen) loginScreen.classList.remove('hidden');
+            if (mainWorkspace) mainWorkspace.classList.add('hidden');
+            return '<!DOCTYPE html>\n<html lang="es">\n' + docClone.innerHTML + '\n</html>';
+        }
+
+        function downloadSelfContainedPageWithData() {
+            persistBaseState(true, true, false);
+            const htmlContent = buildSelfContainedIndexHtml();
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'index.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Archivo index.html actualizado y descargado.');
+        }
+
+        async function deployUpdateToGithub(notifySuccess = true, silentBackground = false, reloadAfter = false) {
+            // Tomar siempre el token y repositorio más recientes antes de cada despliegue
+            saveGithubIntegrationSettings();
+            appState.extractedFormState = extractCurrentSystemFields();
+
+            const cfg = appState.githubConfig || {};
+            const repo = (cfg.repo || '').trim();
+            const token = (cfg.token || '').trim();
+            const branch = (cfg.branch || 'main').trim() || 'main';
+            const filePath = 'index.html';
+
+            if (!repo || !repo.includes('/') || !token) {
+                if (!silentBackground) {
+                    showToast('Configura primero el Repositorio (usuario/repo) y el Token de GitHub.');
+                }
+                return false;
+            }
+
+            const badge = document.getElementById('githubSyncStatusBadge');
+            if (badge) badge.textContent = 'Actualizando token y subiendo index.html...';
+
+            try {
+                const apiUrl = `https://api.github.com/repos/${repo}/contents/${filePath}`;
+                let sha = null;
+
+                const getRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(branch)}&t=${Date.now()}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/vnd.github+json'
+                    }
+                });
+                if (getRes.ok) {
+                    const existing = await getRes.json();
+                    sha = existing.sha || null;
+                }
+
+                appState.deploymentVersion = Date.now();
+                appState.githubConfig.tokenUpdatedAt = new Date().toLocaleString('es-MX');
+                const htmlContent = buildSelfContainedIndexHtml();
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(buildSerializableVaultPayload()));
+
+                const utf8Bytes = new TextEncoder().encode(htmlContent);
+                let binary = '';
+                for (let i = 0; i < utf8Bytes.length; i++) {
+                    binary += String.fromCharCode(utf8Bytes[i]);
+                }
+                const base64Content = btoa(binary);
+
+                const putBody = {
+                    message: `Actualización en tiempo real SISTEMA BUBU 1.0 (${new Date().toLocaleString('es-MX')})`,
+                    content: base64Content,
+                    branch
+                };
+                if (sha) putBody.sha = sha;
+
+                const putRes = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/vnd.github+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(putBody)
+                });
+
+                if (!putRes.ok) {
+                    const errData = await putRes.json().catch(() => ({}));
+                    if (badge) badge.textContent = 'Error de Token/Repo en GitHub';
+                    if (!silentBackground) {
+                        showToast(`Error GitHub (${putRes.status}): ${errData.message || 'Verifica el token actualizado'}`);
+                    }
+                    return false;
+                }
+
+                if (badge) badge.textContent = `Token y index.html actualizados (${new Date().toLocaleTimeString('es-MX')}) ✓`;
+                if (notifySuccess) {
+                    showToast('Base index.html y token actualizados y desplegados en tiempo real.');
+                }
+                if (reloadAfter) {
+                    setTimeout(() => forceReloadLatestDeployment(), 800);
+                }
+                return true;
+            } catch (err) {
+                if (badge) badge.textContent = 'Error de conexión GitHub';
+                if (!silentBackground) showToast('Error de red al conectar con GitHub.');
+                return false;
+            }
+        }
+        // INTERVENTOR DE CACHÉ Y ACTUALIZACIÓN EN VIVO PARA TODOS LOS USUARIOS CONECTADOS
         async function checkRemoteDeploymentVersion(manualNotify = false) {
             try {
                 if (window.location.protocol === 'file:' || window.location.href.startsWith('about:') || window.location.href.startsWith('blob:')) {
@@ -863,9 +1093,10 @@
                     if (remoteVer > (appState.deploymentVersion || 0)) {
                         applyParsedStateObject(remoteVault);
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(buildSerializableVaultPayload()));
-                        document.getElementById('newDeploymentBanner')?.classList.remove('hidden');
+                        const vaultTag = document.getElementById('embeddedInternalVaultData');
+                        if (vaultTag) vaultTag.textContent = JSON.stringify(buildSerializableVaultPayload());
                         refreshAllUI();
-                        if (manualNotify) showToast('Nueva versión remota detectada y aplicada.');
+                        showToast('Información actualizada automáticamente desde el sistema.');
                     } else if (manualNotify) {
                         showToast('Ya tienes la versión más reciente desplegada.');
                     }
@@ -1106,7 +1337,7 @@
             const sel = document.getElementById('selLicenciatura');
             if (!sel) return;
             const prev = sel.value;
-            sel.innerHTML = appState.majors.map(m => `<option value="${m.id}">${m.name} (${m.rvoe})</option>`).join('');
+            sel.innerHTML = appState.majors.map(m => `<option value="${m.id}">${m.name} (${m.rvoe}${m.rvoeDate ? ' · ' + m.rvoeDate : ''})</option>`).join('');
             if (prev && appState.majors.some(m => m.id === prev)) sel.value = prev;
         }
 
@@ -1417,6 +1648,9 @@
             const fechaIso = document.getElementById('inpFechaExpedicion')?.value || '';
             const fechaTexto = formatSpanishDate(fechaIso);
             const nombre = document.getElementById('inpNombre')?.value || '';
+            const genero = document.getElementById('selGeneroAlumno')?.value || 'M';
+            const articuloAlumno = genero === 'F' ? 'la alumna' : 'el alumno';
+            const inscritoGenero = genero === 'F' ? 'inscrita' : 'inscrito';
             const matricula = document.getElementById('inpMatricula')?.value || '';
             const curp = document.getElementById('inpCurp')?.value || '';
             const grado = document.getElementById('inpPeriodoGrado')?.value || '';
@@ -1427,7 +1661,9 @@
             const firmanteCargo = document.getElementById('inpFirmanteCargo')?.value || appState.signer.title;
 
             const majorId = document.getElementById('selLicenciatura')?.value;
-            const major = appState.majors.find(m => m.id === majorId) || appState.majors[0] || { name: '', rvoe: '' };
+            const major = appState.majors.find(m => m.id === majorId) || appState.majors[0] || { name: '', rvoe: '', rvoeDate: '' };
+            const fechaRvoeVal = (major.rvoeDate || '').trim();
+            const fechaRvoeTexto = fechaRvoeVal ? ` de fecha ${fechaRvoeVal}` : '';
 
             const activeTpl = appState.templates[appState.currentDocType] || DEFAULT_DOC_TEMPLATES[appState.currentDocType];
 
@@ -1440,7 +1676,11 @@
             const replacements = {
                 '{FIRMANTE}': firmanteNombre,
                 '{CARGO}': firmanteCargo,
+                '{ARTICULO_ALUMNO}': articuloAlumno,
+                '{INSCRITO_GENERO}': inscritoGenero,
                 '{RVOE}': major.rvoe,
+                '{FECHA_RVOE}': fechaRvoeVal,
+                '{FECHA_RVOE_TEXTO}': fechaRvoeTexto,
                 '{NOMBRE}': nombre,
                 '{MATRICULA}': matricula,
                 '{CURP}': curp,
@@ -1456,10 +1696,18 @@
                 '{FECHA}': fechaTexto
             };
 
-            let renderedBody = activeTpl.body;
+            let renderedBody = activeTpl.body
+                .replace(/el alumno \(a\)/gi, articuloAlumno)
+                .replace(/inscrito \(a\)/gi, inscritoGenero);
+
             Object.keys(replacements).forEach(token => {
                 renderedBody = renderedBody.split(token).join(replacements[token]);
             });
+
+            // Evita que los saltos de línea (Enter) dentro del cuadro de redacción desplacen o rompan las etiquetas HTML vecinas
+            renderedBody = renderedBody
+                .replace(/>\s*\n+\s*</g, '><')
+                .replace(/\n/g, '<br>');
 
             document.getElementById('docDynamicBody').innerHTML = renderedBody;
             fitDocumentToSingleLetterPage();
@@ -1577,10 +1825,11 @@
             const box = document.getElementById('majorsCatalogList');
             if (!box) return;
             box.innerHTML = appState.majors.map((m, idx) => `
-                <div class="px-4 py-2.5 flex items-center justify-between gap-2 text-xs">
-                    <div>
-                        <div class="font-bold text-slate-800">${m.name}</div>
-                        <div class="text-[11px] text-slate-500 font-mono">${m.rvoe}</div>
+                <div class="px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div class="flex-1 min-w-[220px] grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <input type="text" value="${m.name || ''}" onchange="appState.majors[${idx}].name=this.value;persistBaseState(true,true);populateMajorsSelect();updateDocument();" class="px-2.5 py-1 rounded-lg border border-slate-200 font-bold text-slate-800">
+                        <input type="text" value="${m.rvoe || ''}" onchange="appState.majors[${idx}].rvoe=this.value;persistBaseState(true,true);populateMajorsSelect();updateDocument();" class="px-2.5 py-1 rounded-lg border border-slate-200 font-mono text-slate-700">
+                        <input type="text" value="${m.rvoeDate || ''}" placeholder="Fecha del RVOE" onchange="appState.majors[${idx}].rvoeDate=this.value;persistBaseState(true,true);populateMajorsSelect();updateDocument();" class="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-700">
                     </div>
                     <button type="button" onclick="deleteMajorRvoe(${idx})" class="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold">Eliminar</button>
                 </div>
@@ -1590,17 +1839,20 @@
         function addNewMajorRvoe() {
             const nameInp = document.getElementById('newMajorName');
             const rvoeInp = document.getElementById('newMajorRvoe');
+            const rvoeDateInp = document.getElementById('newMajorRvoeDate');
             const name = (nameInp?.value || '').trim();
             const rvoe = (rvoeInp?.value || '').trim();
-            if (!name || !rvoe) return showToast('Completa el nombre de la licenciatura y su acuerdo RVOE.');
-            appState.majors.push({ id: 'maj_' + Date.now(), name, rvoe });
+            const rvoeDate = (rvoeDateInp?.value || '').trim();
+            if (!name || !rvoe) return showToast('Completa el nombre de la licenciatura y su número de RVOE.');
+            appState.majors.push({ id: 'maj_' + Date.now(), name, rvoe, rvoeDate });
             nameInp.value = '';
             rvoeInp.value = '';
+            if (rvoeDateInp) rvoeDateInp.value = '';
             persistBaseState(true, true);
             populateMajorsSelect();
             renderMajorsCatalogList();
             updateDocument();
-            showToast('Licenciatura agregada al catálogo.');
+            showToast('Licenciatura y fecha de RVOE agregadas al catálogo.');
         }
 
         function deleteMajorRvoe(idx) {
@@ -1824,7 +2076,20 @@
         }
 
         // VINCULACIÓN Y DESPLIEGUE DIRECTO A GITHUB (SOLO ADMINISTRADOR)
+        function autoDetectGithubFromHost() {
+            if (appState.githubConfig?.repo) return;
+            const host = window.location.hostname || '';
+            const pathParts = (window.location.pathname || '').split('/').filter(Boolean);
+            if (host.endsWith('.github.io')) {
+                const owner = host.replace('.github.io', '');
+                const repoName = pathParts[0] || `${owner}.github.io`;
+                appState.githubConfig.repo = `${owner}/${repoName}`;
+                appState.githubConfig.publicUrl = window.location.href.split('#')[0].split('?')[0];
+            }
+        }
+
         function loadGithubConfigToInputs() {
+            autoDetectGithubFromHost();
             const cfg = appState.githubConfig || {};
             if (document.getElementById('inpGithubRepo')) document.getElementById('inpGithubRepo').value = cfg.repo || '';
             if (document.getElementById('inpGithubToken')) document.getElementById('inpGithubToken').value = cfg.token || '';
@@ -1835,128 +2100,82 @@
 
         function saveGithubIntegrationSettings() {
             if (!appState.activeSession || appState.activeSession.role !== 'admin') return;
+            const repoVal = document.getElementById('inpGithubRepo')?.value;
+            const tokenVal = document.getElementById('inpGithubToken')?.value;
+            const branchVal = document.getElementById('inpGithubBranch')?.value;
+            const urlVal = document.getElementById('inpCustomDomainUrl')?.value;
+
             appState.githubConfig = {
-                repo: (document.getElementById('inpGithubRepo')?.value || '').trim(),
-                token: (document.getElementById('inpGithubToken')?.value || '').trim(),
-                branch: (document.getElementById('inpGithubBranch')?.value || 'main').trim() || 'main',
+                ...appState.githubConfig,
+                repo: repoVal !== undefined ? repoVal.trim() : (appState.githubConfig.repo || ''),
+                token: tokenVal !== undefined ? tokenVal.trim() : (appState.githubConfig.token || ''),
+                branch: branchVal !== undefined ? (branchVal.trim() || 'main') : (appState.githubConfig.branch || 'main'),
                 filePath: 'index.html',
-                publicUrl: (document.getElementById('inpCustomDomainUrl')?.value || '').trim()
+                publicUrl: urlVal !== undefined ? urlVal.trim() : (appState.githubConfig.publicUrl || ''),
+                tokenUpdatedAt: new Date().toLocaleString('es-MX')
             };
             if (document.getElementById('inpGithubFilePath')) {
                 document.getElementById('inpGithubFilePath').value = 'index.html';
             }
-            persistBaseState(true, true);
-            const badge = document.getElementById('githubSyncStatusBadge');
-            if (badge && appState.githubConfig.repo) {
-                badge.textContent = `Vinculado: ${appState.githubConfig.repo} (index.html)`;
-                badge.className = 'text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+            const payload = buildSerializableVaultPayload();
+            const json = JSON.stringify(payload);
+            localStorage.setItem(STORAGE_KEY, json);
+            const vaultTag = document.getElementById('embeddedInternalVaultData');
+            if (vaultTag) vaultTag.textContent = json;
+        }
+
+        async function saveAllDataAndAutoUploadIndex() {
+            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
+                return showToast('Solo el Administrador puede guardar y subir la base global.');
+            }
+            saveGithubIntegrationSettings();
+            appState.extractedFormState = extractCurrentSystemFields();
+            persistBaseState(true, true, false);
+            const { repo, token } = appState.githubConfig;
+            if (repo && repo.includes('/') && token) {
+                showToast('Guardando base index.html, actualizando token y desplegando en tiempo real...');
+                await deployUpdateToGithub(true, false, false);
+                refreshAllUI();
+            } else {
+                downloadSelfContainedPageWithData();
+                showToast('Datos guardados en index.html. Ingresa Repo y Token para subida automática en tiempo real.');
             }
         }
 
         async function saveGithubIntegrationAndAutoDeploy() {
-            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
-                return showToast('Solo el Administrador puede modificar la vinculación.');
-            }
-            saveGithubIntegrationSettings();
-            const { repo, token } = appState.githubConfig;
-            if (repo && repo.includes('/') && token) {
-                showToast('Vinculación guardada. Subiendo despliegue en tiempo real y actualizando página...');
-                await deployUpdateToGithub(true);
-            } else {
-                showToast('Configuración guardada localmente. Agrega Repo y Token para desplegar en tiempo real.');
-            }
+            await saveAllDataAndAutoUploadIndex();
         }
 
-        function buildSelfContainedIndexHtml() {
-            persistBaseState(false, true);
-            return '<!DOCTYPE html>\n<html lang="es">\n' + document.documentElement.innerHTML + '\n</html>';
-        }
-
-        function downloadSelfContainedPageWithData() {
-            const htmlContent = buildSelfContainedIndexHtml();
-            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'index.html';
-            link.click();
-            showToast('Base exportada con el nombre index.html.');
-        }
-
-        async function deployUpdateToGithub(autoRefreshAfter = false) {
-            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
-                return showToast('Acción permitida únicamente para el Administrador.');
-            }
-            saveGithubIntegrationSettings();
-            const { repo, token, branch } = appState.githubConfig;
-            const filePath = 'index.html';
-            if (!repo || !repo.includes('/') || !token) {
-                return showToast('Ingresa el repositorio (usuario/repo) y tu Token de GitHub.');
-            }
-
-            const badge = document.getElementById('githubSyncStatusBadge');
-            if (badge) badge.textContent = 'Subiendo index.html en tiempo real...';
-
-            try {
-                const apiUrl = `https://api.github.com/repos/${repo}/contents/${filePath}`;
-                let sha = undefined;
-
-                const getRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(branch)}&nocache=${Date.now()}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/vnd.github+json'
-                    }
-                });
-                if (getRes.ok) {
-                    const existing = await getRes.json();
-                    sha = existing.sha;
-                }
-
-                const htmlContent = buildSelfContainedIndexHtml();
-                const utf8Bytes = new TextEncoder().encode(htmlContent);
-                let binary = '';
-                utf8Bytes.forEach(b => { binary += String.fromCharCode(b); });
-                const base64Content = btoa(binary);
-
-                const putBody = {
-                    message: `Despliegue SISTEMA BUBU 1.0 · v${appState.deploymentVersion}`,
-                    content: base64Content,
-                    branch: branch
+        async function realtimeSaveAndRefreshSystem() {
+            const extracted = extractCurrentSystemFields();
+            appState.extractedFormState = extracted;
+            appState.signer = {
+                name: extracted.firmanteNombre || appState.signer.name,
+                title: extracted.firmanteCargo || appState.signer.title
+            };
+            if (document.getElementById('inpCustomFormatTitle') && document.getElementById('txtCustomFormatBody')) {
+                appState.templates[appState.currentDocType] = {
+                    title: document.getElementById('inpCustomFormatTitle').value,
+                    body: document.getElementById('txtCustomFormatBody').value
                 };
-                if (sha) putBody.sha = sha;
+            }
+            persistBaseState(true, true, false);
 
-                const putRes = await fetch(apiUrl, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/vnd.github+json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(putBody)
-                });
-
-                if (!putRes.ok) {
-                    const errData = await putRes.json().catch(() => ({}));
-                    throw new Error(errData.message || `Error HTTP ${putRes.status}`);
-                }
-
-                if (badge) {
-                    badge.textContent = `Desplegado index.html · v${appState.deploymentVersion}`;
-                    badge.className = 'text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
-                }
-                showToast('Modificaciones subidas siempre como index.html. Actualizando la página...');
-
-                if (autoRefreshAfter && window.location.protocol.startsWith('http')) {
-                    setTimeout(() => {
-                        const baseUrl = window.location.href.split('#')[0].split('?')[0];
+            const isAdmin = appState.activeSession?.role === 'admin';
+            const { repo, token } = appState.githubConfig || {};
+            if (isAdmin && repo && repo.includes('/') && token) {
+                showToast('Extrayendo campos, guardando modificaciones y actualizando página...');
+                await deployUpdateToGithub(true, false, true);
+            } else {
+                showToast('Campos extraídos y modificaciones guardadas. Actualizando página...');
+                setTimeout(() => {
+                    const baseUrl = window.location.href.split('#')[0].split('?')[0];
+                    if (window.location.protocol.startsWith('http')) {
                         window.location.replace(`${baseUrl}?v=${appState.deploymentVersion}`);
-                    }, 1200);
-                }
-            } catch (err) {
-                if (badge) {
-                    badge.textContent = 'Error en despliegue';
-                    badge.className = 'text-[10px] font-bold px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40';
-                }
-                showToast(`Error al subir a GitHub: ${err.message}`);
+                    } else {
+                        window.location.reload();
+                    }
+                }, 700);
             }
         }
 
@@ -2121,16 +2340,19 @@
             renderResguardoEditor();
             if (document.getElementById('inpFirmanteNombre')) document.getElementById('inpFirmanteNombre').value = appState.signer.name;
             if (document.getElementById('inpFirmanteCargo')) document.getElementById('inpFirmanteCargo').value = appState.signer.title;
+            if (appState.extractedFormState) applyExtractedSystemFields(appState.extractedFormState);
             applySessionPermissions();
             selectDocType(appState.currentDocType);
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
-            loadPersistedState(false);
-            setTodayExpeditionDate(true);
-            refreshAllUI();
-            checkRemoteDeploymentVersion(false);
-            setInterval(() => checkRemoteDeploymentVersion(false), 60000);
+        // Sincronización automática en tiempo real cuando cambian desplegables o campos clave
+        document.addEventListener('change', (ev) => {
+            const target = ev.target;
+            if (!target) return;
+            if (['selLicenciatura', 'selPeriodoEscolar', 'selVerboCursado', 'selGeneroAlumno', 'inpPeriodoGrado'].includes(target.id)) {
+                appState.extractedFormState = extractCurrentSystemFields();
+                persistBaseState(true, true, true);
+            }
         });
     </script>
 </div>
