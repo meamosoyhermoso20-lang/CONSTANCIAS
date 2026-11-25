@@ -876,7 +876,7 @@
                         <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-2">
                             <div class="flex items-center justify-between">
                                 <span class="text-[10px] font-black uppercase text-amber-400">2. Token GitHub (repo)</span>
-                                <a href="https://github.com/settings/tokens/new?description=SISTEMA_BUBU_1_0_UAMP&scopes=repo" target="_blank" rel="noopener noreferrer" onclick="listenForGithubTokenPaste()" class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-extrabold">Obtener Token ↗</a>
+                                <button type="button" onclick="autoGenerateNewTokenAndLinkRepo()" class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-extrabold">Renovar / Obtener Token ↗</button>
                             </div>
                             <div class="flex gap-1.5">
                                 <input type="password" id="inpGithubToken" oninput="saveGithubIntegrationSettings()" placeholder="ghp_... o github_pat_..." class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono text-xs outline-none">
@@ -884,7 +884,7 @@
                                     Vincular
                                 </button>
                             </div>
-                            <p id="githubTokenHelperMsg" class="text-[10px] text-slate-400">Pega el token con permiso <b>repo</b> y presiona <b>Vincular</b>.</p>
+                            <p id="githubTokenHelperMsg" class="text-[10px] text-slate-400">Si tu token caducó, presiona <b>Renovar / Obtener Token ↗</b> y al regresar se vinculará solo.</p>
                         </div>
 
                         <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-2">
@@ -893,7 +893,7 @@
                                 <button type="button" onclick="copyGlobalSystemPublicLink()" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-sky-300 text-[10px] font-bold">Copiar Enlace</button>
                             </div>
                             <input type="text" id="inpCustomDomainUrl" oninput="saveGithubIntegrationSettings()" placeholder="https://usuario.github.io/repo/" class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs outline-none">
-                            <p class="text-[10px] text-slate-400">Los usuarios verán los cambios al presionar <b>Actualizar Enlace</b>.</p>
+                            <p class="text-[10px] text-slate-400">El enlace incluye sincronización directa para cualquier dispositivo.</p>
                         </div>
                     </div>
 
@@ -1289,73 +1289,47 @@
 
         function copyGlobalSystemPublicLink() {
             const rawUrl = (document.getElementById('inpCustomDomainUrl')?.value || appState.githubConfig?.publicUrl || window.location.href).split('#')[0].split('?')[0];
-            const cleanUrl = `${rawUrl}?v=${appState.version || 1}`;
+            const syncPayload = buildPortableSyncToken();
+            const cleanUrl = syncPayload
+                ? `${rawUrl}?v=${appState.version || 1}&sync=${syncPayload}`
+                : `${rawUrl}?v=${appState.version || 1}`;
             const ta = document.createElement('textarea');
             ta.value = cleanUrl;
             document.body.appendChild(ta);
             ta.select();
             document.execCommand('copy');
             document.body.removeChild(ta);
-            showToast('Enlace público actualizado copiado al portapapeles.');
+            showToast('Enlace público con la última actualización copiado al portapapeles.');
         }
 
-        function createDefaultDocAccessMatrix(val = true) {
-            const obj = {};
-            DOC_MODALITIES_LIST.forEach(d => { obj[d.id] = val; });
-            return obj;
-        }
-
-        function createDefaultHeaderMatrix(mode = 'edit') {
-            const obj = {};
-            HEADER_BUTTON_DEFINITIONS.forEach(b => { obj[b.id] = mode; });
-            return obj;
-        }
-
-        function createDefaultFieldMatrix(mode = 'edit') {
-            const obj = {};
-            DOC_FIELD_DEFINITIONS.forEach(f => { obj[f.id] = mode; });
-            return obj;
-        }
-
-        function switchMainWorkspaceTab(tabName) {
-            const isAdmin = appState.activeSession?.role === 'admin';
-            if (tabName === 'control_panel' && !isAdmin) {
-                tabName = 'generador';
-                showToast('Acceso restringido: el Panel de Control es exclusivo del Administrador.');
-            }
-            const views = {
-                generador: document.getElementById('workspaceViewGenerador'),
-                catalogos: document.getElementById('workspaceViewCatalogos'),
-                control_panel: isAdmin ? document.getElementById('workspaceViewControlPanel') : null
-            };
-            const cpEl = document.getElementById('workspaceViewControlPanel');
-            if (cpEl && !isAdmin) {
-                cpEl.classList.add('hidden');
-                cpEl.style.display = 'none';
-            }
-            Object.keys(views).forEach(k => {
-                if (views[k]) {
-                    const active = k === tabName;
-                    views[k].classList.toggle('hidden', !active);
-                    views[k].style.display = active ? 'block' : 'none';
-                }
-            });
-            const btns = {
-                generador: document.getElementById('tabBtnGenerador'),
-                catalogos: document.getElementById('tabBtnCatalogos'),
-                control_panel: document.getElementById('tabBtnControlPanel')
-            };
-            Object.keys(btns).forEach(k => {
-                if (btns[k]) {
-                    btns[k].className = k === tabName
-                        ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-700 text-white shadow-sm transition cursor-pointer'
-                        : 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-700 transition cursor-pointer';
-                }
-            });
-            if (tabName === 'catalogos') renderMajorsCatalogList();
-            if (tabName === 'control_panel' && isAdmin) {
-                extractAllSystemDeploymentInfo(false);
-                renderProfilesManager();
+        function buildPortableSyncToken() {
+            try {
+                const compact = {
+                    v: appState.version || 1,
+                    s: appState.signer,
+                    m: appState.majors,
+                    p: appState.periods,
+                    u: (appState.profiles || []).map(x => ({
+                        id: x.id,
+                        name: x.name,
+                        roleLabel: x.roleLabel,
+                        code: x.code,
+                        docAccess: x.docAccess,
+                        headerPerms: x.headerPerms,
+                        fieldPerms: x.fieldPerms
+                    })),
+                    gh: {
+                        repo: appState.githubConfig?.repo || '',
+                        branch: appState.githubConfig?.branch || 'main',
+                        publicUrl: appState.githubConfig?.publicUrl || ''
+                    }
+                };
+                const bytes = new TextEncoder().encode(JSON.stringify(compact));
+                let bin = '';
+                for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+                return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+            } catch (e) {
+                return '';
             }
         }
 
@@ -1613,6 +1587,67 @@
             return clean;
         }
 
+        async function autoSyncAndSaveRepoTokenInField(silent = true) {
+            if (appState.activeSession && appState.activeSession.role !== 'admin') return '';
+            const tokenInput = document.getElementById('inpGithubToken');
+            const statusBadge = document.getElementById('githubSyncStatusBadge');
+            const helper = document.getElementById('githubTokenHelperMsg');
+
+            let candidate = sanitizeGithubPatToken(tokenInput?.value || '');
+            if (!candidate) {
+                candidate = sanitizeGithubPatToken(scanAllSourcesForGithubRepoToken());
+            }
+            if (!candidate) {
+                candidate = sanitizeGithubPatToken(appState.githubConfig?.token || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '');
+            }
+            if (!candidate) {
+                try {
+                    const idbData = await loadFromIndexedDbVault();
+                    candidate = sanitizeGithubPatToken(idbData?.githubConfig?.token || '');
+                } catch (e) {}
+            }
+            if (!candidate) {
+                try {
+                    if (document.hasFocus() && navigator.clipboard && navigator.clipboard.readText) {
+                        const clip = await navigator.clipboard.readText();
+                        const match = String(clip || '').match(/(gh[pou]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})/);
+                        if (match && match[1]) candidate = sanitizeGithubPatToken(match[1]);
+                    }
+                } catch (e) {}
+            }
+
+            if (!candidate) return '';
+
+            const previousToken = sanitizeGithubPatToken(appState.githubConfig?.token || '');
+            appState.githubConfig = appState.githubConfig || { repo: '', token: '', branch: 'main', filePath: 'index.html', publicUrl: '' };
+            appState.githubConfig.token = candidate;
+            if (tokenInput && tokenInput.value !== candidate) {
+                tokenInput.value = candidate;
+            }
+            try {
+                localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, candidate);
+            } catch (e) {}
+
+            persistBaseState(true, true, false);
+            refreshExtractedDeploymentSummary();
+
+            if (statusBadge) {
+                statusBadge.textContent = `Token repo sincronizado (${candidate.slice(0, 8)}...) ✓`;
+            }
+            if (helper) {
+                helper.innerHTML = `<span class="text-emerald-400 font-bold">✓ Token repo actualizado y guardado automáticamente en el proceso (${candidate.slice(0, 10)}...).</span>`;
+            }
+
+            if (candidate !== previousToken) {
+                if (appState.githubConfig.repo && appState.githubConfig.repo.includes('/')) {
+                    await linkGithubTokenWithRepository();
+                } else if (!silent) {
+                    showToast(`Token repo actualizado y guardado en el campo (${candidate.slice(0, 10)}...).`);
+                }
+            }
+            return candidate;
+        }
+
         async function autoGenerateNewTokenAndLinkRepo() {
             const statusBadge = document.getElementById('githubSyncStatusBadge');
             const helper = document.getElementById('githubTokenHelperMsg');
@@ -1726,9 +1761,9 @@
                     persistBaseState(true, true, false);
                     refreshExtractedDeploymentSummary();
 
-                    if (statusBadge) statusBadge.textContent = 'Token caducado o inválido (401)';
-                    if (helper) helper.innerHTML = `<span class="text-rose-400 font-bold">✕ GitHub rechazó el token (caducado o revocado). Genera uno nuevo con GitHub ↗.</span>`;
-                    showToast('Token caducado (401). Genera uno nuevo en GitHub ↗ y pégalo en el Paso 2.');
+                    if (statusBadge) statusBadge.textContent = 'Token caducado (401) · Renovando...';
+                    if (helper) helper.innerHTML = `<span class="text-amber-300 font-bold">⚠ Token anterior caducado (401). Se abrió GitHub para generar uno nuevo; al copiarlo y regresar se vinculará en automático.</span>`;
+                    await autoGenerateNewTokenAndLinkRepo();
                     return false;
                 }
 
@@ -2095,6 +2130,7 @@
             } catch (e) {}
 
             let uploadedToServer = false;
+            let tokenExpiredOnUpload = false;
             try {
                 const sameOriginRes = await fetch(window.location.pathname || 'index.html', {
                     method: 'PUT',
@@ -2113,7 +2149,7 @@
 
             if (cfg.repo && cfg.repo.includes('/') && isGithubPat) {
                 try {
-                    if (statusBadge) statusBadge.textContent = 'Token vinculado · Subiendo index.html a GitHub...';
+                    if (statusBadge) statusBadge.textContent = 'Token activo · Subiendo index.html a GitHub...';
                     const apiUrl = `https://api.github.com/repos/${cfg.repo}/contents/${cfg.filePath || 'index.html'}`;
                     const headers = {
                         Authorization: `Bearer ${activeToken}`,
@@ -2123,37 +2159,50 @@
                     };
                     let sha = '';
                     const getRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(cfg.branch || 'main')}&t=${Date.now()}`, { headers, cache: 'no-store' });
-                    if (getRes.ok) {
+                    if (getRes.status === 401) {
+                        tokenExpiredOnUpload = true;
+                    } else if (getRes.ok) {
                         const fileData = await getRes.json();
                         sha = fileData.sha || '';
                     }
-                    const bytes = new TextEncoder().encode(fullHtml);
-                    let bin = '';
-                    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-                    const base64Content = btoa(bin);
-                    const putRes = await fetch(apiUrl, {
-                        method: 'PUT',
-                        headers,
-                        body: JSON.stringify({
-                            message: `Actualizar despliegue v${appState.version} · SISTEMA BUBU 1.0`,
-                            content: base64Content,
-                            branch: cfg.branch || 'main',
-                            ...(sha ? { sha } : {})
-                        })
-                    });
-                    if (putRes.ok) {
-                        uploadedToServer = true;
-                    } else if (!silent) {
-                        const errJson = await putRes.json().catch(() => ({}));
-                        if (putRes.status === 401) {
-                            appState.githubConfig.token = '';
-                            localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
-                            if (document.getElementById('inpGithubToken')) document.getElementById('inpGithubToken').value = '';
+                    if (!tokenExpiredOnUpload) {
+                        const bytes = new TextEncoder().encode(fullHtml);
+                        let bin = '';
+                        for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+                        const base64Content = btoa(bin);
+                        const putRes = await fetch(apiUrl, {
+                            method: 'PUT',
+                            headers,
+                            body: JSON.stringify({
+                                message: `Actualizar despliegue v${appState.version} · SISTEMA BUBU 1.0`,
+                                content: base64Content,
+                                branch: cfg.branch || 'main',
+                                ...(sha ? { sha } : {})
+                            })
+                        });
+                        if (putRes.ok) {
+                            uploadedToServer = true;
+                        } else if (putRes.status === 401) {
+                            tokenExpiredOnUpload = true;
+                        } else if (!silent) {
+                            const errJson = await putRes.json().catch(() => ({}));
+                            showToast(`GitHub respondió (${putRes.status}): ${errJson.message || 'Verifica permisos del repositorio.'}`);
                         }
-                        showToast(`GitHub respondió (${putRes.status}): ${errJson.message || 'Token caducado o sin permiso repo.'}`);
                     }
                 } catch (e) {
                     if (!silent) showToast('No se pudo conectar con la API de GitHub en este momento.');
+                }
+            }
+
+            if (tokenExpiredOnUpload) {
+                appState.githubConfig.token = '';
+                localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+                if (document.getElementById('inpGithubToken')) document.getElementById('inpGithubToken').value = '';
+                persistBaseState(true, true, false);
+                refreshExtractedDeploymentSummary();
+                if (statusBadge) statusBadge.textContent = 'Token caducado (401) · Generando nuevo...';
+                if (!silent) {
+                    await autoGenerateNewTokenAndLinkRepo();
                 }
             }
 
@@ -2161,13 +2210,13 @@
             await applyNewDeploymentToCurrentPage(fullHtml, uploadedToServer);
 
             if (uploadedToServer) {
-                if (statusBadge) statusBadge.textContent = `Despliegue v${appState.version} activo y actualizado en la página ✓`;
-                updateRealtimeCornerStatus(`Página actualizada al nuevo despliegue v${appState.version} ✓`, 'ok');
-                if (!silent) showToast(`index.html subido y página actualizada al nuevo despliegue (v${appState.version}).`);
-            } else {
-                if (statusBadge) statusBadge.textContent = `Despliegue local v${appState.version} aplicado ✓`;
+                if (statusBadge) statusBadge.textContent = `Despliegue v${appState.version} publicado y actualizado en tiempo real ✓`;
+                updateRealtimeCornerStatus(`Página publicada v${appState.version} en GitHub y enlace listo ✓`, 'ok');
+                if (!silent) showToast(`index.html publicado en GitHub (v${appState.version}). Los usuarios ya pueden presionar "Actualizar Enlace".`);
+            } else if (!tokenExpiredOnUpload) {
+                if (statusBadge) statusBadge.textContent = `Despliegue local v${appState.version} aplicado y sincronizado ✓`;
                 updateRealtimeCornerStatus(`Despliegue local v${appState.version} aplicado ✓`, 'ok');
-                if (!silent) showToast(`Despliegue local actualizado (v${appState.version}).`);
+                if (!silent) showToast(`Despliegue local actualizado (v${appState.version}). Usa "Copiar Enlace" o vincula tu token para publicar en la nube.`);
             }
         }
 
@@ -2621,6 +2670,7 @@
             refreshAllUI();
             if (appState.activeSession.role === 'admin') {
                 await extractAllSystemDeploymentInfo(false);
+                await autoSyncAndSaveRepoTokenInField(true);
                 updateRealtimeCornerStatus(`Sesión activa (${appState.activeSession.name})`, 'ok');
             }
             showToast(`Bienvenido(a), ${appState.activeSession.name}`);
@@ -2832,8 +2882,32 @@
         function hydrateUserFromSharedUrlParam() {
             try {
                 const params = new URLSearchParams(window.location.search);
+                const syncParam = params.get('sync');
+                if (syncParam) {
+                    let sb64 = syncParam.replace(/-/g, '+').replace(/_/g, '/');
+                    while (sb64.length % 4) sb64 += '=';
+                    const sbin = atob(sb64);
+                    const sbytes = new Uint8Array(sbin.length);
+                    for (let i = 0; i < sbin.length; i++) sbytes[i] = sbin.charCodeAt(i);
+                    const synced = JSON.parse(new TextDecoder().decode(sbytes));
+                    if (synced && typeof synced === 'object') {
+                        if ((synced.v || 0) >= (appState.version || 1)) {
+                            appState.version = Math.max(appState.version || 1, synced.v || 1);
+                            if (synced.s) appState.signer = { ...appState.signer, ...synced.s };
+                            if (Array.isArray(synced.m) && synced.m.length) appState.majors = synced.m;
+                            if (Array.isArray(synced.p) && synced.p.length) appState.periods = synced.p;
+                            if (Array.isArray(synced.u)) {
+                                const pMap = new Map((appState.profiles || []).map(x => [x.id, x]));
+                                synced.u.forEach(u => { if (u && u.id) pMap.set(u.id, { ...(pMap.get(u.id) || {}), ...u }); });
+                                appState.profiles = Array.from(pMap.values());
+                            }
+                            if (synced.gh) appState.githubConfig = { ...appState.githubConfig, ...synced.gh };
+                            persistBaseState(true, true, false);
+                        }
+                    }
+                }
                 const rawParam = params.get('u');
-                if (!rawParam) return false;
+                if (!rawParam) return Boolean(syncParam);
                 let b64 = rawParam.replace(/-/g, '+').replace(/_/g, '/');
                 while (b64.length % 4) b64 += '=';
                 const bin = atob(b64);
@@ -3420,21 +3494,30 @@
         }
 
         function saveGithubIntegrationSettings() {
+            const cleanTok = sanitizeGithubPatToken(document.getElementById('inpGithubToken')?.value || '');
             appState.githubConfig = {
                 repo: document.getElementById('inpGithubRepo')?.value || '',
-                token: document.getElementById('inpGithubToken')?.value || '',
+                token: cleanTok,
                 branch: document.getElementById('inpGithubBranch')?.value || 'main',
                 filePath: document.getElementById('inpGithubFilePath')?.value || 'index.html',
                 publicUrl: document.getElementById('inpCustomDomainUrl')?.value || ''
             };
+            if (cleanTok) {
+                try { localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, cleanTok); } catch (e) {}
+            }
             refreshExtractedDeploymentSummary();
             persistBaseState(true, true, false);
         }
 
         function loadGithubConfigToInputs() {
             const cfg = appState.githubConfig || {};
+            const resolvedTok = sanitizeGithubPatToken(cfg.token || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || scanAllSourcesForGithubRepoToken() || '');
+            if (resolvedTok) {
+                appState.githubConfig.token = resolvedTok;
+                try { localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, resolvedTok); } catch (e) {}
+            }
             if (document.getElementById('inpGithubRepo')) document.getElementById('inpGithubRepo').value = cfg.repo || '';
-            if (document.getElementById('inpGithubToken')) document.getElementById('inpGithubToken').value = cfg.token || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '';
+            if (document.getElementById('inpGithubToken')) document.getElementById('inpGithubToken').value = resolvedTok;
             if (document.getElementById('inpGithubBranch')) document.getElementById('inpGithubBranch').value = cfg.branch || 'main';
             if (document.getElementById('inpCustomDomainUrl')) document.getElementById('inpCustomDomainUrl').value = cfg.publicUrl || '';
             refreshExtractedDeploymentSummary();
@@ -3743,6 +3826,7 @@
             await loadPersistedState(false);
             hydrateUserFromSharedUrlParam();
             await extractAllSystemDeploymentInfo(false);
+            await autoSyncAndSaveRepoTokenInField(true);
             await checkRemoteDeploymentVersion(false);
             const picker = document.getElementById('inpFechaExpedicion');
             const textInp = document.getElementById('inpFechaExpedicionTexto');
@@ -3763,13 +3847,23 @@
             setInterval(() => {
                 checkRemoteDeploymentVersion(false);
                 if (appState.activeSession?.role === 'admin') {
+                    autoSyncAndSaveRepoTokenInField(true);
                     updateRealtimeCornerStatus('Escuchando cambios en tiempo real', 'ok');
                 }
             }, 15000);
 
+            window.addEventListener('focus', () => {
+                if (appState.activeSession?.role === 'admin') {
+                    autoSyncAndSaveRepoTokenInField(false);
+                }
+            });
+
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') {
                     checkRemoteDeploymentVersion(false);
+                    if (appState.activeSession?.role === 'admin') {
+                        autoSyncAndSaveRepoTokenInField(true);
+                    }
                 }
             });
         };
