@@ -188,7 +188,7 @@
                     </div>
                     <div class="flex items-center justify-between text-[10px] text-slate-300">
                         <span>Versión desplegada: <b id="loginLiveVersion" class="text-white font-mono">v1</b></span>
-                        <span id="loginLiveLastSync" class="font-mono text-slate-400">Sincronizando...</span>
+                        <span id="loginLiveLastSync" class="font-mono text-slate-400">Modo Manual Admin</span>
                     </div>
                     <div class="pt-1.5 mt-1 border-t border-slate-800 space-y-1">
                         <div class="flex items-center justify-between gap-1.5">
@@ -292,15 +292,12 @@
         <!-- BARRA DE ACTUALIZACIÓN EN TIEMPO REAL PARA TODOS LOS USUARIOS Y ADMINISTRADOR -->
         <div id="newDeploymentBanner" class="no-print bg-slate-950 text-slate-200 border-b border-slate-800 px-4 py-1.5 text-[11px] font-semibold flex flex-wrap items-center justify-between gap-2">
             <div class="flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>Versión del Sistema Activa: <b id="bannerActiveVersionTag" class="text-amber-400 font-mono">v1</b> · <span id="autoSyncBannerState">Sincronización Global en Tiempo Real: Activa</span></span>
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span>Versión del Sistema Activa: <b id="bannerActiveVersionTag" class="text-amber-400 font-mono">v1</b> · <span id="autoSyncBannerState">Información Protegida · Publicación Manual por Administrador</span></span>
             </div>
             <div data-admin-only="true" class="flex items-center gap-2">
-                <button type="button" onclick="visitorSyncLatestDeploymentNow(this)" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-extrabold transition">
-                    Actualizar Enlace a Última Versión
-                </button>
-                <button type="button" onclick="forceReloadLatestDeployment()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-bold transition">
-                    Recargar Última Versión
+                <button type="button" onclick="realtimeSaveAndRefreshSystem()" class="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-[11px] font-extrabold transition">
+                    Guardar y Publicar en Tiempo Real Ahora
                 </button>
             </div>
         </div>
@@ -1324,7 +1321,7 @@
                 const fallbackRelayUrl = `https://ntfy.sh/${GLOBAL_RT_CHANNEL}`;
                 window._globalRelayUrl = fallbackRelayUrl;
 
-                const pullFromGlobalRelay = async () => {
+                const pullFromGlobalRelay = async (forceApply = false) => {
                     try {
                         const res = await fetch(`${fallbackRelayUrl}/json?poll=1&since=24h`, { cache: 'no-store' });
                         if (!res.ok) return false;
@@ -1338,11 +1335,11 @@
                                     const payload = JSON.parse(msg.message);
                                     if (payload && typeof payload === 'object') {
                                         registerDeployedVersionSnapshot(payload, 'Nube Global');
-                                        if ((payload.ts || 0) >= _lastAppliedCloudTs) {
+                                        if (forceApply && (payload.ts || 0) >= _lastAppliedCloudTs) {
                                             _lastAppliedCloudTs = Math.max(_lastAppliedCloudTs, payload.ts || 0);
-                                        }
-                                        if (applyRemoteVaultToState(payload)) {
-                                            updated = true;
+                                            if (applyRemoteVaultToState(payload)) {
+                                                updated = true;
+                                            }
                                         }
                                     }
                                 }
@@ -1352,7 +1349,7 @@
                             refreshAllUI();
                             updateDocument();
                             renderLoginDeployedVersionsSelect();
-                            updateRealtimeCornerStatus(`Nube global sincronizada (v${appState.version}) ✓`, 'ok');
+                            updateRealtimeCornerStatus(`Versión publicada aplicada (v${appState.version}) ✓`, 'ok');
                         }
                         return true;
                     } catch (e) {
@@ -1362,44 +1359,23 @@
 
                 window._pullGlobalCloudNow = pullFromGlobalRelay;
 
-                const ok = await pullFromGlobalRelay();
+                const ok = await pullFromGlobalRelay(false);
                 _globalCloudConnected = ok;
                 if (loginStatusEl) {
                     loginStatusEl.textContent = ok
-                        ? 'Conexión Global en Tiempo Real Activa'
-                        : 'Sincronización Local y Enlace Activa';
+                        ? 'Datos Protegidos · Actualización Controlada por Admin'
+                        : 'Almacenamiento Local Permanente Activo';
                 }
                 if (loginDotEl && ok) {
-                    loginDotEl.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+                    loginDotEl.className = 'w-2 h-2 rounded-full bg-emerald-500';
                 }
-
-                try {
-                    const es = new EventSource(`${fallbackRelayUrl}/sse`);
-                    es.onmessage = (ev) => {
-                        try {
-                            const data = JSON.parse(ev.data);
-                            if (data && data.message) {
-                                const payload = JSON.parse(data.message);
-                                if (payload && payload.ts && payload.ts > _lastAppliedCloudTs) {
-                                    _lastAppliedCloudTs = payload.ts;
-                                    if (applyRemoteVaultToState(payload)) {
-                                        refreshAllUI();
-                                        updateDocument();
-                                        updateRealtimeCornerStatus(`Actualización global recibida (v${appState.version}) ✓`, 'ok');
-                                    }
-                                }
-                            }
-                        } catch (e) {}
-                    };
-                } catch (e) {}
             } catch (err) {
-                if (loginStatusEl) loginStatusEl.textContent = 'Sincronización Activa';
+                if (loginStatusEl) loginStatusEl.textContent = 'Almacenamiento Permanente Activo';
             }
         }
 
-        function pushStateToGlobalCloudRealtime() {
-            clearTimeout(_globalCloudPushDebounce);
-            _globalCloudPushDebounce = setTimeout(async () => {
+        function pushStateToGlobalCloudRealtime(immediate = false) {
+            const executePush = async () => {
                 try {
                     const relayUrl = window._globalRelayUrl || `https://ntfy.sh/${GLOBAL_RT_CHANNEL}`;
                     const safePayload = buildSerializableVaultPayload(false);
@@ -1411,7 +1387,58 @@
                         body: JSON.stringify(safePayload)
                     });
                 } catch (e) {}
-            }, 350);
+            };
+            if (immediate) {
+                clearTimeout(_globalCloudPushDebounce);
+                executePush();
+                return;
+            }
+            clearTimeout(_globalCloudPushDebounce);
+            _globalCloudPushDebounce = setTimeout(executePush, 350);
+        }
+
+        async function realtimeSaveAndRefreshSystem() {
+            if (appState.activeSession?.role !== 'admin') {
+                return showToast('Solo el Administrador puede publicar actualizaciones en tiempo real.');
+            }
+            appState.extractedFormState = extractCurrentSystemFields();
+            syncUserCodesToSourceCodeDom();
+            persistBaseState(true, true, true);
+            pushStateToGlobalCloudRealtime(true);
+            const fullHtml = buildCleanDeployableHtml();
+            const pushedGithub = await pushHtmlFileDirectlyToGithubApi(fullHtml, false);
+            await applyNewDeploymentToCurrentPage(fullHtml, pushedGithub);
+            registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), 'Publicado por Admin');
+            renderLoginDeployedVersionsSelect();
+            updateRealtimeCornerStatus(`Publicado por Admin en tiempo real (v${appState.version}) ✓`, 'ok');
+            showToast(
+                pushedGithub
+                    ? `Guardado y publicado en tiempo real en GitHub y nube (v${appState.version}).`
+                    : `Guardado y publicado en tiempo real en la nube global (v${appState.version}).`
+            );
+        }
+
+        function pushStateToGlobalCloudRealtime(immediate = false) {
+            const executePush = async () => {
+                try {
+                    const relayUrl = window._globalRelayUrl || `https://ntfy.sh/${GLOBAL_RT_CHANNEL}`;
+                    const safePayload = buildSerializableVaultPayload(false);
+                    safePayload.ts = Date.now();
+                    _lastAppliedCloudTs = safePayload.ts;
+                    await fetch(relayUrl, {
+                        method: 'POST',
+                        headers: { 'Title': 'UAMP_BUBU_SYNC' },
+                        body: JSON.stringify(safePayload)
+                    });
+                } catch (e) {}
+            };
+            if (immediate) {
+                clearTimeout(_globalCloudPushDebounce);
+                executePush();
+                return;
+            }
+            clearTimeout(_globalCloudPushDebounce);
+            _globalCloudPushDebounce = setTimeout(executePush, 350);
         }
 
         let _selectiveAutoSaveDebounce = null;
@@ -1533,14 +1560,7 @@
             if (!window._publicClockTimer) {
                 window._publicClockTimer = setInterval(tickClock, 1000);
             }
-            if (!window._publicSyncPoller) {
-                window._publicSyncPoller = setInterval(async () => {
-                    if (window._pullGlobalCloudNow) {
-                        await window._pullGlobalCloudNow();
-                    }
-                    await checkRemoteDeploymentVersion(false);
-                }, 15000);
-            }
+            // Sin temporizador de sobrescritura automática: la información guardada nunca se mueve hasta que el administrador presione "Guardar y Actualizar en Tiempo Real"
         }
 
         function copyGlobalSystemPublicLink() {
@@ -2334,6 +2354,10 @@
 
         function applyRemoteVaultToState(remoteVault) {
             if (!remoteVault || typeof remoteVault !== 'object') return false;
+            // No sobrescribir datos locales guardados si la versión remota no es estrictamente superior a la actual
+            if ((Number(remoteVault.version) || 0) <= (Number(appState.version) || 1)) {
+                return false;
+            }
             const mergedDeleted = Array.from(new Set([...(appState.deletedIds || []), ...(remoteVault.deletedIds || [])]));
             appState.deletedIds = mergedDeleted;
             const deletedSet = new Set(mergedDeleted);
@@ -2350,21 +2374,20 @@
                 appState.profiles = Array.from(profMap.values());
             }
 
-            if ((remoteVault.version || 0) >= (appState.version || 1)) {
-                if (remoteVault.signer) appState.signer = { ...appState.signer, ...remoteVault.signer };
-                if (Array.isArray(remoteVault.majors)) {
-                    appState.majors = remoteVault.majors.filter(m => m && !deletedSet.has(m.id));
-                }
-                if (Array.isArray(remoteVault.periods)) {
-                    appState.periods = remoteVault.periods.filter(p => p && !deletedSet.has('period:' + p.id) && !deletedSet.has(p.id));
-                }
-                if (remoteVault.templates) appState.templates = { ...appState.templates, ...remoteVault.templates };
-                if (Array.isArray(remoteVault.grades)) appState.grades = remoteVault.grades.slice(0, 20);
-                if (Array.isArray(remoteVault.montos)) appState.montos = remoteVault.montos.slice(0, 20);
-                if (Array.isArray(remoteVault.kardex)) appState.kardex = remoteVault.kardex.slice(0, 20);
-                if (Array.isArray(remoteVault.resguardo)) appState.resguardo = remoteVault.resguardo.slice(0, 20);
-                appState.version = Math.max(appState.version || 1, remoteVault.version || 1);
+            if (remoteVault.signer) appState.signer = { ...appState.signer, ...remoteVault.signer };
+            if (Array.isArray(remoteVault.majors)) {
+                appState.majors = remoteVault.majors.filter(m => m && !deletedSet.has(m.id));
             }
+            if (Array.isArray(remoteVault.periods)) {
+                appState.periods = remoteVault.periods.filter(p => p && !deletedSet.has('period:' + p.id) && !deletedSet.has(p.id));
+            }
+            if (remoteVault.templates) appState.templates = { ...appState.templates, ...remoteVault.templates };
+            if (Array.isArray(remoteVault.grades)) appState.grades = remoteVault.grades.slice(0, 20);
+            if (Array.isArray(remoteVault.montos)) appState.montos = remoteVault.montos.slice(0, 20);
+            if (Array.isArray(remoteVault.kardex)) appState.kardex = remoteVault.kardex.slice(0, 20);
+            if (Array.isArray(remoteVault.resguardo)) appState.resguardo = remoteVault.resguardo.slice(0, 20);
+            appState.version = Math.max(appState.version || 1, Number(remoteVault.version) || 1);
+
             persistBaseState(true, true, false);
             return true;
         }
@@ -2492,10 +2515,14 @@
                 syncUserCodesToSourceCodeDom();
             }
             refreshExtractedDeploymentSummary();
-            broadcastUniversalDeploymentState();
-            updateRealtimeCornerStatus('Despliegue universal sincronizado ✓', 'ok');
-            if (bumpVersion && (appState.selectiveAutoSave?.autoPublish !== false)) {
-                scheduleAutoDeployOnSave();
+            if (bumpVersion) {
+                broadcastUniversalDeploymentState();
+                updateRealtimeCornerStatus(`Cambios guardados y publicados (v${appState.version}) ✓`, 'ok');
+                if (appState.selectiveAutoSave?.autoPublish !== false) {
+                    scheduleAutoDeployOnSave();
+                }
+            } else {
+                updateRealtimeCornerStatus('Información guardada localmente sin alterar nube ✓', 'ok');
             }
         }
 
@@ -2754,6 +2781,19 @@
             regenerateAndSaveBaseCodeWithUsers(true);
         }
 
+        function setUserProfileHeaderPanelAll(idx, mode) {
+            const p = appState.profiles[idx];
+            if (!p) return;
+            p.headerPerms = p.headerPerms || createDefaultHeaderMatrix('edit');
+            HEADER_BUTTON_DEFINITIONS.forEach(b => { p.headerPerms[b.id] = mode; });
+            renderProfilesManager();
+            const body = document.getElementById(`profileAccordionBody_${idx}`);
+            const arrow = document.getElementById(`profileAccordionArrow_${idx}`);
+            if (body) body.classList.remove('hidden');
+            if (arrow) arrow.textContent = '▲';
+            regenerateAndSaveBaseCodeWithUsers(true);
+        }
+
         function renderProfilesManager() {
             const container = document.getElementById('profilesManagerContainer');
             if (!container) return;
@@ -2813,24 +2853,32 @@
                                 </div>
                             </div>
 
-                            <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
-                                <div class="text-[11px] font-black uppercase text-slate-700">2. Botones y Acciones</div>
-                                <div class="space-y-1.5 max-h-52 overflow-y-auto pr-1">
-                                    ${HEADER_BUTTON_DEFINITIONS.map(b => `
-                                        <div class="flex items-center justify-between gap-2 text-xs">
-                                            <span class="text-slate-700 truncate">${b.label}</span>
-                                            <select onchange="appState.profiles[${idx}].headerPerms['${b.id}']=this.value;regenerateAndSaveBaseCodeWithUsers(true);" class="px-2 py-0.5 rounded border border-slate-300 text-[11px] font-semibold bg-slate-50">
-                                                <option value="edit" ${(p.headerPerms?.[b.id] || 'edit') === 'edit' ? 'selected' : ''}>Permitir</option>
-                                                <option value="hide" ${p.headerPerms?.[b.id] === 'hide' ? 'selected' : ''}>Ocultar</option>
+                            <div class="bg-white p-3 rounded-xl border border-blue-200 space-y-2">
+                                <div class="flex items-center justify-between gap-1 border-b border-slate-100 pb-1.5">
+                                    <span class="text-[11px] font-black uppercase text-blue-950">2. Visualización Panel de Arriba</span>
+                                    <div class="flex gap-1">
+                                        <button type="button" onclick="setUserProfileHeaderPanelAll(${idx}, 'edit')" class="px-1.5 py-0.5 rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-900 text-[9px] font-extrabold">Sí Todo</button>
+                                        <button type="button" onclick="setUserProfileHeaderPanelAll(${idx}, 'hide')" class="px-1.5 py-0.5 rounded bg-rose-100 hover:bg-rose-200 text-rose-900 text-[9px] font-extrabold">No Todo</button>
+                                    </div>
+                                </div>
+                                <div class="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                                    ${HEADER_BUTTON_DEFINITIONS.map(b => {
+                                        const isVisible = (p.headerPerms?.[b.id] || 'edit') !== 'hide';
+                                        return `
+                                        <div class="flex items-center justify-between gap-2 text-xs py-0.5 border-b border-slate-50">
+                                            <span class="text-slate-700 font-medium truncate">${b.label}</span>
+                                            <select onchange="appState.profiles[${idx}].headerPerms['${b.id}']=this.value;regenerateAndSaveBaseCodeWithUsers(true);" class="px-2 py-0.5 rounded border text-[11px] font-bold ${isVisible ? 'border-emerald-300 bg-emerald-50 text-emerald-900' : 'border-rose-300 bg-rose-50 text-rose-900'}">
+                                                <option value="edit" ${isVisible ? 'selected' : ''}>Sí Visualizar</option>
+                                                <option value="hide" ${!isVisible ? 'selected' : ''}>No Visualizar</option>
                                             </select>
                                         </div>
-                                    `).join('')}
+                                    `;}).join('')}
                                 </div>
                             </div>
 
                             <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
                                 <div class="text-[11px] font-black uppercase text-slate-700">3. Campos del Formulario</div>
-                                <div class="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+                                <div class="space-y-1.5 max-h-56 overflow-y-auto pr-1">
                                     ${DOC_FIELD_DEFINITIONS.map(f => `
                                         <div class="flex items-center justify-between gap-2 text-xs">
                                             <span class="text-slate-700 truncate">${f.label}</span>
