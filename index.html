@@ -861,8 +861,8 @@
                             <button type="button" onclick="downloadSelfContainedPageWithData()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition">
                                 4. Descargar index.html
                             </button>
-                            <button type="button" onclick="deployUpdateToGithub(true, false, true)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow transition">
-                                5. Publicar en GitHub y Recargar
+                            <button type="button" onclick="deployUpdateToGithub(true, false, false)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow transition">
+                                5. Publicar en GitHub y Notificar
                             </button>
                         </div>
                     </div>
@@ -1545,7 +1545,7 @@
 
         function downloadSelfContainedPageWithData() {
             persistBaseState(true, true, false);
-            const htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+            const htmlContent = buildCleanDeployableHtml();
             const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -1555,7 +1555,23 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            showToast('Archivo index.html exportado con todos los datos incrustados.');
+            showToast('Archivo index.html exportado con todos los datos y códigos incrustados.');
+        }
+
+        function buildCleanDeployableHtml() {
+            const safePayload = buildSerializableVaultPayload(false);
+            const cloneDoc = document.documentElement.cloneNode(true);
+            const loginEl = cloneDoc.querySelector('#frontLoginScreen');
+            const workEl = cloneDoc.querySelector('#mainAppWorkspace');
+            const monitorEl = cloneDoc.querySelector('#realtimeCornerMonitor');
+            if (loginEl) loginEl.classList.remove('hidden');
+            if (workEl) workEl.classList.add('hidden');
+            if (monitorEl) monitorEl.classList.add('hidden');
+            const vaultScript = cloneDoc.querySelector('#embeddedInternalVaultData');
+            if (vaultScript) {
+                vaultScript.textContent = JSON.stringify(safePayload);
+            }
+            return '<!DOCTYPE html>\n' + cloneDoc.outerHTML;
         }
 
         async function deployUpdateToGithub(manual = false, silent = false, reloadAfter = false) {
@@ -1570,16 +1586,9 @@
             if (!cfg.repo || !cfg.repo.includes('/') || !isGithubPat) {
                 persistBaseState(true, true, false);
                 if (statusBadge) statusBadge.textContent = `Despliegue local v${appState.version} activo ✓`;
-                updateRealtimeCornerStatus(`Despliegue actualizado v${appState.version} ✓`, 'ok');
+                updateRealtimeCornerStatus(`Guardado y actualizado v${appState.version} ✓`, 'ok');
                 if (!silent) {
-                    showToast(`Despliegue actualizado (v${appState.version}) con token automático. Si usas GitHub Pages remoto, pega también tu PAT ghp_ en Paso 2.`);
-                }
-                if (reloadAfter) {
-                    setTimeout(async () => {
-                        await purgeAllBrowserCaches();
-                        const baseHref = window.location.href.split('#')[0].split('?')[0];
-                        window.location.href = `${baseHref}?v=${appState.version}&t=${Date.now()}`;
-                    }, 1000);
+                    showToast(`Cambios guardados en v${appState.version}. Si publicas en GitHub remoto, pega tu token ghp_ en el Paso 2.`);
                 }
                 return;
             }
@@ -1601,7 +1610,7 @@
                     const getData = await getRes.json();
                     sha = getData.sha || '';
                 }
-                const fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+                const fullHtml = buildCleanDeployableHtml();
                 const encoded = btoa(unescape(encodeURIComponent(fullHtml)));
                 const putRes = await fetch(apiUrl, {
                     method: 'PUT',
@@ -1615,18 +1624,11 @@
                 });
                 if (!putRes.ok) throw new Error('HTTP ' + putRes.status);
                 if (statusBadge) statusBadge.textContent = `Publicado v${appState.version} ✓`;
-                updateRealtimeCornerStatus(`Desplegado en GitHub v${appState.version} ✓`, 'ok');
-                if (!silent) showToast(`Desplegado en GitHub (v${appState.version}). La página se actualizará con las modificaciones.`);
-                if (reloadAfter) {
-                    setTimeout(async () => {
-                        await purgeAllBrowserCaches();
-                        const baseHref = window.location.href.split('#')[0].split('?')[0];
-                        window.location.href = `${baseHref}?v=${appState.version}&t=${Date.now()}`;
-                    }, 1200);
-                }
+                updateRealtimeCornerStatus(`Publicado en GitHub v${appState.version} ✓`, 'ok');
+                if (!silent) showToast(`Despliegue publicado correctamente en GitHub (v${appState.version}). Los usuarios ya pueden entrar actualizando el enlace.`);
             } catch (err) {
                 if (statusBadge) statusBadge.textContent = 'Error de despliegue';
-                if (!silent) showToast('Error al publicar en GitHub. Verifica que el Token tenga permiso "repo".');
+                if (!silent) showToast('Error al publicar en GitHub. Verifica que el Token tenga permiso "repo" y el repositorio sea correcto.');
             }
         }
 
@@ -1966,12 +1968,16 @@
                 const branch = cfg.branch || 'main';
                 const filePath = cfg.filePath || 'index.html';
                 urlsToTry.push(`https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${filePath}`);
+                urlsToTry.push(`https://${owner}.github.io/${repo}/index.html`);
             }
             try {
                 const loc = window.location;
                 if (loc && /^https?:\/\//i.test(loc.href)) {
                     const cleanHref = loc.href.split('#')[0].split('?')[0];
                     urlsToTry.push(cleanHref);
+                    if (!cleanHref.endsWith('.html')) {
+                        urlsToTry.push(cleanHref.endsWith('/') ? `${cleanHref}index.html` : `${cleanHref}/index.html`);
+                    }
                     if (/\.github\.io$/i.test(loc.hostname)) {
                         const owner = loc.hostname.split('.')[0];
                         const parts = loc.pathname.split('/').filter(Boolean);
@@ -1996,9 +2002,9 @@
                     });
                     if (!res.ok) continue;
                     const htmlText = await res.text();
-                    const match = htmlText.match(/<script type="application\/json" id="embeddedInternalVaultData">([\s\S]*?)<\/script>/i);
+                    const match = htmlText.match(/<script[^>]*id=["']embeddedInternalVaultData["'][^>]*>([\s\S]*?)<\/script>/i);
                     if (match && match[1]) {
-                        const remoteVault = JSON.parse(match[1]);
+                        const remoteVault = JSON.parse(match[1].trim());
                         if (remoteVault && typeof remoteVault === 'object') {
                             const mergedDeleted = Array.from(new Set([...(appState.deletedIds || []), ...(remoteVault.deletedIds || [])]));
                             appState.deletedIds = mergedDeleted;
@@ -2097,7 +2103,7 @@
             saveGithubIntegrationSettings();
             appState.extractedFormState = extractCurrentSystemFields();
             persistBaseState(true, true, true);
-            await deployUpdateToGithub(true, false, true);
+            await deployUpdateToGithub(true, false, false);
         }
 
         function toggleUserProfileAccordion(idx) {
