@@ -1463,7 +1463,6 @@
                 syncUserCodesToSourceCodeDom();
 
                 const fullHtml = buildCleanDeployableHtml();
-                await purgeAllBrowserCaches();
                 const githubReplaced = await pushHtmlFileDirectlyToGithubApi(fullHtml, false);
                 await applyNewDeploymentToCurrentPage(fullHtml, githubReplaced);
                 refreshExtractedDeploymentSummary();
@@ -1789,11 +1788,16 @@
             if (appState.activeSession?.role !== 'admin') return;
             clearTimeout(_autoGithubDeployTimer);
             const statusBadge = document.getElementById('githubSyncStatusBadge');
-            if (statusBadge) statusBadge.textContent = 'Sincronizando globalmente...';
-            updateRealtimeCornerStatus('Sincronizando con nube global...', 'ok');
+            if (statusBadge) statusBadge.textContent = 'Guardando cambios en código fuente y nube...';
+            updateRealtimeCornerStatus('Guardando permanentemente en código fuente...', 'ok');
             _autoGithubDeployTimer = setTimeout(async () => {
-                await deployUpdateToGithub(false, true, false);
-            }, 600);
+                syncUserCodesToSourceCodeDom();
+                const fullHtml = buildCleanDeployableHtml();
+                const uploaded = await pushHtmlFileDirectlyToGithubApi(fullHtml, false);
+                if (uploaded) {
+                    updateRealtimeCornerStatus(`Código fuente actualizado en GitHub (v${appState.version}) ✓`, 'ok');
+                }
+            }, 900);
         }
 
         function extractAndAutoLoadSystemData() {
@@ -1960,51 +1964,8 @@
             } catch (e) {}
         }
 
-        function forceReloadLatestDeployment() {
-            purgeAllBrowserCaches().then(() => {
-                const baseHref = window.location.href.split('#')[0].split('?')[0];
-                window.location.href = `${baseHref}?v=${Date.now()}`;
-            });
-        }
-
-        async function visitorSyncLatestDeploymentNow(btnEl) {
-            const originalLabel = btnEl ? btnEl.innerHTML : '';
-            if (btnEl) {
-                btnEl.disabled = true;
-                btnEl.innerHTML = '<span>Actualizando...</span>';
-            }
-            try {
-                await purgeAllBrowserCaches();
-                await loadPersistedState(true);
-                if (window._pullGlobalCloudNow) await window._pullGlobalCloudNow();
-                await checkRemoteDeploymentVersion(false);
-                refreshAllUI();
-                updateDocument();
-                updateRealtimeCornerStatus(`Enlace actualizado a v${appState.version || 1} ✓`, 'ok');
-                showToast(`Enlace actualizado a la versión más reciente (v${appState.version || 1}).`);
-            } finally {
-                if (btnEl) {
-                    btnEl.disabled = false;
-                    btnEl.innerHTML = originalLabel || '<span>Actualizar Enlace</span>';
-                }
-            }
-        }
-
-        async function purgeAllBrowserCaches() {
-            try {
-                if ('caches' in window) {
-                    const names = await caches.keys();
-                    await Promise.all(names.map(name => caches.delete(name)));
-                }
-                if ('serviceWorker' in navigator) {
-                    const regs = await navigator.serviceWorker.getRegistrations();
-                    await Promise.all(regs.map(r => r.unregister()));
-                }
-            } catch (e) {}
-        }
-
         function saveToIndexedDbVault(payload) {
-            return new Promise(resolve => {
+            return new Promise((resolve) => {
                 try {
                     if (!window.indexedDB) return resolve(false);
                     const req = indexedDB.open(IDB_DB_NAME, 1);
@@ -2018,9 +1979,9 @@
                         try {
                             const db = ev.target.result;
                             const tx = db.transaction(IDB_STORE_NAME, 'readwrite');
-                            tx.objectStore(IDB_STORE_NAME).put(payload, 'latest_state');
-                            tx.oncomplete = () => resolve(true);
-                            tx.onerror = () => resolve(false);
+                            tx.objectStore(IDB_STORE_NAME).put(payload, 'main_vault');
+                            tx.oncomplete = () => { db.close(); resolve(true); };
+                            tx.onerror = () => { db.close(); resolve(false); };
                         } catch (err) {
                             resolve(false);
                         }
@@ -2033,7 +1994,7 @@
         }
 
         function loadFromIndexedDbVault() {
-            return new Promise(resolve => {
+            return new Promise((resolve) => {
                 try {
                     if (!window.indexedDB) return resolve(null);
                     const req = indexedDB.open(IDB_DB_NAME, 1);
@@ -2047,9 +2008,9 @@
                         try {
                             const db = ev.target.result;
                             const tx = db.transaction(IDB_STORE_NAME, 'readonly');
-                            const getReq = tx.objectStore(IDB_STORE_NAME).get('latest_state');
-                            getReq.onsuccess = () => resolve(getReq.result || null);
-                            getReq.onerror = () => resolve(null);
+                            const getReq = tx.objectStore(IDB_STORE_NAME).get('main_vault');
+                            getReq.onsuccess = () => { const res = getReq.result || null; db.close(); resolve(res); };
+                            getReq.onerror = () => { db.close(); resolve(null); };
                         } catch (err) {
                             resolve(null);
                         }
@@ -2061,11 +2022,16 @@
             });
         }
 
-        async function loadPersistedState(silent = false) {
-            const sources = [];
+        async function loadPersistedState(applyToUi = true) {
+            const candidates = [];
+
             try {
-                if (Array.isArray(EMBEDDED_SOURCE_USERS) && EMBEDDED_SOURCE_USERS.length) {
-                    sources.push({ version: 1, profiles: EMBEDDED_SOURCE_USERS });
+                const embeddedEl = document.getElementById('embeddedInternalVaultData');
+                if (embeddedEl && embeddedEl.textContent.trim()) {
+                    const parsedEmbedded = JSON.parse(embeddedEl.textContent.trim());
+                    if (parsedEmbedded && typeof parsedEmbedded === 'object' && Object.keys(parsedEmbedded).length > 0) {
+                        candidates.push(parsedEmbedded);
+                    }
                 }
             } catch (e) {}
 
@@ -2073,91 +2039,133 @@
                 const codesEl = document.getElementById('embeddedUserAccessCodes');
                 if (codesEl && codesEl.textContent.trim()) {
                     const parsedCodes = JSON.parse(codesEl.textContent.trim());
-                    if (Array.isArray(parsedCodes) && parsedCodes.length) {
-                        sources.push({ version: 1, profiles: parsedCodes });
+                    if (Array.isArray(parsedCodes) && parsedCodes.length > 0) {
+                        candidates.push({ version: 1, profiles: parsedCodes });
                     }
                 }
             } catch (e) {}
 
-            try {
-                const embeddedEl = document.getElementById('embeddedInternalVaultData');
-                if (embeddedEl && embeddedEl.textContent.trim()) {
-                    const parsedEmb = JSON.parse(embeddedEl.textContent.trim());
-                    if (parsedEmb && typeof parsedEmb === 'object' && Object.keys(parsedEmb).length) {
-                        sources.push(parsedEmb);
-                    }
-                }
-            } catch (e) {}
+            if (Array.isArray(EMBEDDED_SOURCE_USERS) && EMBEDDED_SOURCE_USERS.length > 0) {
+                candidates.push({ version: 1, profiles: EMBEDDED_SOURCE_USERS });
+            }
 
             try {
-                const rawLocal = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(BACKUP_STORAGE_KEY);
-                if (rawLocal) {
-                    const parsedLocal = JSON.parse(rawLocal);
-                    if (parsedLocal && typeof parsedLocal === 'object') sources.push(parsedLocal);
-                }
-            } catch (e) {}
-
-            try {
-                if (window.name && window.name.startsWith('BUBU_VAULT:')) {
+                if (typeof window.name === 'string' && window.name.startsWith('BUBU_VAULT:')) {
                     const parsedWin = JSON.parse(window.name.slice('BUBU_VAULT:'.length));
-                    if (parsedWin && typeof parsedWin === 'object') sources.push(parsedWin);
+                    if (parsedWin && typeof parsedWin === 'object') candidates.push(parsedWin);
                 }
             } catch (e) {}
 
             try {
                 const idbData = await loadFromIndexedDbVault();
-                if (idbData && typeof idbData === 'object') sources.push(idbData);
+                if (idbData && typeof idbData === 'object') candidates.push(idbData);
             } catch (e) {}
 
-            if (!sources.length) {
-                const savedToken = localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
-                if (savedToken) appState.githubConfig.token = savedToken;
-                return false;
-            }
+            try {
+                const backupRaw = localStorage.getItem(BACKUP_STORAGE_KEY);
+                if (backupRaw) {
+                    const parsedBackup = JSON.parse(backupRaw);
+                    if (parsedBackup && typeof parsedBackup === 'object') candidates.push(parsedBackup);
+                }
+            } catch (e) {}
 
-            sources.sort((a, b) => ((b.version || 0) - (a.version || 0)) || ((b.updatedAt || 0) - (a.updatedAt || 0)));
-            const best = sources[0];
+            try {
+                const mainRaw = localStorage.getItem(STORAGE_KEY);
+                if (mainRaw) {
+                    const parsedMain = JSON.parse(mainRaw);
+                    if (parsedMain && typeof parsedMain === 'object') candidates.push(parsedMain);
+                }
+            } catch (e) {}
 
-            const mergedDeleted = new Set(appState.deletedIds || []);
-            sources.forEach(src => {
-                if (Array.isArray(src.deletedIds)) src.deletedIds.forEach(id => mergedDeleted.add(id));
-            });
-            appState.deletedIds = Array.from(mergedDeleted);
+            candidates.sort((a, b) => ((a.updatedAt || a.version || 0) - (b.updatedAt || b.version || 0)));
 
-            const profMap = new Map();
-            (appState.profiles || []).forEach(p => { if (p && p.id && !mergedDeleted.has(p.id)) profMap.set(p.id, p); });
-            [...sources].reverse().forEach(src => {
+            for (const src of candidates) {
+                if (!src || typeof src !== 'object') continue;
+                const mergedDeleted = Array.from(new Set([...(appState.deletedIds || []), ...(src.deletedIds || [])]));
+                appState.deletedIds = mergedDeleted;
+                const deletedSet = new Set(mergedDeleted);
+
+                if (src.version) appState.version = Math.max(appState.version || 1, Number(src.version) || 1);
+                if (src.currentDocType) appState.currentDocType = src.currentDocType;
+                if (src.signer) appState.signer = { ...appState.signer, ...src.signer };
+                if (Array.isArray(src.majors)) {
+                    appState.majors = src.majors.filter(m => m && !deletedSet.has(m.id));
+                }
+                if (Array.isArray(src.periods)) {
+                    appState.periods = src.periods.filter(p => p && !deletedSet.has('period:' + p.id) && !deletedSet.has(p.id));
+                }
+                if (src.templates) appState.templates = { ...appState.templates, ...src.templates };
+                if (Array.isArray(src.grades)) appState.grades = src.grades.slice(0, 20);
+                if (Array.isArray(src.montos)) appState.montos = src.montos.slice(0, 20);
+                if (Array.isArray(src.kardex)) appState.kardex = src.kardex.slice(0, 20);
+                if (Array.isArray(src.resguardo)) appState.resguardo = src.resguardo.slice(0, 20);
                 if (Array.isArray(src.profiles)) {
+                    const profMap = new Map();
+                    (appState.profiles || []).forEach(p => { if (p && p.id && !deletedSet.has(p.id)) profMap.set(p.id, p); });
                     src.profiles.forEach(p => {
-                        if (p && p.id && !mergedDeleted.has(p.id)) {
+                        if (p && p.id && !deletedSet.has(p.id)) {
                             const prev = profMap.get(p.id);
                             profMap.set(p.id, { ...(prev || {}), ...p, code: String(p.code || prev?.code || '').trim() });
                         }
                     });
+                    appState.profiles = Array.from(profMap.values());
                 }
-            });
-            appState.profiles = Array.from(profMap.values());
-
-            appState.version = Math.max(appState.version || 1, best.version || 1);
-            if (best.currentDocType) appState.currentDocType = best.currentDocType;
-            if (best.signer) appState.signer = { ...appState.signer, ...best.signer };
-            if (Array.isArray(best.majors)) appState.majors = best.majors.filter(m => m && !mergedDeleted.has(m.id));
-            if (Array.isArray(best.periods)) appState.periods = best.periods.filter(p => p && !mergedDeleted.has('period:' + p.id) && !mergedDeleted.has(p.id));
-            if (best.templates) appState.templates = { ...appState.templates, ...best.templates };
-            if (Array.isArray(best.grades)) appState.grades = best.grades.slice(0, 20);
-            if (Array.isArray(best.montos)) appState.montos = best.montos.slice(0, 20);
-            if (Array.isArray(best.kardex)) appState.kardex = best.kardex.slice(0, 20);
-            if (Array.isArray(best.resguardo)) appState.resguardo = best.resguardo.slice(0, 20);
-            if (Array.isArray(best.history)) appState.history = best.history;
-            if (Array.isArray(best.studentsVault)) appState.studentsVault = best.studentsVault;
-            if (best.githubConfig) appState.githubConfig = { ...appState.githubConfig, ...best.githubConfig };
-            if (best.selectiveAutoSave) appState.selectiveAutoSave = { ...appState.selectiveAutoSave, ...best.selectiveAutoSave };
-            const savedToken = localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
-            if (savedToken && !appState.githubConfig.token) appState.githubConfig.token = savedToken;
-            if (best.extractedFormState) {
-                appState.extractedFormState = best.extractedFormState;
-                applyExtractedFormFields(best.extractedFormState);
+                if (Array.isArray(src.history)) appState.history = src.history;
+                if (Array.isArray(src.studentsVault)) appState.studentsVault = src.studentsVault;
+                if (src.githubConfig) {
+                    const savedToken = sanitizeGithubPatToken(
+                        src.githubConfig.token ||
+                        appState.githubConfig?.token ||
+                        localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) ||
+                        ''
+                    );
+                    appState.githubConfig = {
+                        ...appState.githubConfig,
+                        ...src.githubConfig,
+                        ...(savedToken ? { token: savedToken } : {})
+                    };
+                }
+                if (src.extractedFormState) appState.extractedFormState = src.extractedFormState;
+                if (src.selectiveAutoSave) appState.selectiveAutoSave = { ...appState.selectiveAutoSave, ...src.selectiveAutoSave };
             }
+
+            if (applyToUi && appState.extractedFormState) {
+                applyExtractedFormFields(appState.extractedFormState);
+            }
+            return true;
+        }
+
+        function forceReloadLatestDeployment() {
+            persistBaseState(true, true, false);
+            const baseHref = window.location.href.split('#')[0].split('?')[0];
+            window.location.href = `${baseHref}?v=${Date.now()}`;
+        }
+
+        async function visitorSyncLatestDeploymentNow(btnEl) {
+            const originalLabel = btnEl ? btnEl.innerHTML : '';
+            if (btnEl) {
+                btnEl.disabled = true;
+                btnEl.innerHTML = '<span>Sincronizando...</span>';
+            }
+            try {
+                await loadPersistedState(true);
+                if (window._pullGlobalCloudNow) await window._pullGlobalCloudNow();
+                await checkRemoteDeploymentVersion(false);
+                persistBaseState(true, true, false);
+                refreshAllUI();
+                updateDocument();
+                updateRealtimeCornerStatus(`Enlace sincronizado v${appState.version || 1} (caché conservada) ✓`, 'ok');
+                showToast(`Enlace actualizado a v${appState.version || 1} conservando todos tus datos.`);
+            } finally {
+                if (btnEl) {
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = originalLabel || '<span>Actualizar Enlace</span>';
+                }
+            }
+        }
+
+        async function purgeAllBrowserCaches() {
+            // Caché local y datos persistentes conservados intencionalmente para permanencia total
             return true;
         }
 
@@ -2507,8 +2515,16 @@
         async function realtimeSaveAndRefreshSystem() {
             saveGithubIntegrationSettings();
             appState.extractedFormState = extractCurrentSystemFields();
+            syncUserCodesToSourceCodeDom();
             persistBaseState(true, true, true);
-            await deployUpdateToGithub(true, false, false);
+            const fullHtml = buildCleanDeployableHtml();
+            const pushed = await pushHtmlFileDirectlyToGithubApi(fullHtml, false);
+            await applyNewDeploymentToCurrentPage(fullHtml, pushed);
+            showToast(
+                pushed
+                    ? `Todos los cambios y eliminaciones quedaron guardados permanentemente en el código fuente (v${appState.version}).`
+                    : `Cambios y eliminaciones guardados permanentemente en memoria y código fuente local (v${appState.version}).`
+            );
         }
 
         function toggleUserProfileAccordion(idx) {
