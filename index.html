@@ -2517,6 +2517,7 @@
                             </div>
                         </button>
                         <div class="flex items-center gap-2">
+                            <button type="button" onclick="copyUserDirectAccessLink(${idx})" title="Copia el enlace con este usuario ya registrado para que entre desde cualquier teléfono o PC" class="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-extrabold shadow-xs transition">Copiar Enlace con Acceso</button>
                             <button type="button" onclick="saveSingleUserProfile(${idx})" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-extrabold shadow-xs transition">Guardar Cambios</button>
                             <button type="button" onclick="deleteUserProfile('${p.id}')" class="px-2.5 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 text-[11px] font-bold transition">Eliminar</button>
                         </div>
@@ -2621,6 +2622,80 @@
             showToast(`Usuario creado con código ${rawCode} y guardado en el código.`);
         }
 
+        function copyUserDirectAccessLink(idx) {
+            const p = appState.profiles[idx];
+            if (!p) return;
+            const codeInp = document.getElementById(`profileCodeInput_${idx}`);
+            if (codeInp) p.code = String(codeInp.value || '').trim();
+            persistBaseState(true, true, false);
+
+            try {
+                const payloadObj = {
+                    v: appState.version || 1,
+                    p: {
+                        id: p.id,
+                        name: p.name,
+                        roleLabel: p.roleLabel,
+                        code: p.code,
+                        docAccess: p.docAccess,
+                        headerPerms: p.headerPerms,
+                        fieldPerms: p.fieldPerms
+                    },
+                    gh: {
+                        repo: appState.githubConfig?.repo || '',
+                        branch: appState.githubConfig?.branch || 'main',
+                        publicUrl: appState.githubConfig?.publicUrl || ''
+                    }
+                };
+                const jsonStr = JSON.stringify(payloadObj);
+                const bytes = new TextEncoder().encode(jsonStr);
+                let bin = '';
+                for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+                const encodedToken = btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+                const baseHref = (appState.githubConfig?.publicUrl || window.location.href).split('#')[0].split('?')[0];
+                const shareUrl = `${baseHref}?u=${encodedToken}`;
+
+                const ta = document.createElement('textarea');
+                ta.value = shareUrl;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                showToast(`Enlace copiado para "${p.name}" (Código: ${p.code}). Envíalo por WhatsApp o correo y podrá entrar al instante.`);
+            } catch (e) {
+                showToast('No se pudo generar el enlace de acceso.');
+            }
+        }
+
+        function hydrateUserFromSharedUrlParam() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const rawParam = params.get('u');
+                if (!rawParam) return false;
+                let b64 = rawParam.replace(/-/g, '+').replace(/_/g, '/');
+                while (b64.length % 4) b64 += '=';
+                const bin = atob(b64);
+                const bytes = new Uint8Array(bin.length);
+                for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                const parsed = JSON.parse(new TextDecoder().decode(bytes));
+                if (parsed && parsed.p && parsed.p.id && parsed.p.code) {
+                    const idx = appState.profiles.findIndex(x => x.id === parsed.p.id);
+                    if (idx >= 0) {
+                        appState.profiles[idx] = { ...appState.profiles[idx], ...parsed.p };
+                    } else {
+                        appState.profiles.push(parsed.p);
+                    }
+                    if (parsed.gh) {
+                        appState.githubConfig = { ...appState.githubConfig, ...parsed.gh };
+                    }
+                    persistBaseState(true, true, false);
+                    return true;
+                }
+            } catch (e) {}
+            return false;
+        }
+
         function saveSingleUserProfile(idx) {
             const p = appState.profiles[idx];
             if (!p) return;
@@ -2630,70 +2705,12 @@
             }
             persistBaseState(true, true, true);
             renderProfilesManager();
-            showToast(`Usuario "${p.name}" guardado con código "${p.code}". Ahora sigue el Paso 5 para publicar en el enlace.`);
-        }
-
-        function deleteUserProfile(id) {
-            if (!appState.activeSession || appState.activeSession.role !== 'admin') return;
-            appState.deletedIds.push(id);
-            appState.profiles = appState.profiles.filter(p => p.id !== id);
-            persistBaseState(true, true, true);
-            renderProfilesManager();
-            showToast('Usuario eliminado permanentemente.');
-        }
-
-        async function saveAndDownloadConstanciaPDF() {
-            recordHistoryEntry();
-            const paper = document.getElementById('constanciaPaper');
-            if (!paper) return;
-            const safeName = (document.getElementById('inpNombre')?.value || 'Constancia_UAMP')
-                .trim()
-                .replace(/[^a-zA-Z0-9_-]/g, '_');
-
-            if (!window.jspdf || !window.jspdf.jsPDF || !window.html2canvas) {
-                window.print();
-                return;
-            }
-
-            showToast('Generando PDF idéntico a la vista previa...');
-            const prevShadow = paper.style.boxShadow;
-            const prevBorder = paper.style.border;
-            const prevEditable = paper.getAttribute('contenteditable');
-
-            try {
-                paper.setAttribute('contenteditable', 'false');
-                paper.style.boxShadow = 'none';
-                paper.style.border = 'none';
-
-                const canvas = await window.html2canvas(paper, {
-                    scale: 2.5,
-                    useCORS: true,
-                    backgroundColor: '#ffffff',
-                    logging: false,
-                    width: paper.offsetWidth,
-                    height: paper.offsetHeight,
-                    windowWidth: paper.scrollWidth,
-                    windowHeight: paper.scrollHeight
-                });
-
-                const imgData = canvas.toDataURL('image/png', 1.0);
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'mm',
-                    format: [215, 280],
-                    compress: true
-                });
-
-                doc.addImage(imgData, 'PNG', 0, 0, 215, 280, undefined, 'FAST');
-                doc.save(`${safeName}.pdf`);
-                showToast('PDF descargado exactamente como se muestra en pantalla.');
-            } catch (err) {
-                window.print();
-            } finally {
-                paper.style.boxShadow = prevShadow;
-                paper.style.border = prevBorder;
-                if (prevEditable !== null) paper.setAttribute('contenteditable', prevEditable);
+            const hasGhToken = /^gh[pou]_|^github_pat_/i.test((appState.githubConfig?.token || '').trim());
+            const hasGhRepo = Boolean((appState.githubConfig?.repo || '').includes('/'));
+            if (hasGhToken && hasGhRepo) {
+                showToast(`Usuario "${p.name}" guardado con código "${p.code}". Ahora presiona "3. Subir index.html y Actualizar Página al Nuevo Despliegue".`);
+            } else {
+                showToast(`Usuario "${p.name}" guardado localmente. Para que funcione en el enlace público, usa "Copiar Enlace con Acceso" o vincula tu Repo + Token GitHub (ghp_).`);
             }
         }
 
@@ -3545,6 +3562,7 @@
 
             // Conserva el caché local e IndexedDB con la versión más reciente y sincroniza con el servidor
             await loadPersistedState(false);
+            hydrateUserFromSharedUrlParam();
             await checkRemoteDeploymentVersion(false);
             const picker = document.getElementById('inpFechaExpedicion');
             const textInp = document.getElementById('inpFechaExpedicionTexto');
