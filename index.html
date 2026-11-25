@@ -878,7 +878,7 @@
                                 2. Actualizar en Tiempo Real
                             </button>
                             <button type="button" onclick="saveAllDataAndAutoUploadIndex()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow transition">
-                                3. Subir index.html Automático y Actualizar Despliegue
+                                3. Subir index.html y Actualizar Página al Nuevo Despliegue
                             </button>
                             <button type="button" onclick="downloadSelfContainedPageWithData()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition">
                                 4. Descargar Respaldo index.html
@@ -1888,50 +1888,83 @@
                         'Content-Type': 'application/json'
                     };
                     let sha = '';
-                    const getRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(cfg.branch || 'main')}&t=${Date.now()}`, {
-                        headers,
-                        cache: 'no-store'
-                    });
+                    const getRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(cfg.branch || 'main')}&t=${Date.now()}`, { headers, cache: 'no-store' });
                     if (getRes.ok) {
-                        const getData = await getRes.json();
-                        sha = getData.sha || '';
+                        const fileData = await getRes.json();
+                        sha = fileData.sha || '';
                     }
-                    const encoded = btoa(unescape(encodeURIComponent(fullHtml)));
+                    const bytes = new TextEncoder().encode(fullHtml);
+                    let bin = '';
+                    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+                    const base64Content = btoa(bin);
                     const putRes = await fetch(apiUrl, {
                         method: 'PUT',
                         headers,
                         body: JSON.stringify({
-                            message: `Auto-despliegue SISTEMA BUBU 1.0 v${appState.version}`,
-                            content: encoded,
+                            message: `Actualizar despliegue v${appState.version} · SISTEMA BUBU 1.0`,
+                            content: base64Content,
                             branch: cfg.branch || 'main',
                             ...(sha ? { sha } : {})
                         })
                     });
-                    if (!putRes.ok) {
+                    if (putRes.ok) {
+                        uploadedToServer = true;
+                    } else if (!silent) {
                         const errJson = await putRes.json().catch(() => ({}));
-                        throw new Error(errJson.message || ('HTTP ' + putRes.status));
+                        showToast(`GitHub respondió (${putRes.status}): ${errJson.message || 'Verifica el repositorio y permiso repo del token.'}`);
                     }
-                    uploadedToServer = true;
-                } catch (err) {
-                    if (statusBadge) statusBadge.textContent = `Error GitHub: ${err.message}`;
-                    if (!silent) showToast(`Error al subir con el token vinculado (${err.message}). Revisa el permiso "repo" y el nombre usuario/repositorio.`);
-                    return;
+                } catch (e) {
+                    if (!silent) showToast('No se pudo conectar con la API de GitHub en este momento.');
                 }
             }
 
-            // 3. Limpiar solo cachés HTTP (sin borrar localStorage/IndexedDB) y refrescar vista en vivo
+            // 3. Limpiar solo cachés HTTP (sin borrar localStorage/IndexedDB) y aplicar el nuevo despliegue a la página actual
             await purgeAllBrowserCaches();
-            refreshAllUI();
+            await applyNewDeploymentToCurrentPage(fullHtml, uploadedToServer);
 
             if (uploadedToServer) {
-                if (statusBadge) statusBadge.textContent = `Token vinculado · index.html desplegado v${appState.version} ✓`;
-                updateRealtimeCornerStatus(`Token vinculado · index.html desplegado v${appState.version} ✓`, 'ok');
-                if (!silent) showToast(`Token vinculado y index.html subido automáticamente al despliegue (v${appState.version}).`);
+                if (statusBadge) statusBadge.textContent = `Despliegue v${appState.version} activo y actualizado en la página ✓`;
+                updateRealtimeCornerStatus(`Página actualizada al nuevo despliegue v${appState.version} ✓`, 'ok');
+                if (!silent) showToast(`index.html subido y página actualizada al nuevo despliegue (v${appState.version}).`);
             } else {
-                if (statusBadge) statusBadge.textContent = `Guardado en sistema v${appState.version} ✓ (Falta Token ghp_)`;
-                updateRealtimeCornerStatus(`Guardado en sistema v${appState.version} ✓`, 'ok');
-                if (!silent) showToast(`index.html guardado localmente (v${appState.version}). Vincula tu Repo (Paso 1) y Token ghp_ de GitHub (Paso 2) para subirlo a la nube.`);
+                if (statusBadge) statusBadge.textContent = `Despliegue local v${appState.version} aplicado ✓ (Falta Token ghp_)`;
+                updateRealtimeCornerStatus(`Despliegue local v${appState.version} aplicado ✓`, 'ok');
+                if (!silent) showToast(`Página actualizada al nuevo despliegue local (v${appState.version}). Vincula tu Repo y Token ghp_ para publicarlo en la web.`);
             }
+        }
+
+        async function applyNewDeploymentToCurrentPage(deployedHtml, isCloudPublished = false) {
+            try {
+                // Incrusta el nuevo despliegue en el DOM vivo y sincroniza todas las vistas y pestañas abiertas
+                const vaultFromDeployed = extractVaultFromHtmlString(deployedHtml);
+                if (vaultFromDeployed) {
+                    const embeddedEl = document.getElementById('embeddedInternalVaultData');
+                    if (embeddedEl) embeddedEl.textContent = JSON.stringify(vaultFromDeployed);
+                }
+
+                // Fuerza la verificación remota del commit recién desplegado en GitHub Pages / servidor
+                if (isCloudPublished) {
+                    await checkRemoteDeploymentVersion(false);
+                }
+
+                // Actualiza la URL con el parámetro de versión del despliegue sin recargar ni cerrar tu sesión
+                try {
+                    const urlObj = new URL(window.location.href);
+                    urlObj.searchParams.set('deploy_v', String(appState.version || 1));
+                    window.history.replaceState({ deployVersion: appState.version }, '', urlObj.toString());
+                } catch (e) {}
+
+                // Notifica en tiempo real a otras pestañas abiertas del mismo navegador
+                try {
+                    localStorage.setItem('SISTEMA_BUBU_1_0_FORCE_SYNC_SIGNAL', JSON.stringify({
+                        version: appState.version,
+                        ts: Date.now()
+                    }));
+                } catch (e) {}
+
+                refreshAllUI();
+                updateDocument();
+            } catch (e) {}
         }
 
         function forceReloadLatestDeployment() {
@@ -3460,10 +3493,11 @@
         }
 
         window.addEventListener('storage', async (e) => {
-            if (e.key === STORAGE_KEY || e.key === BACKUP_STORAGE_KEY) {
+            if (e.key === STORAGE_KEY || e.key === BACKUP_STORAGE_KEY || e.key === 'SISTEMA_BUBU_1_0_FORCE_SYNC_SIGNAL') {
                 await loadPersistedState(true);
                 refreshAllUI();
-                updateRealtimeCornerStatus('Sincronizado con otra pestaña ✓', 'ok');
+                updateDocument();
+                updateRealtimeCornerStatus(`Nuevo despliegue v${appState.version} aplicado en tiempo real ✓`, 'ok');
             }
         });
 
