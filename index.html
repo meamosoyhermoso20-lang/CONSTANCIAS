@@ -1631,6 +1631,15 @@
             renderGradesEditor();
             updateDocument();
             persistBaseState(true, true, true);
+            showToast('Fila eliminada permanentemente del código.');
+        }
+
+        function clearGradesTableRows() {
+            appState.grades = [];
+            renderGradesEditor();
+            updateDocument();
+            persistBaseState(true, true, true);
+            showToast('Tabla de calificaciones vaciada y guardada en el código.');
         }
 
         function clearGradesTableRows() {
@@ -3095,6 +3104,7 @@
             renderMontosEditor();
             updateDocument();
             persistBaseState(true, true, true);
+            showToast('Concepto eliminado permanentemente.');
         }
 
         function renderKardexEditor() {
@@ -3124,6 +3134,8 @@
             appState.kardex.splice(idx, 1);
             renderKardexEditor();
             updateDocument();
+            persistBaseState(true, true, true);
+            showToast('Asignatura eliminada permanentemente.');
         }
 
         function renderResguardoEditor() {
@@ -3152,53 +3164,75 @@
             appState.resguardo.splice(idx, 1);
             renderResguardoEditor();
             updateDocument();
+            persistBaseState(true, true, true);
+            showToast('Registro eliminado permanentemente.');
+        }
+        function createDefaultDocAccessMatrix(defaultVal = true) {
+            const matrix = {};
+            DOC_MODALITIES_LIST.forEach(d => { matrix[d.id] = defaultVal; });
+            return matrix;
         }
 
-        function selectDocType(docType) {
-            if (!DEFAULT_DOC_TEMPLATES[docType]) docType = 'estudios';
-            appState.currentDocType = docType;
-            const badge = document.getElementById('currentDocTypeBadge');
-            if (badge) badge.textContent = docType.toUpperCase();
-
-            document.querySelectorAll('.doc-type-btn').forEach(btn => {
-                const active = btn.getAttribute('data-doc-btn') === docType;
-                btn.className = active
-                    ? 'doc-type-btn px-2.5 py-2 rounded-xl text-xs font-bold border border-blue-900 bg-blue-900 text-white text-left transition'
-                    : 'doc-type-btn px-2.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 text-left transition';
-            });
-
-            const visibilityRules = {
-                curpFieldWrap: docType === 'kardex' || docType === 'resguardo',
-                periodoVacacionalControls: docType === 'estudios' || docType === 'periodo_vacacional',
-                calificacionesControls: docType === 'calificaciones',
-                periodosAnterioresControls: docType === 'periodos_anteriores',
-                montosControls: docType === 'montos',
-                kardexControls: docType === 'kardex',
-                resguardoControls: docType === 'resguardo'
-            };
-
-            Object.keys(visibilityRules).forEach(elId => {
-                const el = document.getElementById(elId);
-                if (!el) return;
-                const show = visibilityRules[elId];
-                el.dataset.docHidden = show ? 'false' : 'true';
-                el.classList.toggle('hidden', !show);
-            });
-
-            loadFormatTemplateEditorForCurrentDoc();
-            applySessionPermissions();
-            updateDocument();
+        function createDefaultHeaderMatrix(defaultVal = 'edit') {
+            const matrix = {};
+            HEADER_BUTTON_DEFINITIONS.forEach(b => { matrix[b.id] = defaultVal; });
+            return matrix;
         }
 
-        function insertTagIntoFormatBody(tag) {
-            const ta = document.getElementById('txtCustomFormatBody');
-            if (!ta) return;
-            const start = ta.selectionStart || 0;
-            const end = ta.selectionEnd || 0;
-            ta.value = ta.value.slice(0, start) + tag + ta.value.slice(end);
-            ta.selectionStart = ta.selectionEnd = start + tag.length;
-            ta.focus();
-            previewCustomFormatLive();
+        function createDefaultFieldMatrix(defaultVal = 'edit') {
+            const matrix = {};
+            DOC_FIELD_DEFINITIONS.forEach(f => { matrix[f.id] = defaultVal; });
+            return matrix;
+        }
+
+        function deleteUserProfile(id) {
+            appState.deletedIds = Array.from(new Set([...(appState.deletedIds || []), id]));
+            appState.profiles = (appState.profiles || []).filter(p => p.id !== id);
+            persistBaseState(true, true, true);
+            broadcastUniversalDeploymentState();
+            renderProfilesManager();
+            showToast('Usuario eliminado permanentemente y borrado del código.');
+        }
+
+        async function createNewUserProfile() {
+            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
+                return showToast('Solo el Administrador puede crear usuarios.');
+            }
+            const newId = 'usr_' + Date.now();
+            const rawCode = String(Math.floor(1000 + Math.random() * 9000));
+            appState.profiles.push({
+                id: newId,
+                name: 'Nuevo Usuario ' + (appState.profiles.length + 1),
+                roleLabel: 'Auxiliar de Control Escolar',
+                code: rawCode,
+                docAccess: createDefaultDocAccessMatrix(true),
+                headerPerms: createDefaultHeaderMatrix('edit'),
+                fieldPerms: createDefaultFieldMatrix('edit')
+            });
+            persistBaseState(true, true, true);
+            broadcastUniversalDeploymentState();
+            renderProfilesManager();
+            const newIdx = appState.profiles.length - 1;
+            const body = document.getElementById(`profileAccordionBody_${newIdx}`);
+            const arrow = document.getElementById(`profileAccordionArrow_${newIdx}`);
+            if (body) body.classList.remove('hidden');
+            if (arrow) arrow.textContent = '▲';
+            showToast(`Usuario creado con código ${rawCode}. Configura sus permisos y presiona "Guardar Cambios".`);
+        }
+        function saveSingleUserProfile(idx) {
+            const p = appState.profiles[idx];
+            if (!p) return;
+            const codeInp = document.getElementById(`profileCodeInput_${idx}`);
+            if (codeInp) {
+                p.code = String(codeInp.value || '').trim();
+            }
+            p.docAccess = { ...createDefaultDocAccessMatrix(true), ...(p.docAccess || {}) };
+            p.headerPerms = { ...createDefaultHeaderMatrix('edit'), ...(p.headerPerms || {}) };
+            p.fieldPerms = { ...createDefaultFieldMatrix('edit'), ...(p.fieldPerms || {}) };
+            persistBaseState(true, true, true);
+            broadcastUniversalDeploymentState();
+            renderProfilesManager();
+            showToast(`Usuario "${p.name}", código "${p.code}" y todos sus permisos guardados permanentemente en el código.`);
         }
 
         function toggleBoldInActiveFormatTextarea() {
@@ -3608,11 +3642,20 @@
         }
 
         function deletePeriodById(id) {
-            appState.deletedIds.push(id, 'period:' + id);
+            appState.deletedIds = Array.from(new Set([...(appState.deletedIds || []), id, 'period:' + id]));
             appState.periods = appState.periods.filter(p => p.id !== id);
             populatePeriodsSelect();
             renderPeriodsModalList();
+            updateDocument();
             persistBaseState(true, true, true);
+            showToast('Periodo eliminado permanentemente del código.');
+        }
+
+        function saveAllPeriodsToBase() {
+            populatePeriodsSelect();
+            persistBaseState(true, true, true);
+            closePeriodsModal();
+            showToast('Periodos guardados permanentemente en el código.');
         }
 
         function saveAllPeriodsToBase() {
@@ -3685,17 +3728,61 @@
         }
 
         function deleteMajorById(id) {
-            appState.deletedIds.push(id);
+            appState.deletedIds = Array.from(new Set([...(appState.deletedIds || []), id]));
             appState.majors = appState.majors.filter(m => m.id !== id);
             populateMajorsSelect();
             renderMajorsCatalogList();
+            updateDocument();
             persistBaseState(true, true, true);
+            showToast('Licenciatura eliminada permanentemente del código.');
+        }
+
+        function saveMajorsCatalogChangesToBase() {
+            populateMajorsSelect();
+            persistBaseState(true, true, true);
+            showToast('Catálogo de licenciaturas guardado permanentemente en el código.');
         }
 
         function saveMajorsCatalogChangesToBase() {
             populateMajorsSelect();
             persistBaseState(true, true, true);
             showToast('Catálogo de licenciaturas guardado permanentemente.');
+        }
+
+        function selectDocType(docType) {
+            if (!docType || !DEFAULT_DOC_TEMPLATES[docType]) docType = 'estudios';
+            appState.currentDocType = docType;
+
+            document.querySelectorAll('.doc-type-btn').forEach(btn => {
+                const isSelected = btn.getAttribute('data-doc-btn') === docType;
+                btn.className = isSelected
+                    ? 'doc-type-btn px-2.5 py-2 rounded-xl text-xs font-bold border border-blue-900 bg-blue-900 text-white text-left transition'
+                    : 'doc-type-btn px-2.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 text-left transition';
+            });
+
+            const badge = document.getElementById('currentDocTypeBadge');
+            if (badge) badge.textContent = docType.toUpperCase().replace(/_/g, ' ');
+
+            const sectionRules = {
+                periodoVacacionalControls: docType === 'estudios' || docType === 'periodo_vacacional',
+                inlineVacationWrap: docType === 'estudios' || docType === 'periodo_vacacional',
+                periodosAnterioresControls: docType === 'periodos_anteriores',
+                calificacionesControls: docType === 'calificaciones',
+                montosControls: docType === 'montos',
+                kardexControls: docType === 'kardex',
+                resguardoControls: docType === 'resguardo'
+            };
+
+            Object.entries(sectionRules).forEach(([elId, visible]) => {
+                const el = document.getElementById(elId);
+                if (!el) return;
+                el.dataset.docHidden = visible ? 'false' : 'true';
+                el.classList.toggle('hidden', !visible);
+            });
+
+            loadFormatTemplateEditorForCurrentDoc();
+            applySessionPermissions();
+            updateDocument();
         }
 
         function refreshAllUI() {
