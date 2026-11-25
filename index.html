@@ -604,6 +604,9 @@
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-500 mb-1">Interlineado</label>
                                 <input type="number" id="inpDocLineHeight" value="1.3" min="1.0" max="2.0" step="0.05" oninput="updateDocument()" class="w-full px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-center">
+                            </div>
+                        </div>
+
                         <div id="codeSkeletonEditorWrap" data-field-wrap="editor_formato" data-skeleton-perm="true" class="mt-3 p-3.5 rounded-2xl bg-blue-50/60 border border-blue-200 space-y-2.5">
                             <div class="flex flex-wrap items-center justify-between gap-1.5">
                                 <span class="text-[11px] font-black uppercase tracking-wider text-blue-950">Cuadro de Código y Esqueleto de la Constancia</span>
@@ -820,7 +823,7 @@
                                 <div id="summaryTokenValue" class="text-emerald-300 font-bold truncate">Verificando...</div>
                             </div>
                             <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-2">
-                                <div class="text-[9px] uppercase text-slate-400">Enlace Público Compartido</div>
+                                <div class="text-[9px] uppercase text-slate-400">Códigos Vinculados al Código Fuente</div>
                                 <div id="summaryUrlValue" class="text-sky-300 font-bold truncate">Detectando...</div>
                             </div>
                         </div>
@@ -851,24 +854,26 @@
                                     Vincular
                                 </button>
                             </div>
-                            <p id="githubTokenHelperMsg" class="text-[10px] text-emerald-400">✓ Pega un token PAT de GitHub (ghp_...) para subir index.html directo a tu repositorio al descargar/guardar.</p>
+                            <p id="githubTokenHelperMsg" class="text-[10px] text-emerald-400">✓ Pega un token PAT de GitHub (ghp_...) para reemplazar index.html directo en tu repositorio.</p>
                         </div>
 
-                        <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-2">
+                        <div class="bg-slate-800/80 border border-emerald-700/70 rounded-xl p-3 space-y-2">
                             <div class="flex items-center justify-between">
-                                <span class="text-[10px] font-black uppercase text-amber-400">3. Enlace Público</span>
-                                <button type="button" onclick="copyGlobalSystemPublicLink()" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-sky-300 text-[10px] font-bold">Copiar Enlace</button>
+                                <span class="text-[10px] font-black uppercase text-emerald-400">3. Reemplazar Despliegue Anterior</span>
+                                <span id="deployReplaceVersionBadge" class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 text-[10px] font-mono font-bold">v1 → v2</span>
                             </div>
-                            <input type="text" id="inpCustomDomainUrl" oninput="saveGithubIntegrationSettings()" placeholder="https://usuario.github.io/repo/" class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs outline-none">
-                            <p class="text-[10px] text-slate-400">El enlace incluye sincronización global directa para cualquier dispositivo.</p>
+                            <button type="button" id="btnReplacePreviousDeployment" onclick="replacePreviousDeploymentWithCurrent(this)" class="w-full py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow transition cursor-pointer">
+                                Reemplazar Despliegue Anterior por Actual
+                            </button>
+                            <p id="linkedUsersCountHelper" class="text-[10px] text-slate-300">✓ Todos los códigos de acceso quedan incrustados en el código fuente.</p>
                         </div>
                     </div>
 
                     <!-- ACCIONES PRINCIPALES DE DESPLIEGUE (SOLO LO ESENCIAL) -->
                     <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800">
                         <div class="flex flex-wrap items-center gap-2 flex-1">
-                            <button type="button" onclick="saveAllDataAndAutoUploadIndex()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-lg transition">
-                                Guardar y Publicar Despliegue Universal (index.html)
+                            <button type="button" onclick="replacePreviousDeploymentWithCurrent(this)" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-lg transition">
+                                Guardar, Vincular Códigos y Actualizar Despliegue (index.html)
                             </button>
                             <button type="button" onclick="saveVinculacionCredentialsExplicitly()" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow-lg transition">
                                 Guardar Datos de Vinculación
@@ -988,9 +993,11 @@
 
     <!-- ALMACÉN EMBEBIDO EN EL CÓDIGO BASE -->
     <script type="application/json" id="embeddedInternalVaultData">{}</script>
+    <script type="application/json" id="embeddedUserAccessCodes">[]</script>
 
     <script>
         const ADMIN_MASTER_CODE = 'bubu03';
+        const EMBEDDED_SOURCE_USERS = [];
         const CODE_HASH_SALT = 'UAMP_BUBU_1_0_SECURE_SALT_2026';
         const STORAGE_KEY = 'SISTEMA_BUBU_1_0_UAMP_STATE_V4';
         const BACKUP_STORAGE_KEY = 'SISTEMA_BUBU_1_0_PERMANENT_VAULT_BACKUP';
@@ -1170,7 +1177,6 @@
             const loginDotEl = document.getElementById('loginRealtimeDot');
             try {
                 const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
-                const sbUrl = 'https://jxjqkqvzqxqvzqxqvzqx.supabase.co';
                 const fallbackRelayUrl = `https://ntfy.sh/${GLOBAL_RT_CHANNEL}`;
                 window._globalRelayUrl = fallbackRelayUrl;
 
@@ -1363,7 +1369,7 @@
         }
 
         function copyGlobalSystemPublicLink() {
-            const rawUrl = (document.getElementById('inpCustomDomainUrl')?.value || appState.githubConfig?.publicUrl || window.location.href).split('#')[0].split('?')[0];
+            const rawUrl = (appState.githubConfig?.publicUrl || window.location.href).split('#')[0].split('?')[0];
             const syncPayload = buildPortableSyncToken();
             const cleanUrl = syncPayload
                 ? `${rawUrl}?v=${appState.version || 1}&sync=${syncPayload}#live=${syncPayload}`
@@ -1377,415 +1383,63 @@
             showToast('Enlace universal en tiempo real con códigos de usuario y cambios copiado.');
         }
 
-        function buildPortableSyncToken() {
-            try {
-                const compact = {
-                    v: appState.version || 1,
-                    s: appState.signer,
-                    m: appState.majors,
-                    p: appState.periods,
-                    t: appState.templates,
-                    u: (appState.profiles || []).map(x => ({
-                        id: x.id,
-                        name: x.name,
-                        roleLabel: x.roleLabel,
-                        code: String(x.code || '').trim(),
-                        docAccess: x.docAccess,
-                        headerPerms: x.headerPerms,
-                        fieldPerms: x.fieldPerms
-                    })),
-                    gh: {
-                        repo: appState.githubConfig?.repo || '',
-                        branch: appState.githubConfig?.branch || 'main',
-                        publicUrl: appState.githubConfig?.publicUrl || '',
-                        token: sanitizeGithubPatToken(appState.githubConfig?.token || '')
-                    }
-                };
-                const bytes = new TextEncoder().encode(JSON.stringify(compact));
-                let bin = '';
-                for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-                return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-            } catch (e) {
-                return '';
+        function syncUserCodesToSourceCodeDom() {
+            const normalizedProfiles = (appState.profiles || []).map(p => ({
+                id: p.id,
+                name: p.name || '',
+                roleLabel: p.roleLabel || 'Control Escolar',
+                code: String(p.code || '').trim(),
+                docAccess: p.docAccess || createDefaultDocAccessMatrix(true),
+                headerPerms: p.headerPerms || createDefaultHeaderMatrix('edit'),
+                fieldPerms: p.fieldPerms || createDefaultFieldMatrix('edit')
+            }));
+            const userCodesScript = document.getElementById('embeddedUserAccessCodes');
+            if (userCodesScript) {
+                userCodesScript.textContent = JSON.stringify(normalizedProfiles);
             }
-        }
-
-        const universalRealtimeChannel = typeof BroadcastChannel !== 'undefined'
-            ? new BroadcastChannel('SISTEMA_BUBU_1_0_UNIVERSAL_SYNC')
-            : null;
-
-        if (universalRealtimeChannel) {
-            universalRealtimeChannel.onmessage = async (event) => {
-                if (event?.data?.type === 'UNIVERSAL_DEPLOYMENT_UPDATE') {
-                    await loadPersistedState(true);
-                    loadGithubConfigToInputs();
-                    refreshAllUI();
-                    updateDocument();
-                    updateRealtimeCornerStatus(`Sincronizado en tiempo real (v${appState.version}) ✓`, 'ok');
-                }
-            };
-        }
-
-        function broadcastUniversalDeploymentState() {
-            const token = buildPortableSyncToken();
-            try {
-                if (token && window.history && window.history.replaceState) {
-                    const urlObj = new URL(window.location.href);
-                    urlObj.searchParams.set('v', String(appState.version || 1));
-                    urlObj.searchParams.set('sync', token);
-                    urlObj.hash = `live=${token}`;
-                    window.history.replaceState({ deployVersion: appState.version }, '', urlObj.toString());
-                }
-            } catch (e) {}
-            try {
-                if (universalRealtimeChannel) {
-                    universalRealtimeChannel.postMessage({
-                        type: 'UNIVERSAL_DEPLOYMENT_UPDATE',
-                        version: appState.version || 1,
-                        ts: Date.now()
-                    });
-                }
-            } catch (e) {}
-            pushStateToGlobalCloudRealtime();
-        }
-
-        function saveVinculacionCredentialsExplicitly() {
-            saveGithubIntegrationSettings();
-            const repo = (appState.githubConfig?.repo || '').trim();
-            const branch = (appState.githubConfig?.branch || 'main').trim();
-            const token = sanitizeGithubPatToken(appState.githubConfig?.token || '');
-            const publicUrl = (appState.githubConfig?.publicUrl || '').trim();
-
-            appState.githubConfig = {
-                ...appState.githubConfig,
-                repo,
-                branch,
-                token,
-                filePath: 'index.html',
-                publicUrl,
-                savedAt: new Date().toLocaleString('es-MX')
-            };
-            if (token) {
-                try { localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token); } catch (e) {}
+            const safePayload = buildSerializableVaultPayload(false);
+            safePayload.profiles = normalizedProfiles;
+            const embeddedVault = document.getElementById('embeddedInternalVaultData');
+            if (embeddedVault) {
+                embeddedVault.textContent = JSON.stringify(safePayload);
             }
-            persistBaseState(true, true, true);
-            broadcastUniversalDeploymentState();
-            refreshExtractedDeploymentSummary();
-            showToast(`Datos de vinculación guardados y sincronizados (${repo || 'Modo Universal'}).`);
+            return normalizedProfiles;
         }
 
-        function lockProfileQuickAccess() {
-            appState.activeSession = null;
-            document.getElementById('mainAppWorkspace')?.classList.add('hidden');
-            document.getElementById('realtimeCornerMonitor')?.classList.add('hidden');
-            document.getElementById('frontLoginScreen')?.classList.remove('hidden');
-        }
-
-        function switchMainWorkspaceTab(tabName) {
-            const isAdmin = appState.activeSession?.role === 'admin';
-            if (tabName === 'control_panel' && !isAdmin) {
-                showToast('Acceso exclusivo para el Administrador General.');
-                tabName = 'generador';
+        async function replacePreviousDeploymentWithCurrent(btnEl) {
+            const originalHtml = btnEl ? btnEl.innerHTML : '';
+            if (btnEl) {
+                btnEl.disabled = true;
+                btnEl.innerHTML = 'Actualizando despliegue...';
             }
+            try {
+                saveGithubIntegrationSettings();
+                appState.extractedFormState = extractCurrentSystemFields();
+                const linkedUsers = syncUserCodesToSourceCodeDom();
+                persistBaseState(true, true, true);
+                syncUserCodesToSourceCodeDom();
 
-            const views = {
-                generador: document.getElementById('workspaceViewGenerador'),
-                catalogos: document.getElementById('workspaceViewCatalogos'),
-                control_panel: document.getElementById('workspaceViewControlPanel')
-            };
-
-            Object.entries(views).forEach(([key, el]) => {
-                if (!el) return;
-                const active = key === tabName;
-                el.classList.toggle('hidden', !active);
-                el.style.display = active ? 'block' : 'none';
-            });
-
-            const tabButtons = {
-                generador: document.getElementById('tabBtnGenerador'),
-                catalogos: document.getElementById('tabBtnCatalogos'),
-                control_panel: document.getElementById('tabBtnControlPanel')
-            };
-
-            Object.entries(tabButtons).forEach(([key, btn]) => {
-                if (!btn) return;
-                const active = key === tabName;
-                btn.className = active
-                    ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-700 text-white shadow-sm transition cursor-pointer'
-                    : 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-700 transition cursor-pointer';
-            });
-
-            if (tabName === 'catalogos') {
-                renderMajorsCatalogList();
-            } else if (tabName === 'control_panel') {
-                loadGithubConfigToInputs();
-                renderProfilesManager();
+                const fullHtml = buildCleanDeployableHtml();
+                await purgeAllBrowserCaches();
+                const githubReplaced = await pushHtmlFileDirectlyToGithubApi(fullHtml, false);
+                await applyNewDeploymentToCurrentPage(fullHtml, githubReplaced);
                 refreshExtractedDeploymentSummary();
-            }
-        }
 
-        function applySessionPermissions() {
-            const isAdmin = appState.activeSession?.role === 'admin';
-            const badge = document.getElementById('activeSessionBadge');
-            if (badge && appState.activeSession) {
-                badge.textContent = isAdmin ? `Admin: ${appState.activeSession.name}` : `Usuario: ${appState.activeSession.name}`;
-            }
-            document.querySelectorAll('[data-admin-only="true"]').forEach(el => {
-                el.classList.toggle('hidden', !isAdmin);
-                if (!isAdmin) el.style.display = 'none';
-                else el.style.display = '';
-            });
-            const cpSection = document.getElementById('workspaceViewControlPanel');
-            if (cpSection && !isAdmin) {
-                cpSection.classList.add('hidden');
-                cpSection.style.display = 'none';
-            }
-            const paper = document.getElementById('constanciaPaper');
-            if (paper) {
-                paper.setAttribute('contenteditable', isAdmin ? 'true' : 'false');
-            }
-            if (!isAdmin && appState.activeSession?.profileId) {
-                const prof = appState.profiles.find(p => p.id === appState.activeSession.profileId);
-                if (prof) {
-                    document.querySelectorAll('.doc-type-btn').forEach(btn => {
-                        const key = btn.getAttribute('data-doc-btn');
-                        const allowed = prof.docAccess?.[key] !== false;
-                        btn.classList.toggle('hidden', !allowed);
-                    });
-                    document.querySelectorAll('[data-header-btn]').forEach(btn => {
-                        const key = btn.getAttribute('data-header-btn');
-                        const perm = prof.headerPerms?.[key] || 'edit';
-                        btn.classList.toggle('hidden', perm === 'hide');
-                    });
-                    document.querySelectorAll('[data-field-wrap]').forEach(wrap => {
-                        if (wrap.dataset.docHidden === 'true') return;
-                        const key = wrap.getAttribute('data-field-wrap');
-                        const defaultPerm = (key === 'editor_formato' || key === 'guardar_esqueleto') ? 'hide' : 'edit';
-                        const perm = prof.fieldPerms?.[key] || defaultPerm;
-                        wrap.classList.toggle('hidden', perm === 'hide');
-                        wrap.querySelectorAll('input, textarea, select').forEach(inp => {
-                            inp.disabled = perm === 'select';
-                        });
-                    });
-                    const skelPerm = prof.fieldPerms?.['guardar_esqueleto'] || 'hide';
-                    const editorPerm = prof.fieldPerms?.['editor_formato'] || (skelPerm !== 'hide' ? 'edit' : 'hide');
-                    const editorWrap = document.getElementById('codeSkeletonEditorWrap');
-                    if (editorWrap) {
-                        const canSeeEditor = editorPerm !== 'hide' || skelPerm !== 'hide';
-                        editorWrap.classList.toggle('hidden', !canSeeEditor);
-                        editorWrap.style.display = canSeeEditor ? '' : 'none';
-                        const bodyTa = document.getElementById('txtCustomFormatBody');
-                        if (bodyTa) bodyTa.disabled = (editorPerm === 'select' && skelPerm !== 'edit');
-                    }
-                    document.querySelectorAll('[data-skeleton-save-btn="true"]').forEach(btn => {
-                        const canSaveSkel = skelPerm === 'edit';
-                        btn.classList.toggle('hidden', !canSaveSkel);
-                        btn.disabled = !canSaveSkel;
-                    });
+                const statusBadge = document.getElementById('githubSyncStatusBadge');
+                if (statusBadge) {
+                    statusBadge.textContent = githubReplaced
+                        ? `Despliegue Reemplazado en GitHub (v${appState.version}) · ${linkedUsers.length} códigos activos ✓`
+                        : `Despliegue v${appState.version} Actualizado · ${linkedUsers.length} códigos vinculados ✓`;
                 }
-            } else if (isAdmin) {
-                document.querySelectorAll('.doc-type-btn').forEach(btn => btn.classList.remove('hidden'));
-                document.querySelectorAll('[data-header-btn]').forEach(btn => btn.classList.remove('hidden'));
-                document.querySelectorAll('[data-field-wrap]').forEach(wrap => {
-                    if (wrap.dataset.docHidden === 'true') return;
-                    wrap.classList.remove('hidden');
-                    wrap.querySelectorAll('input, textarea, select').forEach(inp => {
-                        inp.disabled = false;
-                    });
-                });
-                const editorWrap = document.getElementById('codeSkeletonEditorWrap');
-                if (editorWrap) {
-                    editorWrap.classList.remove('hidden');
-                    editorWrap.style.display = '';
-                }
-                document.querySelectorAll('[data-skeleton-save-btn="true"]').forEach(btn => {
-                    btn.classList.remove('hidden');
-                    btn.disabled = false;
-                });
-            }
-        }
-
-        function extractCurrentSystemFields() {
-            return {
-                folio: document.getElementById('inpFolio')?.value || '',
-                lugar: document.getElementById('inpLugarExpedicion')?.value || '',
-                fechaIso: document.getElementById('inpFechaExpedicion')?.value || '',
-                fechaTexto: document.getElementById('inpFechaExpedicionTexto')?.value || '',
-                nombre: document.getElementById('inpNombre')?.value || '',
-                genero: document.getElementById('selGeneroAlumno')?.value || 'M',
-                matricula: document.getElementById('inpMatricula')?.value || '',
-                curp: document.getElementById('inpCurp')?.value || '',
-                grado: document.getElementById('inpPeriodoGrado')?.value || '',
-                nota: document.getElementById('inpDestinoNota')?.value || ''
-            };
-        }
-
-        function applyExtractedFormFields(data) {
-            if (!data || typeof data !== 'object') return;
-            if (data.folio && document.getElementById('inpFolio')) document.getElementById('inpFolio').value = data.folio;
-            if (data.lugar && document.getElementById('inpLugarExpedicion')) document.getElementById('inpLugarExpedicion').value = data.lugar;
-            if (data.fechaIso && document.getElementById('inpFechaExpedicion')) document.getElementById('inpFechaExpedicion').value = data.fechaIso;
-            if (data.fechaTexto && document.getElementById('inpFechaExpedicionTexto')) document.getElementById('inpFechaExpedicionTexto').value = data.fechaTexto;
-            if (data.nombre && document.getElementById('inpNombre')) document.getElementById('inpNombre').value = data.nombre;
-            if (data.genero && document.getElementById('selGeneroAlumno')) document.getElementById('selGeneroAlumno').value = data.genero;
-            if (data.matricula && document.getElementById('inpMatricula')) document.getElementById('inpMatricula').value = data.matricula;
-            if (data.curp && document.getElementById('inpCurp')) document.getElementById('inpCurp').value = data.curp;
-            if (data.grado && document.getElementById('inpPeriodoGrado')) document.getElementById('inpPeriodoGrado').value = data.grado;
-            if (data.nota && document.getElementById('inpDestinoNota')) document.getElementById('inpDestinoNota').value = data.nota;
-        }
-
-        function calculateGradesArithmeticStats(gradesList) {
-            const validNums = (Array.isArray(gradesList) ? gradesList : [])
-                .map(g => parseFloat(String(g.score || '').replace(',', '.')))
-                .filter(n => !isNaN(n));
-            if (!validNums.length) return { count: 0, avg: '0.00' };
-            const sum = validNums.reduce((a, b) => a + b, 0);
-            return { count: validNums.length, avg: (sum / validNums.length).toFixed(2) };
-        }
-
-        function parseGradesBulkInput(rawText) {
-            const lines = String(rawText || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-            const parsed = [];
-            for (const line of lines) {
-                const parts = line.includes('\t') ? line.split('\t') : line.split('|');
-                if (parts.length >= 4) {
-                    parsed.push({
-                        group: parts[0].trim(),
-                        code: parts[1].trim(),
-                        subject: parts[2].trim(),
-                        score: parts[3].trim()
-                    });
-                } else if (parts.length === 3) {
-                    parsed.push({
-                        group: '',
-                        code: parts[0].trim(),
-                        subject: parts[1].trim(),
-                        score: parts[2].trim()
-                    });
-                }
-            }
-            return parsed;
-        }
-
-        function renderGradesEditor() {
-            const listEl = document.getElementById('gradesSavedRowsList');
-            const countBadge = document.getElementById('gradesCountBadge');
-            const avgBadge = document.getElementById('gradesLiveSummaryBadge');
-            appState.grades = (Array.isArray(appState.grades) ? appState.grades : []).slice(0, 20);
-            const stats = calculateGradesArithmeticStats(appState.grades);
-            if (countBadge) countBadge.textContent = `${appState.grades.length} / 20 filas`;
-            if (avgBadge) avgBadge.textContent = `Promedio Aritmético: ${stats.avg}`;
-            if (!listEl) return;
-            listEl.innerHTML = appState.grades.map((g, idx) => `
-                <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px]">
-                    <span class="font-mono font-bold text-blue-950">${g.group} · ${g.code}</span>
-                    <span class="flex-1 truncate text-slate-800">${g.subject}</span>
-                    <span class="font-black text-emerald-800">${g.score}</span>
-                    <button type="button" onclick="removeGradeRow(${idx})" class="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 font-bold">✕</button>
-                </div>
-            `).join('');
-        }
-
-        function removeGradeRow(idx) {
-            appState.grades.splice(idx, 1);
-            renderGradesEditor();
-            updateDocument();
-            persistBaseState(true, true, true);
-            showToast('Fila eliminada permanentemente del código.');
-        }
-
-        function clearGradesTableRows() {
-            appState.grades = [];
-            renderGradesEditor();
-            updateDocument();
-            persistBaseState(true, true, true);
-            showToast('Tabla de calificaciones vaciada y guardada en el código.');
-        }
-
-        function syncGradesTableRowsToSkeleton() {
-            const bulkInp = document.getElementById('txtGradesBulkInput');
-            const newRows = parseGradesBulkInput(bulkInp?.value || '');
-            if (newRows.length) {
-                const spaceLeft = Math.max(0, 20 - appState.grades.length);
-                if (spaceLeft === 0) {
-                    showToast('Ya alcanzaste el límite máximo de 20 filas.');
-                    return;
-                }
-                appState.grades.push(...newRows.slice(0, spaceLeft));
-                if (bulkInp) bulkInp.value = '';
-            }
-            appState.grades = appState.grades.slice(0, 20);
-            const tpl = appState.templates.calificaciones || DEFAULT_DOC_TEMPLATES.calificaciones;
-            if (tpl && typeof tpl.body === 'string' && !tpl.body.includes('{FILAS_CALIFICACIONES}') && !tpl.body.includes('{TABLA_CALIFICACIONES}')) {
-                tpl.body = tpl.body.replace(/<tbody>[\s\S]*?<\/tbody>/i, `<tbody>{FILAS_CALIFICACIONES}</tbody>`);
-            }
-            renderGradesEditor();
-            updateDocument();
-            persistBaseState(true, true, true);
-            showToast(`Tabla de calificaciones actualizada (${appState.grades.length}/20 filas) y guardada.`);
-        }
-
-        function syncMontosTableRowsToSkeleton() {
-            const cInp = document.getElementById('inpNewMontoConcepto');
-            const pInp = document.getElementById('inpNewMontoPeriodo');
-            const iInp = document.getElementById('inpNewMontoImporte');
-            const concepto = (cInp?.value || '').trim();
-            const periodo = (pInp?.value || '').trim();
-            const importe = parseFloat(iInp?.value || '');
-            if (concepto || periodo || !isNaN(importe)) {
-                if (appState.montos.length >= 20) {
-                    showToast('Ya alcanzaste el límite máximo de 20 filas en Montos.');
-                    return;
-                }
-                appState.montos.push({
-                    concepto: concepto || 'Concepto Escolar',
-                    periodo: periodo || 'Periodo Actual',
-                    importe: isNaN(importe) ? 0 : importe
-                });
-                if (cInp) cInp.value = '';
-                if (pInp) pInp.value = '';
-                if (iInp) iInp.value = '';
-            }
-            appState.montos = appState.montos.slice(0, 20);
-            const tpl = appState.templates.montos || DEFAULT_DOC_TEMPLATES.montos;
-            if (tpl && typeof tpl.body === 'string' && !tpl.body.includes('{FILAS_MONTOS}') && !tpl.body.includes('{TABLA_MONTOS}')) {
-                tpl.body = tpl.body.replace(/<tbody>[\s\S]*?<\/tbody>/i, `<tbody>{FILAS_MONTOS}</tbody>`);
-            }
-            renderMontosEditor();
-            updateDocument();
-            persistBaseState(true, true, true);
-            showToast(`Tabla de montos actualizada (${appState.montos.length}/20 filas) y guardada.`);
-        }
-
-        function syncAsuntoInputToTemplate() {
-            const val = document.getElementById('inpAsuntoConstancia')?.value ?? '';
-            if (!appState.templates[appState.currentDocType]) {
-                appState.templates[appState.currentDocType] = { title: val, asunto: val, useBold: true, body: '' };
-            }
-            appState.templates[appState.currentDocType].asunto = val;
-            appState.templates[appState.currentDocType].title = val;
-        }
-
-        function syncInlineVacationToMain() {
-            const val = document.getElementById('inpPeriodoVacacionalInline')?.value ?? '';
-            const mainVac = document.getElementById('inpPeriodoVacacional');
-            if (mainVac) mainVac.value = val;
-            updateActiveAcademicPeriodFromInput();
-        }
-
-        function updateActiveAcademicPeriodFromInput() {
-            const sel = document.getElementById('selPeriodoEscolar');
-            const periodsList = ensureStructuredPeriodsList();
-            const found = periodsList.find(p => p.id === sel?.value) || periodsList[0];
-            if (!found) return;
-            if (document.getElementById('inpNombrePeriodoEditable')) found.name = document.getElementById('inpNombrePeriodoEditable').value;
-            if (document.getElementById('inpPeriodoEscolarEditable')) found.dates = document.getElementById('inpPeriodoEscolarEditable').value;
-            if (document.getElementById('inpPeriodoVacacional')) found.vacation = document.getElementById('inpPeriodoVacacional').value;
-            if (sel && sel.selectedIndex >= 0) {
-                const idx = sel.selectedIndex;
-                const opt = sel.options[idx];
-                if (opt) {
-                    opt.textContent = `${found.name || 'Periodo ' + (idx + 1)}${found.dates ? ' — ' + found.dates.slice(0, 48) + (found.dates.length > 48 ? '...' : '') : ''}`;
+                showToast(
+                    githubReplaced
+                        ? `Despliegue anterior reemplazado por v${appState.version} en GitHub con ${linkedUsers.length} código(s) de usuario vinculados.`
+                        : `Despliegue anterior reemplazado por v${appState.version} y ${linkedUsers.length} código(s) vinculados al código fuente.`
+                );
+            } finally {
+                if (btnEl) {
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = originalHtml;
                 }
             }
         }
@@ -2048,10 +1702,13 @@
             const repoEl = document.getElementById('summaryRepoValue');
             const tokEl = document.getElementById('summaryTokenValue');
             const urlEl = document.getElementById('summaryUrlValue');
+            const verBadgeEl = document.getElementById('deployReplaceVersionBadge');
+            const usersHelperEl = document.getElementById('linkedUsersCountHelper');
             const repoVal = (cfg.repo || '').trim();
             const branchVal = (cfg.branch || 'main').trim();
             const tokVal = sanitizeGithubPatToken(cfg.token || '');
-            const urlVal = (cfg.publicUrl || window.location.href.split('#')[0].split('?')[0]).trim();
+            const activeUsers = (appState.profiles || []).filter(p => String(p.code || '').trim());
+            const curVer = appState.version || 1;
 
             if (repoEl) repoEl.textContent = repoVal ? `${repoVal} (${branchVal})` : 'Sin repositorio (Modo Universal)';
             if (tokEl) {
@@ -2060,82 +1717,17 @@
                     ? `GitHub PAT Activo (${tokVal.slice(0, 8)}...)`
                     : (tokVal ? `Token Auto Activo (${tokVal.slice(0, 12)}...)` : 'Pendiente de vinculación');
             }
-            if (urlEl) urlEl.textContent = urlVal || 'Enlace local activo';
-        }
-
-        async function pullGithubTokenFromSystem(notify = false) {
-            const scanned = scanAllSourcesForGithubRepoToken();
-            if (scanned) {
-                appState.githubConfig = appState.githubConfig || { repo: '', token: '', branch: 'main', filePath: 'index.html', publicUrl: '' };
-                appState.githubConfig.token = scanned;
-                try { localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, scanned); } catch (e) {}
-                if (notify) showToast(`Token de GitHub detectado (${scanned.slice(0, 8)}...).`);
-                return scanned;
+            if (urlEl) {
+                urlEl.textContent = `${activeUsers.length} usuario(s) · v${curVer} en código fuente`;
             }
-            try {
-                const stored = sanitizeGithubPatToken(localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || appState.githubConfig?.token || '');
-                if (stored) return stored;
-            } catch (e) {}
-            return '';
-        }
-
-        async function extractAllSystemDeploymentInfo(showNotification = true) {
-            appState.githubConfig = appState.githubConfig || { repo: '', token: '', branch: 'main', filePath: 'index.html', publicUrl: '' };
-
-            const pulledGhToken = await pullGithubTokenFromSystem(false);
-            if (pulledGhToken && !appState.githubConfig.token) {
-                appState.githubConfig.token = pulledGhToken;
+            if (verBadgeEl) {
+                verBadgeEl.textContent = `v${curVer} → v${curVer + 1}`;
             }
-
-            try {
-                const savedTok = localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
-                if (savedTok && (!appState.githubConfig.token || /^gh[pou]_|^github_pat_/i.test(savedTok))) {
-                    appState.githubConfig.token = savedTok;
-                }
-
-                const rawLocal = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(BACKUP_STORAGE_KEY);
-                if (rawLocal) {
-                    const parsed = JSON.parse(rawLocal);
-                    if (parsed?.githubConfig) {
-                        if (!appState.githubConfig.repo && parsed.githubConfig.repo) appState.githubConfig.repo = parsed.githubConfig.repo;
-                        if (!appState.githubConfig.branch && parsed.githubConfig.branch) appState.githubConfig.branch = parsed.githubConfig.branch;
-                        if (!appState.githubConfig.publicUrl && parsed.githubConfig.publicUrl) appState.githubConfig.publicUrl = parsed.githubConfig.publicUrl;
-                        if (!appState.githubConfig.token && parsed.githubConfig.token) appState.githubConfig.token = parsed.githubConfig.token;
-                    }
-                }
-            } catch (e) {}
-
-            if (!appState.githubConfig.repo) {
-                autoDetectGithubRepoFromHost(true);
-            }
-            loadGithubConfigToInputs();
-            refreshExtractedDeploymentSummary();
-            if (showNotification) showToast('Información del sistema extraída automáticamente.');
-        }
-
-        async function downloadSelfContainedPageWithData() {
-            saveGithubIntegrationSettings();
-            appState.extractedFormState = extractCurrentSystemFields();
-            persistBaseState(true, true, true);
-            const htmlContent = buildCleanDeployableHtml();
-
-            const uploadedToGithub = await pushHtmlFileDirectlyToGithubApi(htmlContent, false);
-            await applyNewDeploymentToCurrentPage(htmlContent, uploadedToGithub);
-
-            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'index.html';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-            if (uploadedToGithub) {
-                showToast(`index.html descargado, guardado en el sistema y publicado en GitHub (${appState.githubConfig.repo}) ✓`);
-            } else {
-                showToast('index.html descargado y guardado en el sistema. Configura repo + token ghp_... en Panel de Control para subida directa a GitHub.');
+            if (usersHelperEl) {
+                const codesPreview = activeUsers.map(u => `${u.name}: ${u.code}`).join(' | ');
+                usersHelperEl.textContent = activeUsers.length
+                    ? `✓ Vinculados en código (${activeUsers.length}): ${codesPreview}`
+                    : '✓ Crea usuarios abajo y sus códigos se vincularán al código fuente.';
             }
         }
 
@@ -2186,11 +1778,9 @@
         }
 
         function buildCleanDeployableHtml() {
+            const normalizedProfiles = syncUserCodesToSourceCodeDom();
             const safePayload = buildSerializableVaultPayload(false);
-            safePayload.profiles = (appState.profiles || []).map(p => ({
-                ...p,
-                code: String(p.code || '').trim()
-            }));
+            safePayload.profiles = normalizedProfiles;
             const cloneDoc = document.documentElement.cloneNode(true);
             const loginEl = cloneDoc.querySelector('#frontLoginScreen');
             const workEl = cloneDoc.querySelector('#mainAppWorkspace');
@@ -2202,7 +1792,16 @@
             if (vaultScript) {
                 vaultScript.textContent = JSON.stringify(safePayload);
             }
-            return '<!DOCTYPE html>\n' + cloneDoc.outerHTML;
+            const codesScript = cloneDoc.querySelector('#embeddedUserAccessCodes');
+            if (codesScript) {
+                codesScript.textContent = JSON.stringify(normalizedProfiles);
+            }
+            let serializedHtml = '<!DOCTYPE html>\n' + cloneDoc.outerHTML;
+            serializedHtml = serializedHtml.replace(
+                /const EMBEDDED_SOURCE_USERS = \[[\s\S]*?\];/,
+                `const EMBEDDED_SOURCE_USERS = ${JSON.stringify(normalizedProfiles)};`
+            );
+            return serializedHtml;
         }
 
         async function deployUpdateToGithub(manual = false, silent = false, reloadAfter = false) {
@@ -2361,6 +1960,22 @@
         async function loadPersistedState(silent = false) {
             const sources = [];
             try {
+                if (Array.isArray(EMBEDDED_SOURCE_USERS) && EMBEDDED_SOURCE_USERS.length) {
+                    sources.push({ version: 1, profiles: EMBEDDED_SOURCE_USERS });
+                }
+            } catch (e) {}
+
+            try {
+                const codesEl = document.getElementById('embeddedUserAccessCodes');
+                if (codesEl && codesEl.textContent.trim()) {
+                    const parsedCodes = JSON.parse(codesEl.textContent.trim());
+                    if (Array.isArray(parsedCodes) && parsedCodes.length) {
+                        sources.push({ version: 1, profiles: parsedCodes });
+                    }
+                }
+            } catch (e) {}
+
+            try {
                 const embeddedEl = document.getElementById('embeddedInternalVaultData');
                 if (embeddedEl && embeddedEl.textContent.trim()) {
                     const parsedEmb = JSON.parse(embeddedEl.textContent.trim());
@@ -2444,14 +2059,27 @@
 
         function extractVaultFromHtmlString(htmlText) {
             if (!htmlText || typeof htmlText !== 'string') return null;
+            let parsedVault = null;
             const match = htmlText.match(/<script[^>]*id=["']embeddedInternalVaultData["'][^>]*>([\s\S]*?)<\/script>/i);
-            if (!match || !match[1]) return null;
-            try {
-                const parsed = JSON.parse(match[1].trim());
-                return parsed && typeof parsed === 'object' ? parsed : null;
-            } catch (e) {
-                return null;
+            if (match && match[1]) {
+                try {
+                    const parsed = JSON.parse(match[1].trim());
+                    if (parsed && typeof parsed === 'object') parsedVault = parsed;
+                } catch (e) {}
             }
+            const codesMatch = htmlText.match(/<script[^>]*id=["']embeddedUserAccessCodes["'][^>]*>([\s\S]*?)<\/script>/i);
+            if (codesMatch && codesMatch[1]) {
+                try {
+                    const parsedCodes = JSON.parse(codesMatch[1].trim());
+                    if (Array.isArray(parsedCodes) && parsedCodes.length) {
+                        parsedVault = parsedVault || { version: 1 };
+                        const pMap = new Map((parsedVault.profiles || []).map(p => [p.id, p]));
+                        parsedCodes.forEach(p => { if (p && p.id) pMap.set(p.id, { ...(pMap.get(p.id) || {}), ...p }); });
+                        parsedVault.profiles = Array.from(pMap.values());
+                    }
+                } catch (e) {}
+            }
+            return parsedVault;
         }
 
         function applyRemoteVaultToState(remoteVault) {
@@ -2605,11 +2233,9 @@
                 saveToIndexedDbVault(fullPayload);
             }
             if (updateEmbedded) {
-                const embedded = document.getElementById('embeddedInternalVaultData');
-                if (embedded) {
-                    embedded.textContent = JSON.stringify(safePayload);
-                }
+                syncUserCodesToSourceCodeDom();
             }
+            refreshExtractedDeploymentSummary();
             broadcastUniversalDeploymentState();
             updateRealtimeCornerStatus('Despliegue universal sincronizado ✓', 'ok');
             if (bumpVersion && (appState.selectiveAutoSave?.autoPublish !== false)) {
@@ -2633,7 +2259,6 @@
                 .replace(/<p style="margin:[^"]*">/gi, '<div data-block="nota" style="text-align: justify; font-size: 12pt;">')
                 .replace(/<\/p>/gi, '</div>');
 
-            // Eliminar cualquier bloque duplicado de Asunto, Destinatario, Cuerpo o Nota
             let asuntoSeen = false;
             clean = clean.replace(/<div[^>]*>\s*(?:<b>)?Asunto:(?:<\/b>)?[\s\S]*?<\/div>\s*/gi, match => {
                 if (asuntoSeen) return '';
@@ -2662,10 +2287,7 @@
                 return match;
             });
 
-            // Eliminar etiquetas consecutivas idénticas (ej. {NOMBRE} {NOMBRE} o {NOTA}{NOTA})
             clean = clean.replace(/(\{[A-Z0-9_]+\})(\s*\1)+/g, '$1');
-
-            // Eliminar divs o párrafos completamente duplicados consecutivos
             clean = clean.replace(/(<div[^>]*>[\s\S]*?<\/div>)(\s*\1)+/gi, '$1');
 
             return leadingNewlines + clean;
@@ -3611,271 +3233,68 @@
                 '{NOTA}': nota
             };
 
-            let html = sanitizeTemplateBodyDuplicates(tpl?.body || '');
-            // Evitar duplicación del periodo vacacional si ya está incluido dentro de las fechas del periodo
-            if (cleanVacText && cleanPeriodoDates.includes(cleanVacText)) {
-                html = html.replace(/\{PERIODO_VACACIONAL\}/g, '');
-            }
-            Object.keys(replacements).forEach(tag => {
-                html = html.split(tag).join(replacements[tag]);
+            let renderedBody = sanitizeTemplateBodyDuplicates(tpl?.body || '');
+            Object.entries(replacements).forEach(([key, val]) => {
+                renderedBody = renderedBody.split(key).join(val);
             });
-            // Limpiar espacios o puntos duplicados generados tras reemplazar variables vacías
-            html = html.replace(/\.\s*\./g, '.').replace(/\s{2,}/g, ' ');
+
             if (tpl && tpl.useBold === false) {
-                html = html.replace(/<\/?b>/gi, '');
+                renderedBody = renderedBody.replace(/<\/?b>/gi, '');
             }
-            if (bodyEl) bodyEl.innerHTML = html;
+
+            if (bodyEl) bodyEl.innerHTML = renderedBody;
             fitDocumentToSingleLetterPage();
         }
 
-        function saveGithubIntegrationSettings() {
-            const cleanTok = sanitizeGithubPatToken(document.getElementById('inpGithubToken')?.value || '');
-            appState.githubConfig = {
-                repo: document.getElementById('inpGithubRepo')?.value || '',
-                token: cleanTok,
-                branch: document.getElementById('inpGithubBranch')?.value || 'main',
-                filePath: document.getElementById('inpGithubFilePath')?.value || 'index.html',
-                publicUrl: document.getElementById('inpCustomDomainUrl')?.value || ''
-            };
-            if (cleanTok) {
-                try { localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, cleanTok); } catch (e) {}
-            }
-            refreshExtractedDeploymentSummary();
-            persistBaseState(true, true, false);
-        }
+        function selectDocType(docType) {
+            appState.currentDocType = docType;
+            const badge = document.getElementById('currentDocTypeBadge');
+            if (badge) badge.textContent = docType.replace(/_/g, ' ').toUpperCase();
 
-        function loadGithubConfigToInputs() {
-            const cfg = appState.githubConfig || {};
-            const resolvedTok = sanitizeGithubPatToken(cfg.token || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || scanAllSourcesForGithubRepoToken() || '');
-            if (resolvedTok) {
-                appState.githubConfig.token = resolvedTok;
-                try { localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, resolvedTok); } catch (e) {}
-            }
-            if (document.getElementById('inpGithubRepo')) document.getElementById('inpGithubRepo').value = cfg.repo || '';
-            if (document.getElementById('inpGithubToken')) document.getElementById('inpGithubToken').value = resolvedTok;
-            if (document.getElementById('inpGithubBranch')) document.getElementById('inpGithubBranch').value = cfg.branch || 'main';
-            if (document.getElementById('inpCustomDomainUrl')) document.getElementById('inpCustomDomainUrl').value = cfg.publicUrl || '';
-            refreshExtractedDeploymentSummary();
-        }
-
-        function saveAllDataAndAutoUploadIndex() {
-            persistBaseState(true, true, true);
-            deployUpdateToGithub(true, false, false);
-        }
-
-        function recordHistoryEntry() {
-            appState.history.unshift({
-                id: 'hist_' + Date.now(),
-                date: new Date().toLocaleString('es-MX'),
-                folio: document.getElementById('inpFolio')?.value || '',
-                type: appState.currentDocType,
-                student: document.getElementById('inpNombre')?.value || '',
-                matricula: document.getElementById('inpMatricula')?.value || ''
+            document.querySelectorAll('.doc-type-btn').forEach(btn => {
+                const active = btn.getAttribute('data-doc-btn') === docType;
+                btn.className = active
+                    ? 'doc-type-btn px-2.5 py-2 rounded-xl text-xs font-bold border border-blue-900 bg-blue-900 text-white text-left transition'
+                    : 'doc-type-btn px-2.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 text-left transition';
             });
-            persistBaseState(true, true, false);
-        }
 
-        async function saveAndDownloadConstanciaPDF() {
-            const paper = document.getElementById('constanciaPaper');
-            if (!paper) return;
-            recordHistoryEntry();
-            if (!window.html2canvas || !window.jspdf) {
-                showToast('Preparando impresión PDF...');
-                window.print();
-                return;
-            }
-            try {
-                showToast('Generando archivo PDF oficial...');
-                const canvas = await html2canvas(paper, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-                const imgData = canvas.toDataURL('image/png');
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [215, 280] });
-                pdf.addImage(imgData, 'PNG', 0, 0, 215, 280);
-                const matricula = (document.getElementById('inpMatricula')?.value || 'CONSTANCIA').trim();
-                pdf.save(`Constancia_UAMP_${matricula}.pdf`);
-                showToast('PDF descargado correctamente.');
-            } catch (e) {
-                window.print();
-            }
-        }
-
-        function printConstanciaDocument() {
-            recordHistoryEntry();
-            window.print();
-        }
-
-        function openHistoryModal() {
-            const modal = document.getElementById('historyModal');
-            const list = document.getElementById('historyListContainer');
-            if (list) {
-                list.innerHTML = (appState.history || []).map(h => `
-                    <div class="py-2 flex items-center justify-between">
-                        <div><b>${h.folio}</b> · ${h.student} (${h.matricula})</div>
-                        <span class="text-slate-400">${h.date}</span>
-                    </div>
-                `).join('') || '<p class="text-slate-400 py-4 text-center">Sin registros en el historial.</p>';
-            }
-            modal?.classList.remove('hidden');
-        }
-
-        function closeHistoryModal() {
-            document.getElementById('historyModal')?.classList.add('hidden');
-        }
-
-        function exportHistoryToExcel() {
-            if (!window.XLSX) return showToast('Librería Excel no disponible.');
-            const ws = XLSX.utils.json_to_sheet(appState.history || []);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Historial');
-            XLSX.writeFile(wb, 'Historial_Constancias_UAMP.xlsx');
-        }
-
-        function openDatabaseVaultModal() {
-            renderStudentsVaultList();
-            document.getElementById('databaseVaultModal')?.classList.remove('hidden');
-        }
-
-        function closeDatabaseVaultModal() {
-            document.getElementById('databaseVaultModal')?.classList.add('hidden');
-        }
-
-        function importStudentsExcel(e) {
-            const file = e.target?.files?.[0];
-            if (!file || !window.XLSX) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                const wb = XLSX.read(ev.target.result, { type: 'binary' });
-                const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-                appState.studentsVault = rows;
-                persistBaseState(true, true, false);
-                renderStudentsVaultList();
-                showToast(`${rows.length} alumnos cargados desde Excel.`);
+            const toggleBlock = (id, show) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.dataset.docHidden = show ? 'false' : 'true';
+                el.classList.toggle('hidden', !show);
             };
-            reader.readAsBinaryString(file);
-        }
 
-        function renderStudentsVaultList() {
-            const list = document.getElementById('studentsVaultList');
-            if (!list) return;
-            list.innerHTML = (appState.studentsVault || []).map((st, idx) => `
-                <div class="p-2 flex items-center justify-between hover:bg-slate-50">
-                    <span><b>${st.NOMBRE || st.Nombre || ''}</b> · ${st.MATRICULA || st.Matricula || ''}</span>
-                    <button type="button" onclick="loadStudentFromVault(${idx})" class="px-2 py-1 rounded bg-blue-900 text-white text-[10px] font-bold">Cargar</button>
-                </div>
-            `).join('') || '<p class="p-4 text-center text-slate-400">Importa un archivo Excel (.xlsx) con columnas NOMBRE y MATRICULA.</p>';
-        }
+            toggleBlock('periodoVacacionalControls', docType === 'estudios' || docType === 'periodo_vacacional');
+            toggleBlock('periodosAnterioresControls', docType === 'periodos_anteriores');
+            toggleBlock('calificacionesControls', docType === 'calificaciones');
+            toggleBlock('montosControls', docType === 'montos');
+            toggleBlock('kardexControls', docType === 'kardex');
+            toggleBlock('resguardoControls', docType === 'resguardo');
 
-        function loadStudentFromVault(idx) {
-            const st = appState.studentsVault[idx];
-            if (!st) return;
-            if (document.getElementById('inpNombre')) document.getElementById('inpNombre').value = st.NOMBRE || st.Nombre || '';
-            if (document.getElementById('inpMatricula')) document.getElementById('inpMatricula').value = st.MATRICULA || st.Matricula || '';
-            if (document.getElementById('inpCurp')) document.getElementById('inpCurp').value = st.CURP || st.Curp || '';
+            const inlineVac = document.getElementById('inlineVacationWrap');
+            if (inlineVac) inlineVac.classList.toggle('hidden', docType !== 'estudios' && docType !== 'periodo_vacacional');
+
+            loadFormatTemplateEditorForCurrentDoc();
+            applySessionPermissions();
             updateDocument();
-            closeDatabaseVaultModal();
-        }
-
-        function openPeriodsModal() {
-            renderPeriodsModalList();
-            document.getElementById('periodsModal')?.classList.remove('hidden');
-        }
-
-        function closePeriodsModal() {
-            document.getElementById('periodsModal')?.classList.add('hidden');
-        }
-
-        function renderPeriodsModalList() {
-            const list = ensureStructuredPeriodsList();
-            const sel = document.getElementById('selModalPeriodToEdit');
-            const container = document.getElementById('periodsModalList');
-            if (sel) {
-                sel.innerHTML = list.map((p, i) => `<option value="${p.id}">${p.name || 'Periodo ' + (i + 1)}</option>`).join('');
-                loadSelectedPeriodIntoModalEditor();
-            }
-            if (container) {
-                container.innerHTML = list.map((p, idx) => `
-                    <div class="p-3 rounded-xl border border-slate-200 bg-white space-y-1.5">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-black text-blue-950">${p.name || 'Periodo ' + (idx + 1)}</span>
-                            <button type="button" onclick="deleteAcademicPeriod('${p.id}')" class="px-2 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-bold">Eliminar</button>
-                        </div>
-                        <div class="text-[11px] text-slate-600">${p.dates || ''}</div>
-                        <div class="text-[10px] text-emerald-700">${p.vacation || ''}</div>
-                    </div>
-                `).join('');
-            }
-        }
-
-        function loadSelectedPeriodIntoModalEditor() {
-            const sel = document.getElementById('selModalPeriodToEdit');
-            const p = ensureStructuredPeriodsList().find(x => x.id === sel?.value);
-            if (!p) return;
-            if (document.getElementById('editModalPeriodName')) document.getElementById('editModalPeriodName').value = p.name || '';
-            if (document.getElementById('editModalPeriodDates')) document.getElementById('editModalPeriodDates').value = p.dates || '';
-            if (document.getElementById('editModalPeriodVacation')) document.getElementById('editModalPeriodVacation').value = p.vacation || '';
-        }
-
-        function applySelectedPeriodModalEdit() {
-            const sel = document.getElementById('selModalPeriodToEdit');
-            const p = ensureStructuredPeriodsList().find(x => x.id === sel?.value);
-            if (!p) return;
-            p.name = document.getElementById('editModalPeriodName')?.value || p.name;
-            p.dates = document.getElementById('editModalPeriodDates')?.value || p.dates;
-            p.vacation = document.getElementById('editModalPeriodVacation')?.value || '';
-            populatePeriodsSelect();
-            renderPeriodsModalList();
-            updateDocument();
-            persistBaseState(true, true, true);
-            showToast('Periodo modificado y guardado.');
-        }
-
-        function saveCustomAcademicPeriod() {
-            const name = document.getElementById('newAcademicPeriodNameInput')?.value.trim();
-            const dates = document.getElementById('newAcademicPeriodInput')?.value.trim();
-            const vacation = document.getElementById('newAcademicPeriodVacationInput')?.value.trim();
-            if (!name && !dates) return showToast('Escribe el nombre o fechas del periodo.');
-            appState.periods.push({ id: 'per_' + Date.now(), name: name || 'Nuevo Periodo', dates: dates || '', vacation: vacation || '' });
-            document.getElementById('newAcademicPeriodNameInput').value = '';
-            document.getElementById('newAcademicPeriodInput').value = '';
-            document.getElementById('newAcademicPeriodVacationInput').value = '';
-            populatePeriodsSelect();
-            renderPeriodsModalList();
-            persistBaseState(true, true, true);
-            showToast('Nuevo periodo agregado.');
-        }
-
-        function deleteAcademicPeriod(id) {
-            appState.deletedIds.push('period:' + id);
-            appState.periods = appState.periods.filter(p => p.id !== id);
-            populatePeriodsSelect();
-            renderPeriodsModalList();
-            persistBaseState(true, true, true);
-            showToast('Periodo eliminado.');
-        }
-
-        function saveAllPeriodsToBase() {
-            populatePeriodsSelect();
-            updateDocument();
-            persistBaseState(true, true, true);
-            closePeriodsModal();
-            showToast('Todos los periodos guardados.');
         }
 
         function renderMajorsCatalogList() {
-            const container = document.getElementById('majorsCatalogList');
-            const sel = document.getElementById('selCatalogMajorToEdit');
-            if (sel) {
-                sel.innerHTML = appState.majors.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+            const listEl = document.getElementById('majorsCatalogList');
+            const selEdit = document.getElementById('selCatalogMajorToEdit');
+            if (selEdit) {
+                selEdit.innerHTML = appState.majors.map(m => `<option value="${m.id}">${m.name} (${m.rvoe})</option>`).join('');
                 loadSelectedMajorIntoCatalogEditor();
             }
-            if (!container) return;
-            container.innerHTML = appState.majors.map((m, idx) => `
+            if (!listEl) return;
+            listEl.innerHTML = appState.majors.map((m, idx) => `
                 <div class="p-3 bg-white flex flex-wrap items-center justify-between gap-2 text-xs">
-                    <div>
+                    <div class="flex-1 min-w-[220px]">
                         <div class="font-black text-slate-900">${m.name}</div>
-                        <div class="text-[11px] text-slate-500 font-mono">RVOE: ${m.rvoe} · Fecha: ${m.rvoeDate || 'N/A'} · Plan: ${m.plan || 'General'}</div>
+                        <div class="text-[11px] text-slate-500 font-mono">RVOE: ${m.rvoe} ${m.rvoeDate ? '· Fecha: ' + m.rvoeDate : ''} ${m.plan ? '· Plan: ' + m.plan : ''}</div>
                     </div>
-                    <button type="button" data-admin-only="true" onclick="deleteMajorRvoe('${m.id}')" class="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-700 font-bold text-[11px]">Eliminar</button>
+                    <button type="button" data-admin-only="true" onclick="deleteMajorItem('${m.id}')" class="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 text-[11px] font-bold">Eliminar</button>
                 </div>
             `).join('');
             applySessionPermissions();
@@ -3903,71 +3322,512 @@
             renderMajorsCatalogList();
             updateDocument();
             persistBaseState(true, true, true);
-            showToast('Oferta educativa modificada.');
+            showToast('Oferta educativa modificada y guardada.');
         }
 
         function addNewMajorRvoe() {
-            const name = document.getElementById('newMajorName')?.value.trim();
-            const rvoe = document.getElementById('newMajorRvoe')?.value.trim();
-            const rvoeDate = document.getElementById('newMajorRvoeDate')?.value.trim();
-            const plan = document.getElementById('newMajorPlan')?.value.trim();
+            const name = (document.getElementById('newMajorName')?.value || '').trim();
+            const rvoe = (document.getElementById('newMajorRvoe')?.value || '').trim();
+            const rvoeDate = (document.getElementById('newMajorRvoeDate')?.value || '').trim();
+            const plan = (document.getElementById('newMajorPlan')?.value || '').trim();
             if (!name) return showToast('Escribe el nombre de la licenciatura.');
             appState.majors.push({ id: 'maj_' + Date.now(), plan, name, rvoe, rvoeDate });
-            document.getElementById('newMajorName').value = '';
-            document.getElementById('newMajorRvoe').value = '';
-            document.getElementById('newMajorRvoeDate').value = '';
-            document.getElementById('newMajorPlan').value = '';
+            ['newMajorName', 'newMajorRvoe', 'newMajorRvoeDate', 'newMajorPlan'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
             populateMajorsSelect();
             renderMajorsCatalogList();
             persistBaseState(true, true, true);
-            showToast('Nueva oferta educativa agregada.');
+            showToast('Nueva oferta educativa agregada y guardada.');
         }
 
-        function deleteMajorRvoe(id) {
-            appState.deletedIds.push(id);
+        function deleteMajorItem(id) {
+            appState.deletedIds = Array.from(new Set([...(appState.deletedIds || []), id]));
             appState.majors = appState.majors.filter(m => m.id !== id);
             populateMajorsSelect();
             renderMajorsCatalogList();
+            updateDocument();
             persistBaseState(true, true, true);
             showToast('Oferta eliminada.');
         }
 
         function saveMajorsCatalogChangesToBase() {
             populateMajorsSelect();
-            updateDocument();
             persistBaseState(true, true, true);
-            showToast('Catálogo de licenciaturas guardado.');
+            showToast('Catálogo de licenciaturas y RVOE guardado globalmente.');
         }
 
-        function selectDocType(docType) {
-            appState.currentDocType = docType;
-            const badge = document.getElementById('currentDocTypeBadge');
-            if (badge) badge.textContent = docType.replace('_', ' ').toUpperCase();
+        function openPeriodsModal() {
+            const modal = document.getElementById('periodsModal');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            renderPeriodsModalContent();
+        }
 
-            document.querySelectorAll('.doc-type-btn').forEach(btn => {
-                const active = btn.getAttribute('data-doc-btn') === docType;
-                btn.className = active
-                    ? 'doc-type-btn px-2.5 py-2 rounded-xl text-xs font-bold border border-blue-900 bg-blue-900 text-white text-left transition'
-                    : 'doc-type-btn px-2.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 text-left transition';
-            });
+        function closePeriodsModal() {
+            document.getElementById('periodsModal')?.classList.add('hidden');
+        }
 
-            const toggleBlock = (id, show) => {
-                const el = document.getElementById(id);
-                if (!el) return;
-                el.dataset.docHidden = show ? 'false' : 'true';
-                el.classList.toggle('hidden', !show);
-            };
+        function renderPeriodsModalContent() {
+            const list = ensureStructuredPeriodsList();
+            const selEdit = document.getElementById('selModalPeriodToEdit');
+            const listEl = document.getElementById('periodsModalList');
+            if (selEdit) {
+                selEdit.innerHTML = list.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+                loadSelectedPeriodIntoModalEditor();
+            }
+            if (listEl) {
+                listEl.innerHTML = list.map((p, idx) => `
+                    <div class="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-2 text-xs">
+                        <div>
+                            <div class="font-black text-slate-900">${p.name}</div>
+                            <div class="text-[11px] text-slate-600">${p.dates}</div>
+                            <div class="text-[11px] text-emerald-700">${p.vacation || ''}</div>
+                        </div>
+                        <button type="button" onclick="deletePeriodItem('${p.id}')" class="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-800 text-[11px] font-bold">Eliminar</button>
+                    </div>
+                `).join('');
+            }
+        }
 
-            toggleBlock('periodoVacacionalControls', docType === 'periodo_vacacional' || docType === 'estudios');
-            toggleBlock('periodosAnterioresControls', docType === 'periodos_anteriores');
-            toggleBlock('calificacionesControls', docType === 'calificaciones');
-            toggleBlock('montosControls', docType === 'montos');
-            toggleBlock('kardexControls', docType === 'kardex');
-            toggleBlock('resguardoControls', docType === 'resguardo');
+        function loadSelectedPeriodIntoModalEditor() {
+            const sel = document.getElementById('selModalPeriodToEdit');
+            const p = ensureStructuredPeriodsList().find(x => x.id === sel?.value);
+            if (!p) return;
+            if (document.getElementById('editModalPeriodName')) document.getElementById('editModalPeriodName').value = p.name || '';
+            if (document.getElementById('editModalPeriodDates')) document.getElementById('editModalPeriodDates').value = p.dates || '';
+            if (document.getElementById('editModalPeriodVacation')) document.getElementById('editModalPeriodVacation').value = p.vacation || '';
+        }
 
-            loadFormatTemplateEditorForCurrentDoc();
-            applySessionPermissions();
+        function applySelectedPeriodModalEdit() {
+            const sel = document.getElementById('selModalPeriodToEdit');
+            const p = ensureStructuredPeriodsList().find(x => x.id === sel?.value);
+            if (!p) return;
+            p.name = document.getElementById('editModalPeriodName')?.value || p.name;
+            p.dates = document.getElementById('editModalPeriodDates')?.value || p.dates;
+            p.vacation = document.getElementById('editModalPeriodVacation')?.value || '';
+            populatePeriodsSelect();
+            renderPeriodsModalContent();
             updateDocument();
+            persistBaseState(true, true, true);
+            showToast('Periodo actualizado.');
+        }
+
+        function saveCustomAcademicPeriod() {
+            const name = (document.getElementById('newAcademicPeriodNameInput')?.value || '').trim();
+            const dates = (document.getElementById('newAcademicPeriodInput')?.value || '').trim();
+            const vacation = (document.getElementById('newAcademicPeriodVacationInput')?.value || '').trim();
+            if (!name) return showToast('Escribe el nombre del periodo.');
+            appState.periods.push({ id: 'per_' + Date.now(), name, dates, vacation });
+            ['newAcademicPeriodNameInput', 'newAcademicPeriodInput', 'newAcademicPeriodVacationInput'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            populatePeriodsSelect();
+            renderPeriodsModalContent();
+            persistBaseState(true, true, true);
+            showToast('Nuevo periodo agregado.');
+        }
+
+        function deletePeriodItem(id) {
+            appState.deletedIds = Array.from(new Set([...(appState.deletedIds || []), 'period:' + id]));
+            appState.periods = appState.periods.filter(p => p.id !== id);
+            populatePeriodsSelect();
+            renderPeriodsModalContent();
+            persistBaseState(true, true, true);
+            showToast('Periodo eliminado.');
+        }
+
+        function saveAllPeriodsToBase() {
+            populatePeriodsSelect();
+            persistBaseState(true, true, true);
+            closePeriodsModal();
+            showToast('Todos los periodos guardados globalmente.');
+        }
+
+        function openHistoryModal() {
+            const modal = document.getElementById('historyModal');
+            const listEl = document.getElementById('historyListContainer');
+            if (!modal || !listEl) return;
+            listEl.innerHTML = (appState.history || []).map(h => `
+                <div class="py-2.5 px-2 flex items-center justify-between gap-2">
+                    <div>
+                        <div class="font-bold text-slate-900">${h.folio} · ${h.nombre}</div>
+                        <div class="text-[11px] text-slate-500">${h.tipo} · Matrícula: ${h.matricula} · ${h.fecha}</div>
+                    </div>
+                </div>
+            `).join('') || '<p class="text-slate-400 text-center py-8">Aún no hay constancias emitidas en el historial.</p>';
+            modal.classList.remove('hidden');
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal')?.classList.add('hidden');
+        }
+
+        function exportHistoryToExcel() {
+            if (typeof XLSX === 'undefined') return showToast('Librería Excel no disponible.');
+            const ws = XLSX.utils.json_to_sheet(appState.history || []);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Historial_UAMP');
+            XLSX.writeFile(wb, 'Historial_Constancias_UAMP.xlsx');
+        }
+
+        function openDatabaseVaultModal() {
+            document.getElementById('databaseVaultModal')?.classList.remove('hidden');
+            renderStudentsVaultList();
+        }
+
+        function closeDatabaseVaultModal() {
+            document.getElementById('databaseVaultModal')?.classList.add('hidden');
+        }
+
+        function renderStudentsVaultList() {
+            const listEl = document.getElementById('studentsVaultList');
+            if (!listEl) return;
+            listEl.innerHTML = (appState.studentsVault || []).map((st, idx) => `
+                <div class="p-2.5 flex items-center justify-between gap-2 hover:bg-slate-50">
+                    <div>
+                        <div class="font-bold text-slate-900">${st.nombre || st.NOMBRE || ''}</div>
+                        <div class="text-[11px] text-slate-500">Matrícula: ${st.matricula || st.MATRICULA || ''} · CURP: ${st.curp || st.CURP || ''}</div>
+                    </div>
+                    <button type="button" onclick="loadStudentFromVault(${idx})" class="px-3 py-1 rounded-lg bg-blue-900 text-white text-[11px] font-bold">Cargar</button>
+                </div>
+            `).join('') || '<p class="text-slate-400 text-center py-6">Importa un archivo Excel con columnas NOMBRE, MATRICULA, CURP.</p>';
+        }
+
+        function loadStudentFromVault(idx) {
+            const st = appState.studentsVault[idx];
+            if (!st) return;
+            if (document.getElementById('inpNombre')) document.getElementById('inpNombre').value = st.nombre || st.NOMBRE || '';
+            if (document.getElementById('inpMatricula')) document.getElementById('inpMatricula').value = st.matricula || st.MATRICULA || '';
+            if (document.getElementById('inpCurp')) document.getElementById('inpCurp').value = st.curp || st.CURP || '';
+            updateDocument();
+            closeDatabaseVaultModal();
+            showToast('Datos del alumno cargados en la constancia.');
+        }
+
+        function importStudentsExcel(ev) {
+            const file = ev.target.files?.[0];
+            if (!file || typeof XLSX === 'undefined') return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const wb = XLSX.read(e.target.result, { type: 'array' });
+                const sheet = wb.Sheets[wb.SheetNames[0]];
+                appState.studentsVault = XLSX.utils.sheet_to_json(sheet);
+                renderStudentsVaultList();
+                persistBaseState(true, true, false);
+                showToast(`${appState.studentsVault.length} alumnos importados de Excel.`);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function recordDocumentInHistory() {
+            appState.history = appState.history || [];
+            appState.history.unshift({
+                folio: document.getElementById('inpFolio')?.value || '',
+                nombre: document.getElementById('inpNombre')?.value || '',
+                matricula: document.getElementById('inpMatricula')?.value || '',
+                tipo: appState.currentDocType,
+                fecha: new Date().toLocaleString('es-MX')
+            });
+            persistBaseState(true, true, false);
+        }
+
+        async function saveAndDownloadConstanciaPDF() {
+            recordDocumentInHistory();
+            const paper = document.getElementById('constanciaPaper');
+            if (!paper || typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
+                return window.print();
+            }
+            showToast('Generando PDF oficial...');
+            const canvas = await html2canvas(paper, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+            const imgData = canvas.toDataURL('image/png');
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [215, 280] });
+            pdf.addImage(imgData, 'PNG', 0, 0, 215, 280);
+            const cleanName = (document.getElementById('inpNombre')?.value || 'Constancia_UAMP').replace(/[^a-zA-Z0-9_-]+/g, '_');
+            pdf.save(`${cleanName}.pdf`);
+        }
+
+        function printConstanciaDocument() {
+            recordDocumentInHistory();
+            window.print();
+        }
+
+        function saveGithubIntegrationSettings() {
+            appState.githubConfig = appState.githubConfig || { repo: '', token: '', branch: 'main', filePath: 'index.html', publicUrl: '' };
+            const repoEl = document.getElementById('inpGithubRepo');
+            const branchEl = document.getElementById('inpGithubBranch');
+            const tokEl = document.getElementById('inpGithubToken');
+            if (repoEl) appState.githubConfig.repo = repoEl.value.trim();
+            if (branchEl) appState.githubConfig.branch = branchEl.value.trim() || 'main';
+            if (tokEl) appState.githubConfig.token = sanitizeGithubPatToken(tokEl.value);
+            refreshExtractedDeploymentSummary();
+        }
+
+        function loadGithubConfigToInputs() {
+            const cfg = appState.githubConfig || {};
+            if (document.getElementById('inpGithubRepo')) document.getElementById('inpGithubRepo').value = cfg.repo || '';
+            if (document.getElementById('inpGithubBranch')) document.getElementById('inpGithubBranch').value = cfg.branch || 'main';
+            if (document.getElementById('inpGithubToken')) document.getElementById('inpGithubToken').value = cfg.token || '';
+            refreshExtractedDeploymentSummary();
+        }
+
+        async function saveAllDataAndAutoUploadIndex() {
+            await replacePreviousDeploymentWithCurrent(null);
+        }
+
+        function switchMainWorkspaceTab(tabName) {
+            const views = {
+                generador: document.getElementById('workspaceViewGenerador'),
+                catalogos: document.getElementById('workspaceViewCatalogos'),
+                control_panel: document.getElementById('workspaceViewControlPanel')
+            };
+            Object.entries(views).forEach(([key, el]) => {
+                if (!el) return;
+                const active = key === tabName;
+                el.classList.toggle('hidden', !active);
+                el.style.display = active ? 'block' : 'none';
+            });
+            const btns = {
+                generador: document.getElementById('tabBtnGenerador'),
+                catalogos: document.getElementById('tabBtnCatalogos'),
+                control_panel: document.getElementById('tabBtnControlPanel')
+            };
+            Object.entries(btns).forEach(([key, btn]) => {
+                if (!btn) return;
+                btn.className = key === tabName
+                    ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-700 text-white shadow-sm transition cursor-pointer'
+                    : 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-700 transition cursor-pointer';
+            });
+            if (tabName === 'catalogos') renderMajorsCatalogList();
+            if (tabName === 'control_panel') {
+                loadGithubConfigToInputs();
+                renderProfilesManager();
+            }
+        }
+
+        function lockProfileQuickAccess() {
+            appState.activeSession = null;
+            document.getElementById('mainAppWorkspace')?.classList.add('hidden');
+            document.getElementById('realtimeCornerMonitor')?.classList.add('hidden');
+            document.getElementById('frontLoginScreen')?.classList.remove('hidden');
+        }
+
+        function buildPortableSyncToken() {
+            try {
+                const compact = {
+                    v: appState.version || 1,
+                    s: appState.signer,
+                    u: (appState.profiles || []).map(p => ({
+                        id: p.id, name: p.name, roleLabel: p.roleLabel, code: p.code,
+                        docAccess: p.docAccess, headerPerms: p.headerPerms, fieldPerms: p.fieldPerms
+                    }))
+                };
+                const bytes = new TextEncoder().encode(JSON.stringify(compact));
+                let bin = '';
+                for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+                return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function broadcastUniversalDeploymentState() {
+            pushStateToGlobalCloudRealtime();
+        }
+
+        function extractCurrentSystemFields() {
+            return {
+                folio: document.getElementById('inpFolio')?.value || '',
+                lugar: document.getElementById('inpLugarExpedicion')?.value || '',
+                fecha: document.getElementById('inpFechaExpedicionTexto')?.value || '',
+                nombre: document.getElementById('inpNombre')?.value || '',
+                genero: document.getElementById('selGeneroAlumno')?.value || 'M',
+                matricula: document.getElementById('inpMatricula')?.value || '',
+                curp: document.getElementById('inpCurp')?.value || '',
+                licenciatura: document.getElementById('selLicenciatura')?.value || '',
+                grado: document.getElementById('inpPeriodoGrado')?.value || '',
+                periodo: document.getElementById('selPeriodoEscolar')?.value || '',
+                nota: document.getElementById('inpDestinoNota')?.value || ''
+            };
+        }
+
+        function applyExtractedFormFields(data) {
+            if (!data || typeof data !== 'object') return;
+            if (data.folio && document.getElementById('inpFolio')) document.getElementById('inpFolio').value = data.folio;
+            if (data.lugar && document.getElementById('inpLugarExpedicion')) document.getElementById('inpLugarExpedicion').value = data.lugar;
+            if (data.fecha && document.getElementById('inpFechaExpedicionTexto')) document.getElementById('inpFechaExpedicionTexto').value = data.fecha;
+            if (data.nombre && document.getElementById('inpNombre')) document.getElementById('inpNombre').value = data.nombre;
+            if (data.genero && document.getElementById('selGeneroAlumno')) document.getElementById('selGeneroAlumno').value = data.genero;
+            if (data.matricula && document.getElementById('inpMatricula')) document.getElementById('inpMatricula').value = data.matricula;
+            if (data.curp && document.getElementById('inpCurp')) document.getElementById('inpCurp').value = data.curp;
+            if (data.grado && document.getElementById('inpPeriodoGrado')) document.getElementById('inpPeriodoGrado').value = data.grado;
+            if (data.nota && document.getElementById('inpDestinoNota')) document.getElementById('inpDestinoNota').value = data.nota;
+        }
+
+        async function extractAllSystemDeploymentInfo(notify = false) {
+            autoDetectGithubRepoFromHost(true);
+            refreshExtractedDeploymentSummary();
+            if (notify) showToast('Datos de despliegue extraídos.');
+        }
+
+        function saveVinculacionCredentialsExplicitly() {
+            saveGithubIntegrationSettings();
+            syncUserCodesToSourceCodeDom();
+            persistBaseState(true, true, true);
+            showToast('Datos de vinculación y códigos de acceso guardados.');
+        }
+
+        function downloadSelfContainedPageWithData() {
+            const htmlContent = buildCleanDeployableHtml();
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'index.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Archivo index.html descargado con todos los códigos de acceso vinculados.');
+        }
+
+        function syncAsuntoInputToTemplate() {
+            const val = document.getElementById('inpAsuntoConstancia')?.value || '';
+            const tpl = appState.templates[appState.currentDocType];
+            if (tpl) tpl.asunto = val;
+        }
+
+        function updateActiveAcademicPeriodFromInput() {
+            const sel = document.getElementById('selPeriodoEscolar');
+            const found = ensureStructuredPeriodsList().find(p => p.id === sel?.value);
+            if (!found) return;
+            if (document.getElementById('inpNombrePeriodoEditable')) found.name = document.getElementById('inpNombrePeriodoEditable').value;
+            if (document.getElementById('inpPeriodoEscolarEditable')) found.dates = document.getElementById('inpPeriodoEscolarEditable').value;
+            if (document.getElementById('inpPeriodoVacacional')) found.vacation = document.getElementById('inpPeriodoVacacional').value;
+        }
+
+        function syncInlineVacationToMain() {
+            const inlineEl = document.getElementById('inpPeriodoVacacionalInline');
+            const mainEl = document.getElementById('inpPeriodoVacacional');
+            if (inlineEl && mainEl) mainEl.value = inlineEl.value;
+            updateActiveAcademicPeriodFromInput();
+        }
+
+        function calculateGradesArithmeticStats(gradesList) {
+            const nums = (gradesList || [])
+                .map(g => parseFloat(String(g.score || '').replace(',', '.')))
+                .filter(n => !isNaN(n));
+            if (!nums.length) return { avg: '0.00', count: 0 };
+            const sum = nums.reduce((a, b) => a + b, 0);
+            return { avg: (sum / nums.length).toFixed(2), count: nums.length };
+        }
+
+        function renderGradesEditor() {
+            const container = document.getElementById('gradesSavedRowsList');
+            const countBadge = document.getElementById('gradesCountBadge');
+            const avgBadge = document.getElementById('gradesLiveSummaryBadge');
+            appState.grades = (Array.isArray(appState.grades) ? appState.grades : []).slice(0, 20);
+            const stats = calculateGradesArithmeticStats(appState.grades);
+            if (countBadge) countBadge.textContent = `${appState.grades.length} / 20 filas`;
+            if (avgBadge) avgBadge.textContent = `Promedio Aritmético: ${stats.avg}`;
+            if (!container) return;
+            container.innerHTML = appState.grades.map((g, idx) => `
+                <div class="grid grid-cols-12 gap-1 items-center bg-slate-50 p-1.5 rounded-lg border border-slate-200 text-[11px]">
+                    <span class="col-span-2 font-mono font-bold text-center">${g.group || ''}</span>
+                    <span class="col-span-3 font-mono text-center">${g.code || ''}</span>
+                    <span class="col-span-5 truncate font-semibold">${g.subject || ''}</span>
+                    <span class="col-span-1 font-bold text-center text-blue-900">${g.score || ''}</span>
+                    <button type="button" onclick="removeGradeRow(${idx})" class="col-span-1 text-rose-700 font-bold text-center">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function removeGradeRow(idx) {
+            appState.grades.splice(idx, 1);
+            renderGradesEditor();
+            updateDocument();
+            persistBaseState(true, true, true);
+        }
+
+        function clearGradesTableRows() {
+            appState.grades = [];
+            renderGradesEditor();
+            updateDocument();
+            persistBaseState(true, true, true);
+            showToast('Tabla de calificaciones vaciada.');
+        }
+
+        function syncGradesTableRowsToSkeleton() {
+            const raw = (document.getElementById('txtGradesBulkInput')?.value || '').trim();
+            if (raw) {
+                const lines = raw.split(/\r?\n/).filter(Boolean);
+                lines.forEach(line => {
+                    if (appState.grades.length >= 20) return;
+                    const parts = line.split(/\t|\|/).map(s => s.trim());
+                    if (parts.length >= 4) {
+                        appState.grades.push({ group: parts[0], code: parts[1], subject: parts[2], score: parts[3] });
+                    }
+                });
+                document.getElementById('txtGradesBulkInput').value = '';
+            }
+            renderGradesEditor();
+            updateDocument();
+            persistBaseState(true, true, true);
+            showToast('Tabla de calificaciones actualizada.');
+        }
+
+        function syncMontosTableRowsToSkeleton() {
+            const c = (document.getElementById('inpNewMontoConcepto')?.value || '').trim();
+            const p = (document.getElementById('inpNewMontoPeriodo')?.value || '').trim();
+            const i = parseFloat(document.getElementById('inpNewMontoImporte')?.value || '0') || 0;
+            if (c && appState.montos.length < 20) {
+                appState.montos.push({ concepto: c, periodo: p, importe: i });
+                document.getElementById('inpNewMontoConcepto').value = '';
+                document.getElementById('inpNewMontoPeriodo').value = '';
+                document.getElementById('inpNewMontoImporte').value = '';
+            }
+            renderMontosEditor();
+            updateDocument();
+            persistBaseState(true, true, true);
+            showToast('Tabla de montos actualizada.');
+        }
+
+        function applySessionPermissions() {
+            const isAdmin = appState.activeSession?.role === 'admin';
+            const badge = document.getElementById('activeSessionBadge');
+            if (badge && appState.activeSession) {
+                badge.textContent = isAdmin
+                    ? `Admin: ${appState.activeSession.name}`
+                    : `Usuario: ${appState.activeSession.name}`;
+            }
+            document.querySelectorAll('[data-admin-only="true"]').forEach(el => {
+                el.classList.toggle('hidden', !isAdmin);
+            });
+            if (!isAdmin && appState.activeSession?.profileId) {
+                const prof = (appState.profiles || []).find(p => p.id === appState.activeSession.profileId);
+                if (prof) {
+                    document.querySelectorAll('[data-doc-btn]').forEach(btn => {
+                        const docId = btn.getAttribute('data-doc-btn');
+                        btn.classList.toggle('hidden', prof.docAccess?.[docId] === false);
+                    });
+                    document.querySelectorAll('[data-header-btn]').forEach(btn => {
+                        const btnId = btn.getAttribute('data-header-btn');
+                        btn.classList.toggle('hidden', prof.headerPerms?.[btnId] === 'hide');
+                    });
+                    document.querySelectorAll('[data-field-wrap]').forEach(wrap => {
+                        const fId = wrap.getAttribute('data-field-wrap');
+                        if (wrap.dataset.docHidden === 'true') return;
+                        const perm = prof.fieldPerms?.[fId] || 'edit';
+                        wrap.classList.toggle('hidden', perm === 'hide');
+                        wrap.querySelectorAll('input, select, textarea').forEach(inp => {
+                            inp.disabled = perm === 'select';
+                        });
+                    });
+                }
+            }
         }
 
         function refreshAllUI() {
@@ -3977,74 +3837,19 @@
             renderMontosEditor();
             renderKardexEditor();
             renderResguardoEditor();
-            renderMajorsCatalogList();
-            renderProfilesManager();
-            loadGithubConfigToInputs();
             syncSelectiveAutoSaveCheckboxes();
             if (document.getElementById('inpFirmanteNombre')) document.getElementById('inpFirmanteNombre').value = appState.signer?.name || '';
             if (document.getElementById('inpFirmanteCargo')) document.getElementById('inpFirmanteCargo').value = appState.signer?.title || '';
             selectDocType(appState.currentDocType || 'estudios');
-            applySessionPermissions();
+            renderProfilesManager();
+            updateRealtimeCornerStatus(`Versión activa v${appState.version || 1}`, 'ok');
         }
 
-        window.onload = async function() {
-            try {
-                appState.activeSession = null;
-                document.getElementById('mainAppWorkspace')?.classList.add('hidden');
-                document.getElementById('realtimeCornerMonitor')?.classList.add('hidden');
-                document.getElementById('frontLoginScreen')?.classList.remove('hidden');
-
-                await loadPersistedState(false);
-                hydrateUserFromSharedUrlParam();
-                initGlobalRealtimeCloudSync();
-                await extractAllSystemDeploymentInfo(false);
-                await autoSyncAndSaveRepoTokenInField(true);
-                await checkRemoteDeploymentVersion(false);
-                const picker = document.getElementById('inpFechaExpedicion');
-                const textInp = document.getElementById('inpFechaExpedicionTexto');
-                if (picker && !picker.value) {
-                    const now = new Date();
-                    const iso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                    picker.value = iso;
-                    if (textInp && !textInp.value.trim()) textInp.value = formatSpanishDate(iso);
-                }
-                populateMajorsSelect();
-                populatePeriodsSelect();
-                renderGradesEditor();
-                renderMontosEditor();
-                renderKardexEditor();
-                renderResguardoEditor();
-                selectDocType(appState.currentDocType);
-
-                setInterval(() => {
-                    if (window._pullGlobalCloudNow) window._pullGlobalCloudNow();
-                    checkRemoteDeploymentVersion(false);
-                    if (appState.activeSession?.role === 'admin') {
-                        autoSyncAndSaveRepoTokenInField(true);
-                        updateRealtimeCornerStatus('Escuchando cambios en tiempo real', 'ok');
-                    }
-                }, 10000);
-
-                window.addEventListener('focus', () => {
-                    if (window._pullGlobalCloudNow) window._pullGlobalCloudNow();
-                    if (appState.activeSession?.role === 'admin') {
-                        autoSyncAndSaveRepoTokenInField(false);
-                    }
-                });
-
-                document.addEventListener('visibilitychange', () => {
-                    if (document.visibilityState === 'visible') {
-                        if (window._pullGlobalCloudNow) window._pullGlobalCloudNow();
-                        checkRemoteDeploymentVersion(false);
-                        if (appState.activeSession?.role === 'admin') {
-                            autoSyncAndSaveRepoTokenInField(true);
-                        }
-                    }
-                });
-            } catch (err) {
-                console.error('Error al inicializar:', err);
-            }
-        };
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadPersistedState(true);
+            hydrateUserFromSharedUrlParam();
+            refreshAllUI();
+            initGlobalRealtimeCloudSync();
+        });
     </script>
-
 </body></html>
