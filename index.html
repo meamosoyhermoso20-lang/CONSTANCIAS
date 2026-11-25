@@ -191,8 +191,6 @@
                     Iniciar Sesión
                 </button>
             </form>
-
-            <p class="mt-5 text-[10px] text-center text-slate-400">Acceso autorizado para personal administrativo y usuarios registrados.</p>
         </div>
     </div>
 
@@ -880,8 +878,11 @@
                             <button type="button" onclick="saveAllDataAndAutoUploadIndex()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow transition">
                                 3. Subir index.html y Actualizar Página al Nuevo Despliegue
                             </button>
+                            <button type="button" id="btnGithubSectionRefreshDeployment" onclick="visitorSyncLatestDeploymentNow(this)" class="px-4 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black shadow transition">
+                                4. Despliegue Creado · Actualizarlo
+                            </button>
                             <button type="button" onclick="downloadSelfContainedPageWithData()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition">
-                                4. Descargar Respaldo index.html
+                                5. Descargar Respaldo index.html
                             </button>
                         </div>
                     </div>
@@ -1972,6 +1973,41 @@
                 const baseHref = window.location.href.split('#')[0].split('?')[0];
                 window.location.href = `${baseHref}?v=${Date.now()}`;
             });
+        }
+
+        async function visitorSyncLatestDeploymentNow(btnEl) {
+            const originalLabel = btnEl ? btnEl.innerHTML : '';
+            const statusEl = document.getElementById('visitorDeploymentSyncStatus');
+            if (btnEl) {
+                btnEl.disabled = true;
+                btnEl.innerHTML = '<span>Actualizando despliegue más reciente...</span>';
+            }
+            if (statusEl) {
+                statusEl.innerHTML = '<span class="text-blue-800 font-bold">Descargando formato y códigos más recientes...</span>';
+            }
+
+            try {
+                await purgeAllBrowserCaches();
+                await loadPersistedState(true);
+                await checkRemoteDeploymentVersion(false);
+                refreshAllUI();
+                updateDocument();
+
+                const verLabel = `v${appState.version || 1}`;
+                if (statusEl) {
+                    statusEl.innerHTML = `<span class="text-emerald-700 font-extrabold">✓ Despliegue actualizado (${verLabel}). Ya puedes iniciar sesión con el formato más actual.</span>`;
+                }
+                showToast(`Despliegue actualizado a la versión más reciente (${verLabel}) con todas las modificaciones.`);
+            } catch (e) {
+                if (statusEl) {
+                    statusEl.innerHTML = '<span class="text-amber-700 font-bold">Se conservó la última versión disponible en el sistema.</span>';
+                }
+            } finally {
+                if (btnEl) {
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = originalLabel || '<span>Despliegue Creado · Actualizarlo</span>';
+                }
+            }
         }
         async function purgeAllBrowserCaches() {
             try {
