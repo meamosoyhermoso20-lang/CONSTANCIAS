@@ -7,6 +7,7 @@
     <meta http-equiv="Expires" content="0">
     <title>SISTEMA BUBU 1.0 · Generador Oficial de Constancias UAMP</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
@@ -1775,11 +1776,17 @@
             });
             appState.deletedIds = Array.from(allDeleted);
 
+            // Prioriza los perfiles de la versión más reciente y conserva cualquier perfil activo de caché
             candidates.slice().reverse().forEach(c => {
                 if (Array.isArray(c.profiles)) {
                     c.profiles.forEach(prof => {
                         if (prof && prof.id && !allDeleted.has(prof.id)) {
-                            mergedProfilesMap.set(prof.id, prof);
+                            const existing = mergedProfilesMap.get(prof.id);
+                            mergedProfilesMap.set(prof.id, {
+                                ...(existing || {}),
+                                ...prof,
+                                code: String(prof.code || existing?.code || '').trim()
+                            });
                         }
                     });
                 }
@@ -1938,60 +1945,77 @@
 
         async function checkRemoteDeploymentVersion(manual = false) {
             const cfg = appState.githubConfig || {};
-            const publicUrl = (cfg.publicUrl || '').trim();
-            if (!publicUrl) {
+            const urlsToTry = [];
+            if ((cfg.publicUrl || '').trim()) urlsToTry.push(cfg.publicUrl.trim());
+            if (cfg.repo && cfg.repo.includes('/')) {
+                const [owner, repo] = cfg.repo.split('/');
+                const branch = cfg.branch || 'main';
+                const filePath = cfg.filePath || 'index.html';
+                urlsToTry.push(`https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${filePath}`);
+            }
+            if (window.location && /^https?:\/\//i.test(window.location.href)) {
+                urlsToTry.push(window.location.href.split('#')[0].split('?')[0]);
+            }
+            const uniqueUrls = Array.from(new Set(urlsToTry.filter(Boolean)));
+            if (!uniqueUrls.length) {
                 if (manual) showToast('Ingresa primero el Enlace Público en el Paso 3.');
                 return;
             }
-            try {
-                const sep = publicUrl.includes('?') ? '&' : '?';
-                const res = await fetch(`${publicUrl}${sep}nocache=${Date.now()}`, {
-                    cache: 'no-store',
-                    headers: {
-                        'Cache-Control': 'no-cache, no-store, must-revalidate',
-                        'Pragma': 'no-cache'
-                    }
-                });
-                if (!res.ok) return;
-                const htmlText = await res.text();
-                const match = htmlText.match(/<script type="application\/json" id="embeddedInternalVaultData">([\s\S]*?)<\/script>/i);
-                if (match && match[1]) {
-                    const remoteVault = JSON.parse(match[1]);
-                    if (remoteVault && remoteVault.version && remoteVault.version > (appState.version || 1)) {
-                        const mergedDeleted = Array.from(new Set([...(appState.deletedIds || []), ...(remoteVault.deletedIds || [])]));
-                        appState.deletedIds = mergedDeleted;
-                        const deletedSet = new Set(mergedDeleted);
+            let appliedRemote = false;
+            for (const targetUrl of uniqueUrls) {
+                try {
+                    const sep = targetUrl.includes('?') ? '&' : '?';
+                    const res = await fetch(`${targetUrl}${sep}nocache=${Date.now()}`, {
+                        cache: 'no-store'
+                    });
+                    if (!res.ok) continue;
+                    const htmlText = await res.text();
+                    const match = htmlText.match(/<script type="application\/json" id="embeddedInternalVaultData">([\s\S]*?)<\/script>/i);
+                    if (match && match[1]) {
+                        const remoteVault = JSON.parse(match[1]);
+                        if (remoteVault && typeof remoteVault === 'object') {
+                            const mergedDeleted = Array.from(new Set([...(appState.deletedIds || []), ...(remoteVault.deletedIds || [])]));
+                            appState.deletedIds = mergedDeleted;
+                            const deletedSet = new Set(mergedDeleted);
 
-                        if (remoteVault.signer) appState.signer = { ...appState.signer, ...remoteVault.signer };
-                        if (Array.isArray(remoteVault.majors)) {
-                            appState.majors = remoteVault.majors.filter(m => m && !deletedSet.has(m.id));
+                            if (Array.isArray(remoteVault.profiles)) {
+                                const profMap = new Map();
+                                (appState.profiles || []).forEach(p => { if (p && p.id && !deletedSet.has(p.id)) profMap.set(p.id, p); });
+                                remoteVault.profiles.forEach(p => { if (p && p.id && !deletedSet.has(p.id)) profMap.set(p.id, p); });
+                                appState.profiles = Array.from(profMap.values());
+                            }
+
+                            if ((remoteVault.version || 0) >= (appState.version || 1)) {
+                                if (remoteVault.signer) appState.signer = { ...appState.signer, ...remoteVault.signer };
+                                if (Array.isArray(remoteVault.majors)) {
+                                    appState.majors = remoteVault.majors.filter(m => m && !deletedSet.has(m.id));
+                                }
+                                if (Array.isArray(remoteVault.periods)) {
+                                    appState.periods = remoteVault.periods.filter(p => p && !deletedSet.has('period:' + p.id) && !deletedSet.has(p.id));
+                                }
+                                if (remoteVault.templates) appState.templates = { ...appState.templates, ...remoteVault.templates };
+                                if (Array.isArray(remoteVault.grades)) appState.grades = remoteVault.grades.slice(0, 20);
+                                if (Array.isArray(remoteVault.montos)) appState.montos = remoteVault.montos.slice(0, 20);
+                                if (Array.isArray(remoteVault.kardex)) appState.kardex = remoteVault.kardex.slice(0, 20);
+                                if (Array.isArray(remoteVault.resguardo)) appState.resguardo = remoteVault.resguardo.slice(0, 20);
+                                appState.version = Math.max(appState.version || 1, remoteVault.version || 1);
+                            }
+                            persistBaseState(true, true, false);
+                            refreshAllUI();
+                            appliedRemote = true;
+                            if (manual) showToast(`Versión más reciente v${appState.version} sincronizada y guardada en caché.`);
+                            break;
                         }
-                        if (Array.isArray(remoteVault.periods)) {
-                            appState.periods = remoteVault.periods.filter(p => p && !deletedSet.has('period:' + p.id) && !deletedSet.has(p.id));
-                        }
-                        if (remoteVault.templates) appState.templates = { ...appState.templates, ...remoteVault.templates };
-                        if (Array.isArray(remoteVault.grades)) appState.grades = remoteVault.grades.slice(0, 20);
-                        if (Array.isArray(remoteVault.montos)) appState.montos = remoteVault.montos.slice(0, 20);
-                        if (Array.isArray(remoteVault.kardex)) appState.kardex = remoteVault.kardex.slice(0, 20);
-                        if (Array.isArray(remoteVault.resguardo)) appState.resguardo = remoteVault.resguardo.slice(0, 20);
-                        if (Array.isArray(remoteVault.profiles)) {
-                            appState.profiles = remoteVault.profiles.filter(prof => prof && !deletedSet.has(prof.id));
-                        }
-                        appState.version = remoteVault.version;
-                        persistBaseState(true, true, false);
-                        refreshAllUI();
-                        if (manual) showToast(`Versión más reciente v${remoteVault.version} aplicada.`);
-                    } else if (manual) {
-                        showToast('Ya tienes la versión más reciente.');
                     }
-                }
-            } catch (e) {
-                if (manual) showToast('No se pudo consultar la versión remota.');
+                } catch (e) {}
+            }
+            if (!appliedRemote && manual) {
+                showToast('No se encontraron cambios remotos nuevos; se conserva tu caché más reciente.');
             }
         }
         async function unlockProfileByFrontLogin(e) {
             if (e) e.preventDefault();
-            await purgeAllBrowserCaches();
+            // Mantiene el caché persistente (localStorage, IndexedDB y código fuente) y sincroniza la última versión
             await loadPersistedState(true);
             await checkRemoteDeploymentVersion(false);
             const input = document.getElementById('frontLoginCodeInput');
@@ -2010,10 +2034,14 @@
             if (entered === ADMIN_MASTER_CODE) {
                 appState.activeSession = { role: 'admin', profileId: 'admin', name: 'Administrador General' };
             } else {
-                const found = (appState.profiles || []).find(p => String(p.code || '').trim() === entered);
+                const normalizedEntered = entered.toLowerCase();
+                const found = (appState.profiles || []).find(p => {
+                    const savedCode = String(p.code || '').trim();
+                    return savedCode === entered || savedCode.toLowerCase() === normalizedEntered;
+                });
                 if (!found) {
                     if (errBox) {
-                        errBox.textContent = 'Código de acceso no válido o usuario eliminado.';
+                        errBox.textContent = 'Código de acceso no válido o usuario no guardado en esta versión.';
                         errBox.classList.remove('hidden');
                     }
                     return;
@@ -2170,8 +2198,8 @@
             const rawCode = String(Math.floor(1000 + Math.random() * 9000));
             appState.profiles.push({
                 id: newId,
-                name: 'Nuevo Usuario',
-                roleLabel: 'Control Escolar',
+                name: 'Nuevo Usuario ' + (appState.profiles.length + 1),
+                roleLabel: 'Auxiliar de Control Escolar',
                 code: rawCode,
                 docAccess: createDefaultDocAccessMatrix(true),
                 headerPerms: createDefaultHeaderMatrix('edit'),
@@ -2179,18 +2207,28 @@
             });
             persistBaseState(true, true, true);
             renderProfilesManager();
-            const idx = appState.profiles.length - 1;
-            const body = document.getElementById(`profileAccordionBody_${idx}`);
-            const arrow = document.getElementById(`profileAccordionArrow_${idx}`);
+            const newIdx = appState.profiles.length - 1;
+            const body = document.getElementById(`profileAccordionBody_${newIdx}`);
+            const arrow = document.getElementById(`profileAccordionArrow_${newIdx}`);
             if (body) body.classList.remove('hidden');
             if (arrow) arrow.textContent = '▲';
-            showToast(`Nuevo usuario creado con código: ${rawCode} (guardado en el código).`);
+            showToast(`Usuario creado con código ${rawCode} y guardado en el código.`);
+        }
+
+        function saveSingleUserProfile(idx) {
+            const p = appState.profiles[idx];
+            if (!p) return;
+            const codeInp = document.getElementById(`profileCodeInput_${idx}`);
+            if (codeInp) {
+                p.code = String(codeInp.value || '').trim();
+            }
+            persistBaseState(true, true, true);
+            renderProfilesManager();
+            showToast(`Usuario "${p.name}" guardado con código "${p.code}".`);
         }
 
         function deleteUserProfile(id) {
-            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
-                return showToast('Solo el Administrador puede eliminar usuarios.');
-            }
+            if (!appState.activeSession || appState.activeSession.role !== 'admin') return;
             appState.deletedIds.push(id);
             appState.profiles = appState.profiles.filter(p => p.id !== id);
             persistBaseState(true, true, true);
@@ -2198,29 +2236,58 @@
             showToast('Usuario eliminado permanentemente.');
         }
 
-        async function saveSingleUserProfile(idx) {
-            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
-                return showToast('Solo el Administrador puede guardar cambios de usuario.');
+        async function saveAndDownloadConstanciaPDF() {
+            recordHistoryEntry();
+            const paper = document.getElementById('constanciaPaper');
+            if (!paper) return;
+            const safeName = (document.getElementById('inpNombre')?.value || 'Constancia_UAMP')
+                .trim()
+                .replace(/[^a-zA-Z0-9_-]/g, '_');
+
+            if (!window.jspdf || !window.jspdf.jsPDF || !window.html2canvas) {
+                window.print();
+                return;
             }
-            const p = appState.profiles[idx];
-            if (!p) return;
-            const domCodeInput = document.getElementById(`profileCodeInput_${idx}`);
-            const plainCode = ((domCodeInput ? domCodeInput.value : p.code) || '').trim();
-            if (!plainCode) {
-                return showToast('Escribe un código de acceso válido antes de guardar.');
-            }
-            p.code = plainCode;
-            delete p.pendingPlainCode;
-            appState.deletedIds = (appState.deletedIds || []).filter(delId => delId !== p.id);
-            persistBaseState(true, true, true);
-            renderProfilesManager();
-            const cfg = appState.githubConfig || {};
-            const activeToken = (cfg.token || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '').trim();
-            if (cfg.repo && cfg.repo.includes('/') && /^gh[ps]_|^github_pat_/i.test(activeToken)) {
-                await deployUpdateToGithub(false, true, false);
-                showToast(`Código "${plainCode}" guardado en el código fuente y publicado para "${p.name || 'Usuario'}".`);
-            } else {
-                showToast(`Código "${plainCode}" guardado sin codificar en el código para "${p.name || 'Usuario'}".`);
+
+            showToast('Generando PDF idéntico a la vista previa...');
+            const prevShadow = paper.style.boxShadow;
+            const prevBorder = paper.style.border;
+            const prevEditable = paper.getAttribute('contenteditable');
+
+            try {
+                paper.setAttribute('contenteditable', 'false');
+                paper.style.boxShadow = 'none';
+                paper.style.border = 'none';
+
+                const canvas = await window.html2canvas(paper, {
+                    scale: 2.5,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    width: paper.offsetWidth,
+                    height: paper.offsetHeight,
+                    windowWidth: paper.scrollWidth,
+                    windowHeight: paper.scrollHeight
+                });
+
+                const imgData = canvas.toDataURL('image/png', 1.0);
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: [215, 280],
+                    compress: true
+                });
+
+                doc.addImage(imgData, 'PNG', 0, 0, 215, 280, undefined, 'FAST');
+                doc.save(`${safeName}.pdf`);
+                showToast('PDF descargado exactamente como se muestra en pantalla.');
+            } catch (err) {
+                window.print();
+            } finally {
+                paper.style.boxShadow = prevShadow;
+                paper.style.border = prevBorder;
+                if (prevEditable !== null) paper.setAttribute('contenteditable', prevEditable);
             }
         }
 
@@ -2872,24 +2939,6 @@
             window.print();
         }
 
-        function saveAndDownloadConstanciaPDF() {
-            recordHistoryEntry();
-            if (!window.jspdf || !window.jspdf.jsPDF) {
-                window.print();
-                return;
-            }
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [215, 280] });
-            const paper = document.getElementById('constanciaPaper');
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(11);
-            const lines = doc.splitTextToSize(paper ? paper.innerText : '', 165);
-            doc.text(lines, 25, 25);
-            const safeName = (document.getElementById('inpNombre')?.value || 'Constancia_UAMP').replace(/[^a-zA-Z0-9_-]/g, '_');
-            doc.save(`${safeName}.pdf`);
-            showToast('PDF generado y registrado en el historial.');
-        }
-
         function openHistoryModal() {
             const modal = document.getElementById('historyModal');
             const list = document.getElementById('historyListContainer');
@@ -3142,7 +3191,7 @@
             document.getElementById('realtimeCornerMonitor')?.classList.add('hidden');
             document.getElementById('frontLoginScreen')?.classList.remove('hidden');
 
-            await purgeAllBrowserCaches();
+            // Conserva el caché local e IndexedDB con la versión más reciente y sincroniza con el servidor
             await loadPersistedState(false);
             await checkRemoteDeploymentVersion(false);
             const picker = document.getElementById('inpFechaExpedicion');
