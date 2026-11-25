@@ -877,14 +877,11 @@
                             <button type="button" onclick="syncUpdatesInRealTimeNow(true)" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow transition">
                                 2. Actualizar en Tiempo Real
                             </button>
-                            <button type="button" onclick="saveAllDataAndAutoUploadIndex()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-extrabold shadow transition">
-                                3. Guardar en Código y Subir index.html
+                            <button type="button" onclick="saveAllDataAndAutoUploadIndex()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow transition">
+                                3. Subir index.html Automático y Actualizar Despliegue
                             </button>
                             <button type="button" onclick="downloadSelfContainedPageWithData()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition">
-                                4. Descargar index.html
-                            </button>
-                            <button type="button" onclick="deployUpdateToGithub(true, false, false)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow transition">
-                                5. Publicar en GitHub y Notificar
+                                4. Descargar Respaldo index.html
                             </button>
                         </div>
                     </div>
@@ -1630,18 +1627,11 @@
             if (appState.activeSession?.role !== 'admin') return;
             clearTimeout(_autoGithubDeployTimer);
             const statusBadge = document.getElementById('githubSyncStatusBadge');
-            if (statusBadge) statusBadge.textContent = 'Sincronizando despliegue...';
+            if (statusBadge) statusBadge.textContent = 'Subiendo index.html en automático...';
+            updateRealtimeCornerStatus('Subiendo index.html al sistema...', 'ok');
             _autoGithubDeployTimer = setTimeout(async () => {
-                const token = (appState.githubConfig?.token || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '').trim();
-                const cfg = appState.githubConfig || {};
-                if (cfg.repo && cfg.repo.includes('/') && /^gh[ps]_|^github_pat_/i.test(token)) {
-                    deployUpdateToGithub(false, true, false);
-                } else {
-                    persistBaseState(true, true, false);
-                    if (statusBadge) statusBadge.textContent = `Guardado en código v${appState.version} · Listo para exportar`;
-                    updateRealtimeCornerStatus(`Guardado en código v${appState.version} ✓`, 'ok');
-                }
-            }, 900);
+                await deployUpdateToGithub(false, true, false);
+            }, 600);
         }
 
         function extractAndAutoLoadSystemData() {
@@ -1694,53 +1684,75 @@
             const activeToken = (cfg.token || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '').trim();
             const statusBadge = document.getElementById('githubSyncStatusBadge');
             const isGithubPat = /^gh[ps]_|^github_pat_/i.test(activeToken);
-            if (!cfg.repo || !cfg.repo.includes('/') || !isGithubPat) {
-                persistBaseState(true, true, false);
-                if (statusBadge) statusBadge.textContent = `Guardado en código v${appState.version} · Descargando index.html`;
-                updateRealtimeCornerStatus(`Guardado en código v${appState.version} ✓`, 'ok');
-                if (!silent) {
-                    downloadSelfContainedPageWithData();
-                    showToast('Cambios guardados en el código. Se descargó index.html listo para subir o vincula tu Token ghp_ de GitHub.');
-                }
-                return;
-            }
+
+            // 1. Generar siempre el index.html completo actualizado y guardarlo en el sistema local/embebido
+            persistBaseState(true, true, false);
+            const fullHtml = buildCleanDeployableHtml();
             try {
-                if (statusBadge) statusBadge.textContent = 'Subiendo a GitHub...';
-                persistBaseState(true, true, false);
-                const apiUrl = `https://api.github.com/repos/${cfg.repo}/contents/${cfg.filePath || 'index.html'}`;
-                const headers = {
-                    Authorization: `Bearer ${activeToken}`,
-                    Accept: 'application/vnd.github+json',
-                    'Content-Type': 'application/json'
-                };
-                let sha = '';
-                const getRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(cfg.branch || 'main')}&t=${Date.now()}`, {
-                    headers,
-                    cache: 'no-store'
-                });
-                if (getRes.ok) {
-                    const getData = await getRes.json();
-                    sha = getData.sha || '';
-                }
-                const fullHtml = buildCleanDeployableHtml();
-                const encoded = btoa(unescape(encodeURIComponent(fullHtml)));
-                const putRes = await fetch(apiUrl, {
+                localStorage.setItem('SISTEMA_BUBU_1_0_DEPLOYED_INDEX_HTML', fullHtml);
+            } catch (e) {}
+
+            // 2. Intentar subida directa a servidor local/remoto o API de GitHub
+            let uploadedToServer = false;
+            try {
+                const sameOriginRes = await fetch(window.location.pathname || 'index.html', {
                     method: 'PUT',
-                    headers,
-                    body: JSON.stringify({
-                        message: `Despliegue global SISTEMA BUBU 1.0 v${appState.version}`,
-                        content: encoded,
-                        branch: cfg.branch || 'main',
-                        ...(sha ? { sha } : {})
-                    })
+                    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+                    body: fullHtml
                 });
-                if (!putRes.ok) throw new Error('HTTP ' + putRes.status);
-                if (statusBadge) statusBadge.textContent = `Publicado global v${appState.version} ✓`;
-                updateRealtimeCornerStatus(`Publicado global v${appState.version} ✓`, 'ok');
-                if (!silent) showToast(`Publicado globalmente (v${appState.version}). Cualquier teléfono o PC ya puede entrar con su código.`);
-            } catch (err) {
-                if (statusBadge) statusBadge.textContent = 'Error de despliegue';
-                if (!silent) showToast('Error al publicar en GitHub. Verifica que tu Token ghp_ tenga permiso "repo" y el repositorio sea correcto.');
+                if (sameOriginRes.ok) uploadedToServer = true;
+            } catch (e) {}
+
+            if (cfg.repo && cfg.repo.includes('/') && isGithubPat) {
+                try {
+                    if (statusBadge) statusBadge.textContent = 'Subiendo index.html a GitHub...';
+                    const apiUrl = `https://api.github.com/repos/${cfg.repo}/contents/${cfg.filePath || 'index.html'}`;
+                    const headers = {
+                        Authorization: `Bearer ${activeToken}`,
+                        Accept: 'application/vnd.github+json',
+                        'Content-Type': 'application/json'
+                    };
+                    let sha = '';
+                    const getRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(cfg.branch || 'main')}&t=${Date.now()}`, {
+                        headers,
+                        cache: 'no-store'
+                    });
+                    if (getRes.ok) {
+                        const getData = await getRes.json();
+                        sha = getData.sha || '';
+                    }
+                    const encoded = btoa(unescape(encodeURIComponent(fullHtml)));
+                    const putRes = await fetch(apiUrl, {
+                        method: 'PUT',
+                        headers,
+                        body: JSON.stringify({
+                            message: `Auto-despliegue SISTEMA BUBU 1.0 v${appState.version}`,
+                            content: encoded,
+                            branch: cfg.branch || 'main',
+                            ...(sha ? { sha } : {})
+                        })
+                    });
+                    if (!putRes.ok) throw new Error('HTTP ' + putRes.status);
+                    uploadedToServer = true;
+                } catch (err) {
+                    if (statusBadge) statusBadge.textContent = 'Error en subida a GitHub (revisa token/repo)';
+                    if (!silent) showToast('Error al subir a GitHub: verifica que el repositorio exista y el token tenga permiso "repo".');
+                    return;
+                }
+            }
+
+            // 3. Limpiar solo cachés HTTP (sin borrar localStorage/IndexedDB) y refrescar vista en vivo
+            await purgeAllBrowserCaches();
+            refreshAllUI();
+
+            if (uploadedToServer) {
+                if (statusBadge) statusBadge.textContent = `Despliegue actualizado v${appState.version} ✓`;
+                updateRealtimeCornerStatus(`index.html subido y desplegado v${appState.version} ✓`, 'ok');
+                if (!silent) showToast(`index.html subido automáticamente y despliegue actualizado (v${appState.version}).`);
+            } else {
+                if (statusBadge) statusBadge.textContent = `Guardado en sistema v${appState.version} ✓`;
+                updateRealtimeCornerStatus(`index.html guardado en sistema v${appState.version} ✓`, 'ok');
+                if (!silent) showToast(`index.html guardado en el sistema (v${appState.version}). Para sincronizar otros dispositivos, vincula tu Repo y Token ghp_ en el Paso 1 y 2.`);
             }
         }
 
