@@ -2376,7 +2376,7 @@
             const localVer = Number(appState.version) || 1;
             const remoteTs = Number(remoteVault.updatedAt || remoteVault.ts || 0);
             const localTs = Number(appState._lastLocalSaveTs || 0);
-            if (!forceLatestLink && (remoteVer < localVer || (remoteVer === localVer && localTs > remoteTs))) {
+            if (!forceLatestLink && (remoteVer < localVer || (remoteVer === localVer && localTs >= remoteTs))) {
                 return false;
             }
             const mergedDeleted = Array.from(new Set([...(appState.deletedIds || []), ...(remoteVault.deletedIds || [])]));
@@ -2389,7 +2389,11 @@
                 remoteVault.profiles.forEach(p => {
                     if (p && p.id && !deletedSet.has(p.id)) {
                         const prev = profMap.get(p.id);
-                        profMap.set(p.id, { ...(prev || {}), ...p, code: String(p.code || prev?.code || '').trim() });
+                        const prevUpdated = Number(prev?.updatedAt || 0);
+                        const incUpdated = Number(p.updatedAt || remoteTs || 0);
+                        if (!prev || incUpdated >= prevUpdated || forceLatestLink) {
+                            profMap.set(p.id, { ...(prev || {}), ...p, code: String(p.code || prev?.code || '').trim(), updatedAt: Math.max(prevUpdated, incUpdated) });
+                        }
                     }
                 });
                 appState.profiles = Array.from(profMap.values());
@@ -2724,6 +2728,7 @@
                 await loadPersistedState(true);
                 hydrateUserFromSharedUrlParam();
                 const preLoginLocalVer = Number(appState.version || 1);
+                const preLoginLocalTs = Number(appState._lastLocalSaveTs || 0);
                 if (window._pullGlobalCloudNow) {
                     await window._pullGlobalCloudNow(false);
                 } else {
@@ -2737,7 +2742,9 @@
                                     if (msg?.message) {
                                         const parsedMsg = JSON.parse(msg.message);
                                         registerDeployedVersionSnapshot(parsedMsg, 'Nube Global');
-                                        if (Number(parsedMsg.version || 0) > Number(appState.version || 1)) {
+                                        const msgVer = Number(parsedMsg.version || 0);
+                                        const msgTs = Number(parsedMsg.updatedAt || parsedMsg.ts || 0);
+                                        if (msgVer > preLoginLocalVer || (msgVer === preLoginLocalVer && msgTs > preLoginLocalTs)) {
                                             applyRemoteVaultToState(parsedMsg, false);
                                         }
                                     }
@@ -2749,7 +2756,9 @@
                 await checkRemoteDeploymentVersion(false);
                 if (_deployedVersionsRegistry.length > 0) {
                     const newest = _deployedVersionsRegistry[0];
-                    if (newest && newest.vault && Number(newest.version) > Math.max(preLoginLocalVer, Number(appState.version || 1))) {
+                    const newestVer = Number(newest?.version || 0);
+                    const newestTs = Number(newest?.ts || 0);
+                    if (newest && newest.vault && (newestVer > Math.max(preLoginLocalVer, Number(appState.version || 1)) || (newestVer === Number(appState.version || 1) && newestTs > preLoginLocalTs))) {
                         applyRemoteVaultToState(newest.vault, false);
                     }
                 }
@@ -2758,15 +2767,12 @@
                 const cleanEntered = entered.replace(/\s+/g, '');
                 const normalizedEntered = cleanEntered.toLowerCase();
 
-                const allAvailableProfiles = [
-                    ...(appState.profiles || []),
-                    ..._deployedVersionsRegistry.flatMap(v => v.profiles || [])
-                ];
+                const currentProfiles = (appState.profiles || []).filter(p => p && String(p.code || '').trim());
 
                 if (normalizedEntered === ADMIN_MASTER_CODE.toLowerCase()) {
                     appState.activeSession = { role: 'admin', profileId: 'admin', name: 'Administrador General' };
                 } else {
-                    const found = allAvailableProfiles.find(p => {
+                    const found = currentProfiles.find(p => {
                         const savedCode = String(p?.code || '').trim().replace(/\s+/g, '');
                         return savedCode && savedCode.toLowerCase() === normalizedEntered;
                     });
@@ -2848,6 +2854,7 @@
                         name: baseUsr.name,
                         roleLabel: baseUsr.roleLabel || 'Control Escolar',
                         code: baseUsr.code,
+                        updatedAt: Number(baseUsr.updatedAt || 1),
                         docAccess: baseUsr.docAccess || createDefaultDocAccessMatrix(true),
                         headerPerms: baseUsr.headerPerms || createDefaultHeaderMatrix('edit'),
                         fieldPerms: baseUsr.fieldPerms || createDefaultFieldMatrix('edit')
@@ -2856,6 +2863,7 @@
                     const existing = profMap.get(baseUsr.id);
                     profMap.set(baseUsr.id, {
                         ...existing,
+                        code: String(existing.code || baseUsr.code || '').trim(),
                         docAccess: { ...createDefaultDocAccessMatrix(true), ...(existing.docAccess || {}) },
                         headerPerms: { ...createDefaultHeaderMatrix('edit'), ...(existing.headerPerms || {}) },
                         fieldPerms: { ...createDefaultFieldMatrix('edit'), ...(existing.fieldPerms || {}) }
@@ -2870,6 +2878,7 @@
             const p = appState.profiles[idx];
             if (!p) return;
             p[key] = key === 'code' ? String(val || '').trim() : val;
+            p.updatedAt = Date.now();
             if (key === 'name') {
                 const titleEl = document.getElementById(`profileHeaderName_${idx}`);
                 if (titleEl) titleEl.textContent = p.name || 'Usuario sin nombre';
@@ -3106,6 +3115,7 @@
             if (codeInp) {
                 p.code = String(codeInp.value || '').trim();
             }
+            p.updatedAt = Date.now();
             p.docAccess = { ...createDefaultDocAccessMatrix(true), ...(p.docAccess || {}) };
             p.headerPerms = { ...createDefaultHeaderMatrix('edit'), ...(p.headerPerms || {}) };
             p.fieldPerms = { ...createDefaultFieldMatrix('edit'), ...(p.fieldPerms || {}) };
