@@ -794,6 +794,30 @@
                         <span id="githubSyncStatusBadge" class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">Listo para sincronizar</span>
                     </div>
 
+                    <!-- RESUMEN DE DATOS EXTRAÍDOS AUTOMÁTICAMENTE DEL SISTEMA -->
+                    <div id="extractedGithubSummaryBox" class="bg-slate-950 border border-emerald-500/40 rounded-xl p-3 space-y-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="text-[11px] font-black uppercase tracking-wider text-emerald-400">Datos Extraídos del Sistema (Sincronización Global):</span>
+                            <button type="button" onclick="extractAllSystemDeploymentInfo(true)" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-extrabold transition">
+                                Extraer del Sistema Ahora
+                            </button>
+                        </div>
+                        <div id="extractedSystemInfoGrid" class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] font-mono">
+                            <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-2">
+                                <div class="text-[9px] uppercase text-slate-400">Repositorio Detectado</div>
+                                <div id="summaryRepoValue" class="text-amber-300 font-bold truncate">Detectando...</div>
+                            </div>
+                            <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-2">
+                                <div class="text-[9px] uppercase text-slate-400">Token Vinculado</div>
+                                <div id="summaryTokenValue" class="text-emerald-300 font-bold truncate">Verificando...</div>
+                            </div>
+                            <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-2">
+                                <div class="text-[9px] uppercase text-slate-400">Enlace Público Activo</div>
+                                <div id="summaryUrlValue" class="text-sky-300 font-bold truncate">Detectando...</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- GUÍA ENUMERADA PASO A PASO DE CLICS PARA SINCRONIZAR -->
                     <div class="bg-slate-950/90 border border-amber-500/40 rounded-xl p-3 space-y-1.5">
                         <div class="text-[11px] font-black uppercase tracking-wider text-amber-300">Orden Exacto de Clics para Sincronizar y Actualizar Todo el Enlace:</div>
@@ -802,10 +826,8 @@
                             <li><b>Clic 2 · Detectar Repositorio:</b> En el Paso 1, haz clic en <span class="px-1.5 py-0.5 rounded bg-slate-700 text-amber-300 font-bold">Auto-detectar Repo</span> (o escribe <code>usuario/repositorio</code>).</li>
                             <li><b>Clic 3 · Token de GitHub:</b> En el Paso 2, haz clic en <span class="px-1.5 py-0.5 rounded bg-emerald-600 text-white font-bold">GitHub ↗</span>, genera un token con permiso <code>repo</code>, pégalo en la casilla y haz clic en <span class="px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 font-bold">Guardar</span>.</li>
                             <li><b>Clic 4 · Enlace Público:</b> En el Paso 3, verifica el enlace de tu página y haz clic en <span class="px-1.5 py-0.5 rounded bg-slate-700 text-white font-bold">Verificar Versión Publicada</span>.</li>
-                            <li><b>Clic 5 · Publicar y Actualizar Enlace:</b> Haz clic en el botón verde <span class="px-1.5 py-0.5 rounded bg-emerald-600 text-white font-bold">Publicar en GitHub y Recargar</span> (o en el botón amarillo superior <span class="px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 font-bold">Guardar y Actualizar en Tiempo Real</span>) para subir los cambios y actualizar la página.</li>
+                            <li><b>Clic 5 · Publicar y Actualizar Enlace:</b> Haz clic en el botón verde <span class="px-1.5 py-0.5 rounded bg-emerald-600 text-white font-bold">5. Publicar en GitHub y Notificar</span> (o en el botón amarillo superior <span class="px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 font-bold">Guardar y Actualizar en Tiempo Real</span>) para subir los cambios y actualizar la página.</li>
                         </ol>
-                    </div>
-                        <span id="githubSyncStatusBadge" class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">Listo para sincronizar</span>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
@@ -1205,8 +1227,7 @@
             });
             if (tabName === 'catalogos') renderMajorsCatalogList();
             if (tabName === 'control_panel' && isAdmin) {
-                autoDetectGithubRepoFromHost(true);
-                loadGithubConfigToInputs();
+                extractAllSystemDeploymentInfo(false);
                 renderProfilesManager();
             }
         }
@@ -1467,7 +1488,8 @@
             }
             localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
             persistBaseState(true, true, false);
-            showToast('Token de GitHub guardado. Ahora presiona "5. Publicar en GitHub y Notificar".');
+            refreshExtractedDeploymentSummary();
+            showToast('Token guardado. Ahora presiona "5. Publicar en GitHub y Notificar".');
         }
 
         async function autoGenerateDeploymentToken(silent = false) {
@@ -1482,6 +1504,7 @@
                 const inp = document.getElementById('inpGithubToken');
                 if (inp) inp.value = generatedToken;
                 persistBaseState(true, true, false);
+                refreshExtractedDeploymentSummary();
                 const badge = document.getElementById('githubSyncStatusBadge');
                 if (badge) badge.textContent = 'Token automático activo ✓';
                 const helper = document.getElementById('githubTokenHelperMsg');
@@ -1508,6 +1531,79 @@
             if (badge) badge.textContent = `Token generado y guardado ✓`;
         }
 
+        function refreshExtractedDeploymentSummary() {
+            const cfg = appState.githubConfig || {};
+            const token = (cfg.token || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '').trim();
+            const repoEl = document.getElementById('summaryRepoValue');
+            const tokEl = document.getElementById('summaryTokenValue');
+            const urlEl = document.getElementById('summaryUrlValue');
+            if (repoEl) {
+                repoEl.textContent = cfg.repo ? `${cfg.repo} (${cfg.branch || 'main'})` : 'Sin detectar (Escribe usuario/repo)';
+            }
+            if (tokEl) {
+                if (!token) {
+                    tokEl.textContent = 'Sin token';
+                } else if (/^gh[ps]_|^github_pat_/i.test(token)) {
+                    tokEl.textContent = `GitHub PAT (${token.slice(0, 8)}...) ✓`;
+                } else {
+                    tokEl.textContent = `Interno (${token.slice(0, 14)}...)`;
+                }
+            }
+            if (urlEl) {
+                urlEl.textContent = cfg.publicUrl || window.location.href.split('?')[0].split('#')[0];
+            }
+        }
+
+        async function extractAllSystemDeploymentInfo(showNotification = true) {
+            appState.githubConfig = appState.githubConfig || { repo: '', token: '', branch: 'main', filePath: 'index.html', publicUrl: '' };
+
+            // 1. Extraer desde almacenamiento local / IndexedDB / HTML embebido si algún campo está vacío
+            try {
+                const savedTok = localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
+                if (savedTok && !appState.githubConfig.token) appState.githubConfig.token = savedTok;
+
+                const rawLocal = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(BACKUP_STORAGE_KEY);
+                if (rawLocal) {
+                    const parsed = JSON.parse(rawLocal);
+                    if (parsed?.githubConfig) {
+                        if (!appState.githubConfig.repo && parsed.githubConfig.repo) appState.githubConfig.repo = parsed.githubConfig.repo;
+                        if (!appState.githubConfig.branch && parsed.githubConfig.branch) appState.githubConfig.branch = parsed.githubConfig.branch;
+                        if (!appState.githubConfig.publicUrl && parsed.githubConfig.publicUrl) appState.githubConfig.publicUrl = parsed.githubConfig.publicUrl;
+                        if (!appState.githubConfig.token && parsed.githubConfig.token) appState.githubConfig.token = parsed.githubConfig.token;
+                    }
+                }
+            } catch (e) {}
+
+            // 2. Extraer desde la URL actual (GitHub Pages o dominio personalizado)
+            try {
+                const loc = window.location;
+                if (loc && /\.github\.io$/i.test(loc.hostname)) {
+                    const user = loc.hostname.split('.')[0];
+                    const pathParts = loc.pathname.split('/').filter(Boolean);
+                    const repoName = pathParts[0] || `${user}.github.io`;
+                    if (!appState.githubConfig.repo) appState.githubConfig.repo = `${user}/${repoName}`;
+                    if (!appState.githubConfig.publicUrl) appState.githubConfig.publicUrl = `${loc.origin}${pathParts[0] ? '/' + pathParts[0] + '/' : '/'}`;
+                } else if (loc && /^https?:\/\//i.test(loc.href) && !appState.githubConfig.publicUrl) {
+                    appState.githubConfig.publicUrl = loc.href.split('#')[0].split('?')[0];
+                }
+            } catch (e) {}
+
+            // 3. Si aún no existe ningún token, generar el token interno automáticamente
+            if (!appState.githubConfig.token) {
+                await autoGenerateDeploymentToken(true);
+            }
+
+            loadGithubConfigToInputs();
+            refreshExtractedDeploymentSummary();
+            persistBaseState(true, true, false);
+
+            if (showNotification) {
+                const r = appState.githubConfig.repo || 'Sin repo en URL local';
+                const t = appState.githubConfig.token ? appState.githubConfig.token.slice(0, 14) + '...' : 'No asignado';
+                showToast(`Extraído: Repo [${r}] · Token [${t}]`);
+            }
+        }
+
         function autoDetectGithubRepoFromHost(silent = false) {
             try {
                 const loc = window.location;
@@ -1517,15 +1613,16 @@
                     const repoName = pathParts[0] || `${user}.github.io`;
                     const detectedRepo = `${user}/${repoName}`;
                     const detectedUrl = `${loc.origin}${pathParts[0] ? '/' + pathParts[0] + '/' : '/'}`;
-                    if (!appState.githubConfig.repo) appState.githubConfig.repo = detectedRepo;
-                    if (!appState.githubConfig.publicUrl) appState.githubConfig.publicUrl = detectedUrl;
+                    appState.githubConfig.repo = detectedRepo;
+                    appState.githubConfig.publicUrl = detectedUrl;
                     loadGithubConfigToInputs();
                     saveGithubIntegrationSettings();
-                    if (!silent) showToast(`Repositorio detectado: ${detectedRepo}`);
+                    refreshExtractedDeploymentSummary();
+                    if (!silent) showToast(`Repositorio extraído: ${detectedRepo}`);
                     return;
                 }
             } catch (e) {}
-            if (!silent) showToast('Escribe manualmente usuario/repositorio en el Paso 1.');
+            if (!silent) showToast('Estás en vista previa local; escribe usuario/repositorio en el Paso 1.');
         }
 
         let _autoGithubDeployTimer = null;
@@ -1541,16 +1638,17 @@
                     deployUpdateToGithub(false, true, false);
                 } else {
                     persistBaseState(true, true, false);
-                    if (statusBadge) statusBadge.textContent = `Guardado local v${appState.version} (Configura Token ghp_ para subir a GitHub)`;
-                    updateRealtimeCornerStatus(`Guardado local v${appState.version} · Falta Token GitHub`, 'ok');
+                    if (statusBadge) statusBadge.textContent = `Guardado en código v${appState.version} · Listo para exportar`;
+                    updateRealtimeCornerStatus(`Guardado en código v${appState.version} ✓`, 'ok');
                 }
             }, 900);
         }
 
         function extractAndAutoLoadSystemData() {
             appState.extractedFormState = extractCurrentSystemFields();
+            extractAllSystemDeploymentInfo(false);
             persistBaseState(true, true, true);
-            showToast('Datos actuales extraídos y respaldados en memoria.');
+            showToast('Datos del sistema y configuración extraídos y respaldados.');
         }
 
         function syncUpdatesInRealTimeNow(manual = false) {
@@ -1598,10 +1696,11 @@
             const isGithubPat = /^gh[ps]_|^github_pat_/i.test(activeToken);
             if (!cfg.repo || !cfg.repo.includes('/') || !isGithubPat) {
                 persistBaseState(true, true, false);
-                if (statusBadge) statusBadge.textContent = `Falta Repositorio o Token ghp_`;
-                updateRealtimeCornerStatus(`Configura Paso 1 y Paso 2 para publicar en nube`, 'ok');
+                if (statusBadge) statusBadge.textContent = `Guardado en código v${appState.version} · Descargando index.html`;
+                updateRealtimeCornerStatus(`Guardado en código v${appState.version} ✓`, 'ok');
                 if (!silent) {
-                    showToast('Para que otros teléfonos y PC vean los cambios, ingresa tu Repositorio (Paso 1) y tu Token ghp_ de GitHub (Paso 2).');
+                    downloadSelfContainedPageWithData();
+                    showToast('Cambios guardados en el código. Se descargó index.html listo para subir o vincula tu Token ghp_ de GitHub.');
                 }
                 return;
             }
@@ -2109,9 +2208,7 @@
             switchMainWorkspaceTab('generador');
             refreshAllUI();
             if (appState.activeSession.role === 'admin') {
-                if (!appState.githubConfig?.token && !localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)) {
-                    await autoGenerateDeploymentToken(true);
-                }
+                await extractAllSystemDeploymentInfo(false);
                 updateRealtimeCornerStatus(`Sesión activa (${appState.activeSession.name})`, 'ok');
             }
             showToast(`Bienvenido(a), ${appState.activeSession.name}`);
@@ -2899,6 +2996,7 @@
                 filePath: document.getElementById('inpGithubFilePath')?.value || 'index.html',
                 publicUrl: document.getElementById('inpCustomDomainUrl')?.value || ''
             };
+            refreshExtractedDeploymentSummary();
             persistBaseState(true, true, false);
         }
 
@@ -2908,6 +3006,7 @@
             if (document.getElementById('inpGithubToken')) document.getElementById('inpGithubToken').value = cfg.token || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '';
             if (document.getElementById('inpGithubBranch')) document.getElementById('inpGithubBranch').value = cfg.branch || 'main';
             if (document.getElementById('inpCustomDomainUrl')) document.getElementById('inpCustomDomainUrl').value = cfg.publicUrl || '';
+            refreshExtractedDeploymentSummary();
         }
 
         function saveAllDataAndAutoUploadIndex() {
