@@ -192,15 +192,15 @@
                     </div>
                     <div class="pt-1.5 mt-1 border-t border-slate-800 space-y-1">
                         <div class="flex items-center justify-between gap-1.5">
-                            <span class="text-[10px] font-bold text-sky-300">Versión Desplegada Activa:</span>
-                            <span class="px-2 py-0.5 rounded bg-slate-800 text-[9px] font-bold text-slate-400 border border-slate-700">
-                                Solo Lectura
+                            <span class="text-[10px] font-bold text-sky-300">Despliegue Vinculado:</span>
+                            <span id="loginDeploymentSyncBadge" class="px-2 py-0.5 rounded bg-emerald-950 text-[9px] font-bold text-emerald-300 border border-emerald-700/70">
+                                Vinculado al Último Despliegue ✓
                             </span>
                         </div>
                         <div id="loginDeployedVersionReadonly" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono font-bold text-amber-300 select-none">
-                            v1 · Despliegue Activo (10 usuarios)
+                            Sincronizando versión guardada...
                         </div>
-                        <div id="loginVersionUsersHint" class="text-[9px] text-slate-400 truncate">Sincronizando usuarios habilitados de la versión...</div>
+                        <div id="loginVersionUsersHint" class="text-[9px] text-slate-400 truncate">Vinculando automáticamente al último despliegue publicado...</div>
                     </div>
                 </div>
             </div>
@@ -1245,35 +1245,53 @@
         function renderLoginDeployedVersionsSelect() {
             const box = document.getElementById('loginDeployedVersionReadonly');
             const hint = document.getElementById('loginVersionUsersHint');
-            if (!box && !hint) return;
+            const loginVerEl = document.getElementById('loginLiveVersion');
+            const badgeEl = document.getElementById('loginDeploymentSyncBadge');
+            if (!box && !hint && !loginVerEl) return;
 
             const currentProfiles = (appState.profiles || []).filter(p => p && String(p.code || '').trim());
-            const latestVer = Math.max(
-                Number(appState.version || 1),
-                ..._deployedVersionsRegistry.map(x => Number(x.version || 1))
-            );
-            const activeItem = _deployedVersionsRegistry.find(x => Number(x.version) === latestVer) || {
-                version: latestVer,
-                sourceLabel: 'Despliegue Activo',
-                ts: Date.now(),
-                profiles: currentProfiles
-            };
+            const localVer = Number(appState.version || 1);
+            const maxRegVer = _deployedVersionsRegistry.reduce((maxV, item) => Math.max(maxV, Number(item.version || 1)), localVer);
+            const activeVer = Math.max(localVer, maxRegVer);
 
-            const usersList = activeItem.profiles.length > 0 ? activeItem.profiles : currentProfiles;
+            if (activeVer > localVer) {
+                appState.version = activeVer;
+            }
+
+            const matchingEntries = _deployedVersionsRegistry.filter(x => Number(x.version) === activeVer);
+            const preferredEntry = matchingEntries.find(x => x.sourceLabel === 'Publicado por Admin')
+                || matchingEntries.find(x => x.sourceLabel === 'Despliegue Activo')
+                || matchingEntries[0]
+                || {
+                    version: activeVer,
+                    sourceLabel: 'Despliegue Guardado Actual',
+                    ts: Date.now(),
+                    profiles: currentProfiles
+                };
+
+            const usersList = currentProfiles.length > 0 ? currentProfiles : (preferredEntry.profiles || []);
             const usersCount = usersList.length;
-            const timeLabel = activeItem.ts ? new Date(activeItem.ts).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '';
+            const timeLabel = preferredEntry.ts ? new Date(preferredEntry.ts).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '';
+
+            if (loginVerEl) {
+                loginVerEl.textContent = `v${activeVer}`;
+            }
+
+            if (badgeEl) {
+                badgeEl.textContent = `Versión Guardada v${activeVer} Activa ✓`;
+            }
 
             if (box) {
-                box.textContent = `v${activeItem.version} · ${activeItem.sourceLabel} (${usersCount} usuario${usersCount === 1 ? '' : 's'}${timeLabel ? ' · ' + timeLabel : ''})`;
+                box.textContent = `v${activeVer} · ${preferredEntry.sourceLabel} (${usersCount} usuario${usersCount === 1 ? '' : 's'}${timeLabel ? ' · ' + timeLabel : ''})`;
             }
 
             if (hint) {
                 if (usersList.length > 0) {
                     const names = usersList.map(p => p.name || 'Usuario').join(', ');
-                    hint.textContent = `✓ Versión v${activeItem.version} activa · Usuarios: ${names}`;
+                    hint.textContent = `✓ Versión v${activeVer} guardada y vinculada · Usuarios: ${names}`;
                     hint.className = 'text-[9px] text-emerald-300 truncate';
                 } else {
-                    hint.textContent = `Versión v${activeItem.version} · Publicada por el Administrador`;
+                    hint.textContent = `Versión v${activeVer} · Publicada por el Administrador`;
                     hint.className = 'text-[9px] text-slate-400 truncate';
                 }
             }
@@ -2352,10 +2370,11 @@
             return parsedVault;
         }
 
-        function applyRemoteVaultToState(remoteVault) {
+        function applyRemoteVaultToState(remoteVault, forceLatestLink = false) {
             if (!remoteVault || typeof remoteVault !== 'object') return false;
-            // No sobrescribir datos locales guardados si la versión remota no es estrictamente superior a la actual
-            if ((Number(remoteVault.version) || 0) <= (Number(appState.version) || 1)) {
+            const remoteVer = Number(remoteVault.version) || 0;
+            const localVer = Number(appState.version) || 1;
+            if (!forceLatestLink && remoteVer <= localVer) {
                 return false;
             }
             const mergedDeleted = Array.from(new Set([...(appState.deletedIds || []), ...(remoteVault.deletedIds || [])]));
@@ -2514,6 +2533,8 @@
             if (updateEmbedded) {
                 syncUserCodesToSourceCodeDom();
             }
+            registerDeployedVersionSnapshot(safePayload, 'Despliegue Guardado Actual');
+            renderLoginDeployedVersionsSelect();
             refreshExtractedDeploymentSummary();
             if (bumpVersion) {
                 broadcastUniversalDeploymentState();
@@ -2522,7 +2543,7 @@
                     scheduleAutoDeployOnSave();
                 }
             } else {
-                updateRealtimeCornerStatus('Información guardada localmente sin alterar nube ✓', 'ok');
+                updateRealtimeCornerStatus(`Información guardada en v${appState.version || 1} ✓`, 'ok');
             }
         }
 
@@ -2632,13 +2653,23 @@
                             txt.trim().split('\n').filter(Boolean).forEach(line => {
                                 try {
                                     const msg = JSON.parse(line);
-                                    if (msg?.message) applyRemoteVaultToState(JSON.parse(msg.message));
+                                    if (msg?.message) {
+                                        const parsedMsg = JSON.parse(msg.message);
+                                        registerDeployedVersionSnapshot(parsedMsg, 'Nube Global');
+                                        applyRemoteVaultToState(parsedMsg, true);
+                                    }
                                 } catch (err) {}
                             });
                         }
                     } catch (err) {}
                 }
                 await checkRemoteDeploymentVersion(false);
+                if (_deployedVersionsRegistry.length > 0) {
+                    const newest = _deployedVersionsRegistry[0];
+                    if (newest && newest.vault && Number(newest.version) >= Number(appState.version || 1)) {
+                        applyRemoteVaultToState(newest.vault, true);
+                    }
+                }
                 renderLoginDeployedVersionsSelect();
 
                 const cleanEntered = entered.replace(/\s+/g, '');
@@ -2663,15 +2694,19 @@
                         }
                         return;
                     }
-                    appState.activeSession = { role: 'user', profileId: found.id, name: found.name || 'Usuario Operativo' };
+                    appState.activeSession = {
+                        role: 'user',
+                        profileId: found.id,
+                        name: found.name || 'Usuario Operativo'
+                    };
                 }
 
                 if (errBox) errBox.classList.add('hidden');
                 document.getElementById('frontLoginScreen')?.classList.add('hidden');
                 document.getElementById('mainAppWorkspace')?.classList.remove('hidden');
-                if (appState.activeSession.role === 'admin') {
-                    document.getElementById('realtimeCornerMonitor')?.classList.remove('hidden');
-                    await autoSyncAndSaveRepoTokenInField(true);
+                const monitorEl = document.getElementById('realtimeCornerMonitor');
+                if (monitorEl && appState.activeSession.role === 'admin') {
+                    monitorEl.classList.remove('hidden');
                 }
                 refreshAllUI();
                 updateDocument();
@@ -2685,6 +2720,28 @@
             }
         }
 
+        let _openUserAccordionIndices = new Set();
+
+        function toggleUserProfileAccordion(idx) {
+            const body = document.getElementById(`profileAccordionBody_${idx}`);
+            const arrow = document.getElementById(`profileAccordionArrow_${idx}`);
+            if (!body) return;
+            const isHidden = body.classList.toggle('hidden');
+            if (isHidden) {
+                _openUserAccordionIndices.delete(idx);
+            } else {
+                _openUserAccordionIndices.add(idx);
+            }
+            if (arrow) arrow.textContent = isHidden ? '▼' : '▲';
+        }
+
+        function markUserProfileUnsaved(idx, isDirty = true) {
+            const badge = document.getElementById(`profileUnsavedBadge_${idx}`);
+            if (badge) {
+                badge.classList.toggle('hidden', !isDirty);
+            }
+        }
+
         function createDefaultDocAccessMatrix(defaultVal = true) {
             const matrix = {};
             DOC_MODALITIES_LIST.forEach(d => { matrix[d.id] = defaultVal; });
@@ -2695,14 +2752,6 @@
             const matrix = {};
             HEADER_BUTTON_DEFINITIONS.forEach(b => { matrix[b.id] = defaultVal; });
             return matrix;
-        }
-
-        function toggleUserProfileAccordion(idx) {
-            const body = document.getElementById(`profileAccordionBody_${idx}`);
-            const arrow = document.getElementById(`profileAccordionArrow_${idx}`);
-            if (!body) return;
-            const isHidden = body.classList.toggle('hidden');
-            if (arrow) arrow.textContent = isHidden ? '▼' : '▲';
         }
 
         function ensureDefaultTenBaseUsers() {
@@ -2738,10 +2787,39 @@
             const p = appState.profiles[idx];
             if (!p) return;
             p[key] = key === 'code' ? String(val || '').trim() : val;
-            clearTimeout(_userBaseRegenTimer);
-            _userBaseRegenTimer = setTimeout(async () => {
-                await regenerateAndSaveBaseCodeWithUsers(false);
-            }, 600);
+            if (key === 'name') {
+                const titleEl = document.getElementById(`profileHeaderName_${idx}`);
+                if (titleEl) titleEl.textContent = p.name || 'Usuario sin nombre';
+            }
+            if (key === 'code') {
+                const codeTagEl = document.getElementById(`profileHeaderCode_${idx}`);
+                if (codeTagEl) codeTagEl.textContent = `[Código: ${p.code || 'Sin asignar'}]`;
+            }
+            if (key === 'roleLabel') {
+                const roleEl = document.getElementById(`profileHeaderRole_${idx}`);
+                if (roleEl) roleEl.textContent = `${p.roleLabel || 'Control Escolar'} · Pendiente de guardar cambios`;
+            }
+            markUserProfileUnsaved(idx, true);
+        }
+
+        function onUserProfilePermChanged(idx, category, key, val, selectEl = null) {
+            const p = appState.profiles[idx];
+            if (!p) return;
+            if (category === 'docAccess') {
+                p.docAccess = p.docAccess || createDefaultDocAccessMatrix(true);
+                p.docAccess[key] = Boolean(val);
+            } else if (category === 'headerPerms') {
+                p.headerPerms = p.headerPerms || createDefaultHeaderMatrix('edit');
+                p.headerPerms[key] = val;
+                if (selectEl) {
+                    const isVisible = val !== 'hide';
+                    selectEl.className = `px-2 py-0.5 rounded border text-[11px] font-bold ${isVisible ? 'border-emerald-300 bg-emerald-50 text-emerald-900' : 'border-rose-300 bg-rose-50 text-rose-900'}`;
+                }
+            } else if (category === 'fieldPerms') {
+                p.fieldPerms = p.fieldPerms || createDefaultFieldMatrix('edit');
+                p.fieldPerms[key] = val;
+            }
+            markUserProfileUnsaved(idx, true);
         }
 
         async function regenerateAndSaveBaseCodeWithUsers(showNotify = false) {
@@ -2759,8 +2837,8 @@
             if (showNotify) {
                 showToast(
                     pushed
-                        ? `Código base regenerado y guardado en GitHub (v${appState.version}) con los usuarios actualizados.`
-                        : `Código base regenerado en memoria (v${appState.version}) con todos los usuarios actualizados.`
+                        ? `Cambios guardados y publicados en GitHub y nube (v${appState.version}).`
+                        : `Cambios guardados en el código base y nube global (v${appState.version}).`
                 );
             }
             return fullHtml;
@@ -2770,15 +2848,15 @@
             const p = appState.profiles[idx];
             if (!p) return;
             const allowDoc = mode !== 'hide';
+            p.docAccess = p.docAccess || createDefaultDocAccessMatrix(true);
+            p.headerPerms = p.headerPerms || createDefaultHeaderMatrix('edit');
+            p.fieldPerms = p.fieldPerms || createDefaultFieldMatrix('edit');
             DOC_MODALITIES_LIST.forEach(d => { p.docAccess[d.id] = allowDoc; });
             HEADER_BUTTON_DEFINITIONS.forEach(b => { p.headerPerms[b.id] = mode; });
             DOC_FIELD_DEFINITIONS.forEach(f => { p.fieldPerms[f.id] = mode; });
+            _openUserAccordionIndices.add(idx);
             renderProfilesManager();
-            const body = document.getElementById(`profileAccordionBody_${idx}`);
-            const arrow = document.getElementById(`profileAccordionArrow_${idx}`);
-            if (body) body.classList.remove('hidden');
-            if (arrow) arrow.textContent = '▲';
-            regenerateAndSaveBaseCodeWithUsers(true);
+            markUserProfileUnsaved(idx, true);
         }
 
         function setUserProfileHeaderPanelAll(idx, mode) {
@@ -2786,36 +2864,39 @@
             if (!p) return;
             p.headerPerms = p.headerPerms || createDefaultHeaderMatrix('edit');
             HEADER_BUTTON_DEFINITIONS.forEach(b => { p.headerPerms[b.id] = mode; });
+            _openUserAccordionIndices.add(idx);
             renderProfilesManager();
-            const body = document.getElementById(`profileAccordionBody_${idx}`);
-            const arrow = document.getElementById(`profileAccordionArrow_${idx}`);
-            if (body) body.classList.remove('hidden');
-            if (arrow) arrow.textContent = '▲';
-            regenerateAndSaveBaseCodeWithUsers(true);
+            markUserProfileUnsaved(idx, true);
         }
 
         function renderProfilesManager() {
             const container = document.getElementById('profilesManagerContainer');
             if (!container) return;
 
-            container.innerHTML = appState.profiles.map((p, idx) => `
+            container.innerHTML = appState.profiles.map((p, idx) => {
+                const isOpen = _openUserAccordionIndices.has(idx);
+                return `
                 <div class="border border-slate-200 rounded-2xl bg-slate-50/70 overflow-hidden shadow-xs">
                     <div class="p-3.5 bg-white flex flex-wrap items-center justify-between gap-2 border-b border-slate-200">
                         <button type="button" onclick="toggleUserProfileAccordion(${idx})" class="flex items-center gap-2.5 text-left flex-1 min-w-[200px] cursor-pointer">
-                            <span id="profileAccordionArrow_${idx}" class="w-6 h-6 rounded-lg bg-blue-900 text-white text-[10px] font-black flex items-center justify-center">▼</span>
+                            <span id="profileAccordionArrow_${idx}" class="w-6 h-6 rounded-lg bg-blue-900 text-white text-[10px] font-black flex items-center justify-center">${isOpen ? '▲' : '▼'}</span>
                             <div>
-                                <div class="text-xs font-black text-slate-900">${p.name || 'Usuario sin nombre'} <span class="text-[11px] font-mono font-bold text-emerald-800 ml-1">[Código: ${p.code || 'Sin asignar'}]</span></div>
-                                <div class="text-[10px] text-slate-500">${p.roleLabel || 'Control Escolar'} · Vinculado y regenerado en el código base</div>
+                                <div class="text-xs font-black text-slate-900 flex flex-wrap items-center gap-1.5">
+                                    <span id="profileHeaderName_${idx}">${p.name || 'Usuario sin nombre'}</span>
+                                    <span id="profileHeaderCode_${idx}" class="text-[11px] font-mono font-bold text-emerald-800">[Código: ${p.code || 'Sin asignar'}]</span>
+                                    <span id="profileUnsavedBadge_${idx}" class="hidden px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[9px] font-extrabold">Cambios sin guardar</span>
+                                </div>
+                                <div id="profileHeaderRole_${idx}" class="text-[10px] text-slate-500">${p.roleLabel || 'Control Escolar'} · Edita libremente y presiona Guardar Cambios</div>
                             </div>
                         </button>
                         <div class="flex items-center gap-2">
                             <button type="button" onclick="copyUserDirectAccessLink(${idx})" title="Copia el enlace con este usuario ya registrado para que entre desde cualquier teléfono o PC" class="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-extrabold shadow-xs transition">Copiar Enlace con Acceso</button>
-                            <button type="button" onclick="saveSingleUserProfile(${idx})" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-extrabold shadow-xs transition">Guardar en Código Base</button>
+                            <button type="button" onclick="saveSingleUserProfile(${idx})" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-extrabold shadow-xs transition">Guardar Cambios</button>
                             <button type="button" onclick="deleteUserProfile('${p.id}')" class="px-2.5 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 text-[11px] font-bold transition">Eliminar</button>
                         </div>
                     </div>
 
-                    <div id="profileAccordionBody_${idx}" class="hidden p-4 space-y-4">
+                    <div id="profileAccordionBody_${idx}" class="${isOpen ? '' : 'hidden'} p-4 space-y-4">
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 bg-white p-3 rounded-xl border border-slate-200">
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-500 mb-1">Nombre del Usuario</label>
@@ -2826,7 +2907,7 @@
                                 <input type="text" value="${p.roleLabel}" oninput="onUserProfileFieldEdited(${idx}, 'roleLabel', this.value)" placeholder="Puesto / Rol" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs">
                             </div>
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Código de Acceso (Regeneración Automática)</label>
+                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Código de Acceso</label>
                                 <input type="text" id="profileCodeInput_${idx}" autocomplete="off" value="${p.code || ''}" oninput="onUserProfileFieldEdited(${idx}, 'code', this.value)" placeholder="Escribe el código de acceso" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-mono font-bold text-blue-900">
                             </div>
                         </div>
@@ -2847,7 +2928,7 @@
                                     ${DOC_MODALITIES_LIST.map(d => `
                                         <label class="flex items-center justify-between text-xs text-slate-700 cursor-pointer">
                                             <span>${d.label}</span>
-                                            <input type="checkbox" ${p.docAccess?.[d.id] !== false ? 'checked' : ''} onchange="appState.profiles[${idx}].docAccess['${d.id}']=this.checked;regenerateAndSaveBaseCodeWithUsers(true);" class="rounded border-slate-300 text-blue-900">
+                                            <input type="checkbox" ${p.docAccess?.[d.id] !== false ? 'checked' : ''} onchange="onUserProfilePermChanged(${idx}, 'docAccess', '${d.id}', this.checked)" class="rounded border-slate-300 text-blue-900">
                                         </label>
                                     `).join('')}
                                 </div>
@@ -2867,7 +2948,7 @@
                                         return `
                                         <div class="flex items-center justify-between gap-2 text-xs py-0.5 border-b border-slate-50">
                                             <span class="text-slate-700 font-medium truncate">${b.label}</span>
-                                            <select onchange="appState.profiles[${idx}].headerPerms['${b.id}']=this.value;regenerateAndSaveBaseCodeWithUsers(true);" class="px-2 py-0.5 rounded border text-[11px] font-bold ${isVisible ? 'border-emerald-300 bg-emerald-50 text-emerald-900' : 'border-rose-300 bg-rose-50 text-rose-900'}">
+                                            <select onchange="onUserProfilePermChanged(${idx}, 'headerPerms', '${b.id}', this.value, this)" class="px-2 py-0.5 rounded border text-[11px] font-bold ${isVisible ? 'border-emerald-300 bg-emerald-50 text-emerald-900' : 'border-rose-300 bg-rose-50 text-rose-900'}">
                                                 <option value="edit" ${isVisible ? 'selected' : ''}>Sí Visualizar</option>
                                                 <option value="hide" ${!isVisible ? 'selected' : ''}>No Visualizar</option>
                                             </select>
@@ -2882,7 +2963,7 @@
                                     ${DOC_FIELD_DEFINITIONS.map(f => `
                                         <div class="flex items-center justify-between gap-2 text-xs">
                                             <span class="text-slate-700 truncate">${f.label}</span>
-                                            <select onchange="appState.profiles[${idx}].fieldPerms['${f.id}']=this.value;regenerateAndSaveBaseCodeWithUsers(true);" class="px-2 py-0.5 rounded border border-slate-300 text-[11px] font-semibold bg-slate-50">
+                                            <select onchange="onUserProfilePermChanged(${idx}, 'fieldPerms', '${f.id}', this.value, this)" class="px-2 py-0.5 rounded border border-slate-300 text-[11px] font-semibold bg-slate-50">
                                                 <option value="edit" ${(p.fieldPerms?.[f.id] || 'edit') === 'edit' ? 'selected' : ''}>Editar</option>
                                                 <option value="select" ${p.fieldPerms?.[f.id] === 'select' ? 'selected' : ''}>Solo Ver</option>
                                                 <option value="hide" ${p.fieldPerms?.[f.id] === 'hide' ? 'selected' : ''}>Ocultar</option>
@@ -2892,17 +2973,25 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="flex justify-end pt-2 border-t border-slate-200">
+                            <button type="button" onclick="saveSingleUserProfile(${idx})" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow transition">
+                                Guardar Cambios de este Usuario
+                            </button>
+                        </div>
                     </div>
                 </div>
-            `).join('') || '<p class="text-xs text-slate-400 text-center py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-300">No hay usuarios operativos registrados. Haz clic en "+ Agregar Nuevo Usuario".</p>';
+            `;}).join('') || '<p class="text-xs text-slate-400 text-center py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-300">No hay usuarios operativos registrados. Haz clic en "+ Agregar Nuevo Usuario".</p>';
         }
+
         async function deleteUserProfile(id) {
             appState.deletedIds = Array.from(new Set([...(appState.deletedIds || []), id]));
             appState.profiles = (appState.profiles || []).filter(p => p.id !== id);
+            _openUserAccordionIndices.clear();
             await regenerateAndSaveBaseCodeWithUsers(false);
             broadcastUniversalDeploymentState();
             renderProfilesManager();
-            showToast('Usuario eliminado y código base regenerado.');
+            showToast('Usuario eliminado y código base actualizado.');
         }
 
         async function createNewUserProfile() {
@@ -2920,16 +3009,13 @@
                 headerPerms: createDefaultHeaderMatrix('edit'),
                 fieldPerms: createDefaultFieldMatrix('edit')
             });
-            await regenerateAndSaveBaseCodeWithUsers(false);
-            broadcastUniversalDeploymentState();
-            renderProfilesManager();
             const newIdx = appState.profiles.length - 1;
-            const body = document.getElementById(`profileAccordionBody_${newIdx}`);
-            const arrow = document.getElementById(`profileAccordionArrow_${newIdx}`);
-            if (body) body.classList.remove('hidden');
-            if (arrow) arrow.textContent = '▲';
-            showToast(`Usuario creado con código ${rawCode} y agregado al código base regenerado.`);
+            _openUserAccordionIndices.add(newIdx);
+            renderProfilesManager();
+            markUserProfileUnsaved(newIdx, true);
+            showToast(`Nuevo usuario agregado (${rawCode}). Edita sus permisos y presiona Guardar Cambios.`);
         }
+
         async function saveSingleUserProfile(idx) {
             const p = appState.profiles[idx];
             if (!p) return;
@@ -2940,51 +3026,18 @@
             p.docAccess = { ...createDefaultDocAccessMatrix(true), ...(p.docAccess || {}) };
             p.headerPerms = { ...createDefaultHeaderMatrix('edit'), ...(p.headerPerms || {}) };
             p.fieldPerms = { ...createDefaultFieldMatrix('edit'), ...(p.fieldPerms || {}) };
+            _openUserAccordionIndices.add(idx);
             await regenerateAndSaveBaseCodeWithUsers(false);
             broadcastUniversalDeploymentState();
             renderProfilesManager();
-            showToast(`Usuario "${p.name}" (Código: ${p.code}) guardado y código base regenerado (v${appState.version}).`);
+            markUserProfileUnsaved(idx, false);
+            showToast(`Cambios guardados para "${p.name}" (Código: ${p.code}) y publicados en el despliegue v${appState.version}.`);
         }
 
         function createDefaultFieldMatrix(defaultVal = 'edit') {
             const matrix = {};
             DOC_FIELD_DEFINITIONS.forEach(f => { matrix[f.id] = defaultVal; });
             return matrix;
-        }
-
-        function deleteUserProfile(id) {
-            appState.deletedIds = Array.from(new Set([...(appState.deletedIds || []), id]));
-            appState.profiles = (appState.profiles || []).filter(p => p.id !== id);
-            persistBaseState(true, true, true);
-            broadcastUniversalDeploymentState();
-            renderProfilesManager();
-            showToast('Usuario eliminado permanentemente y borrado en tiempo real.');
-        }
-
-        async function createNewUserProfile() {
-            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
-                return showToast('Solo el Administrador puede crear usuarios.');
-            }
-            const newId = 'usr_' + Date.now();
-            const rawCode = String(Math.floor(1000 + Math.random() * 9000));
-            appState.profiles.push({
-                id: newId,
-                name: 'Nuevo Usuario ' + (appState.profiles.length + 1),
-                roleLabel: 'Auxiliar de Control Escolar',
-                code: rawCode,
-                docAccess: createDefaultDocAccessMatrix(true),
-                headerPerms: createDefaultHeaderMatrix('edit'),
-                fieldPerms: createDefaultFieldMatrix('edit')
-            });
-            persistBaseState(true, true, true);
-            broadcastUniversalDeploymentState();
-            renderProfilesManager();
-            const newIdx = appState.profiles.length - 1;
-            const body = document.getElementById(`profileAccordionBody_${newIdx}`);
-            const arrow = document.getElementById(`profileAccordionArrow_${newIdx}`);
-            if (body) body.classList.remove('hidden');
-            if (arrow) arrow.textContent = '▲';
-            showToast(`Usuario creado con código ${rawCode} y sincronizado globalmente.`);
         }
 
         function copyUserDirectAccessLink(idx) {
@@ -3113,22 +3166,6 @@
                 }
             } catch (e) {}
             return false;
-        }
-
-        function saveSingleUserProfile(idx) {
-            const p = appState.profiles[idx];
-            if (!p) return;
-            const codeInp = document.getElementById(`profileCodeInput_${idx}`);
-            if (codeInp) {
-                p.code = String(codeInp.value || '').trim();
-            }
-            p.docAccess = { ...createDefaultDocAccessMatrix(true), ...(p.docAccess || {}) };
-            p.headerPerms = { ...createDefaultHeaderMatrix('edit'), ...(p.headerPerms || {}) };
-            p.fieldPerms = { ...createDefaultFieldMatrix('edit'), ...(p.fieldPerms || {}) };
-            persistBaseState(true, true, true);
-            broadcastUniversalDeploymentState();
-            renderProfilesManager();
-            showToast(`Usuario "${p.name}", código "${p.code}" y permisos guardados y sincronizados en tiempo real.`);
         }
 
         function handlePreviewTextSelection() {
@@ -4036,6 +4073,9 @@
 
         function lockProfileQuickAccess() {
             appState.activeSession = null;
+            registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), 'Despliegue Guardado Actual');
+            renderLoginDeployedVersionsSelect();
+            updateRealtimeCornerStatus(`Versión guardada v${appState.version || 1} lista en inicio de sesión`, 'ok');
             document.getElementById('mainAppWorkspace')?.classList.add('hidden');
             document.getElementById('realtimeCornerMonitor')?.classList.add('hidden');
             document.getElementById('frontLoginScreen')?.classList.remove('hidden');
@@ -4280,6 +4320,9 @@
             registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), 'Despliegue Activo');
             refreshAllUI();
             await initGlobalRealtimeCloudSync();
+            if (window._pullGlobalCloudNow) {
+                await window._pullGlobalCloudNow(true);
+            }
             await checkRemoteDeploymentVersion(false);
             renderLoginDeployedVersionsSelect();
         });
