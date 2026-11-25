@@ -833,7 +833,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
                         <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-2">
                             <div class="flex items-center justify-between">
-                                <span class="text-[10px] font-black uppercase text-amber-400">1. Repositorio y Rama</span>
+                                <span class="text-[10px] font-black uppercase text-amber-400">1. Repositorio y Rama GitHub</span>
                                 <button type="button" onclick="autoDetectGithubRepoFromHost(false)" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-amber-300 text-[10px] font-bold">Auto-Detectar</button>
                             </div>
                             <input type="text" id="inpGithubRepo" oninput="saveGithubIntegrationSettings()" placeholder="usuario/repositorio" class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono text-xs outline-none">
@@ -841,29 +841,31 @@
                                 <input type="text" id="inpGithubBranch" value="main" oninput="saveGithubIntegrationSettings()" placeholder="main" class="w-1/2 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 font-mono text-[11px] outline-none">
                                 <input type="text" id="inpGithubFilePath" value="index.html" readonly="" class="w-1/2 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-emerald-400 font-mono text-[11px] font-bold outline-none">
                             </div>
+                            <p class="text-[10px] text-slate-400">Archivo destino en GitHub: <code class="text-emerald-300">index.html</code></p>
                         </div>
 
                         <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-2">
                             <div class="flex items-center justify-between">
-                                <span class="text-[10px] font-black uppercase text-amber-400">2. Token GitHub PAT (Real o Auto)</span>
-                                <button type="button" onclick="rotateInternalDeploymentToken(true)" class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-extrabold">Auto-Token</button>
+                                <span class="text-[10px] font-black uppercase text-amber-400">2. Token Personal de GitHub (PAT)</span>
+                                <a href="https://github.com/settings/tokens/new?description=SISTEMA_BUBU_1_0_UAMP&scopes=repo" target="_blank" rel="noopener noreferrer" onclick="listenForGithubTokenPaste()" class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-extrabold transition">Generar en GitHub ↗</a>
                             </div>
                             <div class="flex gap-1.5">
-                                <input type="text" id="inpGithubToken" oninput="saveGithubIntegrationSettings()" placeholder="Pega tu token ghp_... o usa Auto-Token" class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-emerald-300 font-mono text-xs font-bold outline-none">
+                                <input type="password" id="inpGithubToken" oninput="saveGithubIntegrationSettings()" placeholder="Pega tu token generado en GitHub (ghp_... o github_pat_...)" class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-emerald-300 font-mono text-xs font-bold outline-none">
+                                <button type="button" onclick="toggleGithubTokenVisibility()" title="Mostrar / Ocultar Token" class="px-2.5 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-[11px]">👁</button>
                                 <button type="button" onclick="linkGithubTokenWithRepository()" class="px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-[11px] whitespace-nowrap transition">
                                     Vincular
                                 </button>
                             </div>
-                            <p id="githubTokenHelperMsg" class="text-[10px] text-emerald-400">✓ Pega un token PAT de GitHub (ghp_...) para reemplazar index.html directo en tu repositorio.</p>
+                            <p id="githubTokenHelperMsg" class="text-[10px] text-amber-300">Haz clic en "Generar en GitHub ↗" (permiso <b>repo</b>), copia el token y pégalo aquí.</p>
                         </div>
 
                         <div class="bg-slate-800/80 border border-emerald-700/70 rounded-xl p-3 space-y-2">
                             <div class="flex items-center justify-between">
-                                <span class="text-[10px] font-black uppercase text-emerald-400">3. Reemplazar Despliegue Anterior</span>
+                                <span class="text-[10px] font-black uppercase text-emerald-400">3. Actualizar Código Fuente en GitHub</span>
                                 <span id="deployReplaceVersionBadge" class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 text-[10px] font-mono font-bold">v1 → v2</span>
                             </div>
                             <button type="button" id="btnReplacePreviousDeployment" onclick="replacePreviousDeploymentWithCurrent(this)" class="w-full py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow transition cursor-pointer">
-                                Reemplazar Despliegue Anterior por Actual
+                                Subir y Reemplazar index.html en GitHub
                             </button>
                             <p id="linkedUsersCountHelper" class="text-[10px] text-slate-300">✓ Todos los códigos de acceso quedan incrustados en el código fuente.</p>
                         </div>
@@ -1450,66 +1452,40 @@
             return clean;
         }
 
-        function generateFreshDeploymentToken() {
-            const ver = (appState.version || 1);
-            const randA = Math.random().toString(36).slice(2, 10).toUpperCase();
-            const randB = Date.now().toString(36).toUpperCase();
-            return `bubu_sync_v${ver}_${randB}_${randA}`;
+        function isValidGithubPatToken(token) {
+            return /^gh[pou]_[A-Za-z0-9_]{20,}$|^github_pat_[A-Za-z0-9_]{20,}$/i.test(sanitizeGithubPatToken(token));
         }
 
-        function rotateInternalDeploymentToken(notify = false) {
-            appState.githubConfig = appState.githubConfig || { repo: '', token: '', branch: 'main', filePath: 'index.html', publicUrl: '' };
-            const newToken = generateFreshDeploymentToken();
-            appState.githubConfig.token = newToken;
-            appState.githubConfig.linkedAt = new Date().toLocaleString('es-MX');
-            const tokenInput = document.getElementById('inpGithubToken');
-            if (tokenInput) tokenInput.value = newToken;
-            try {
-                localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, newToken);
-            } catch (e) {}
-            const statusBadge = document.getElementById('githubSyncStatusBadge');
-            const helper = document.getElementById('githubTokenHelperMsg');
-            if (statusBadge) statusBadge.textContent = `Token v${appState.version || 1} activo (${newToken.slice(0, 16)}...) ✓`;
-            if (helper) helper.innerHTML = `<span class="text-emerald-400 font-bold">✓ Token generado automáticamente (${newToken}) y guardado en el vínculo.</span>`;
-            refreshExtractedDeploymentSummary();
-            if (notify) {
-                persistBaseState(true, true, false);
-                broadcastUniversalDeploymentState();
-                showToast(`Nuevo token generado y vinculado en automático (${newToken.slice(0, 18)}...).`);
-            }
-            return newToken;
+        function toggleGithubTokenVisibility() {
+            const inp = document.getElementById('inpGithubToken');
+            if (!inp) return;
+            inp.type = inp.type === 'password' ? 'text' : 'password';
         }
 
         async function autoSyncAndSaveRepoTokenInField(silent = true) {
             if (appState.activeSession && appState.activeSession.role !== 'admin') return '';
             const tokenInput = document.getElementById('inpGithubToken');
-            let candidate = sanitizeGithubPatToken(
+            const rawCandidate = sanitizeGithubPatToken(
                 tokenInput?.value ||
                 appState.githubConfig?.token ||
                 localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) ||
+                scanAllSourcesForGithubRepoToken() ||
                 ''
             );
-            if (!candidate) {
-                candidate = rotateInternalDeploymentToken(false);
-            } else {
-                appState.githubConfig = appState.githubConfig || { repo: '', token: '', branch: 'main', filePath: 'index.html', publicUrl: '' };
-                appState.githubConfig.token = candidate;
-                if (tokenInput && tokenInput.value !== candidate) tokenInput.value = candidate;
+            const candidate = isValidGithubPatToken(rawCandidate) ? rawCandidate : '';
+            appState.githubConfig = appState.githubConfig || { repo: '', token: '', branch: 'main', filePath: 'index.html', publicUrl: '' };
+            appState.githubConfig.token = candidate;
+            if (tokenInput) tokenInput.value = candidate;
+            if (candidate) {
                 try { localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, candidate); } catch (e) {}
+            } else {
+                try { localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY); } catch (e) {}
             }
             refreshExtractedDeploymentSummary();
-            if (!silent) {
-                showToast(`Token actualizado y guardado en el vínculo (${candidate.slice(0, 18)}...).`);
+            if (!silent && candidate) {
+                showToast(`Token PAT de GitHub guardado (${candidate.slice(0, 10)}...).`);
             }
             return candidate;
-        }
-
-        async function autoGenerateNewTokenAndLinkRepo() {
-            const tok = rotateInternalDeploymentToken(false);
-            persistBaseState(true, true, false);
-            broadcastUniversalDeploymentState();
-            showToast(`Token generado automáticamente sin abrir GitHub (${tok.slice(0, 18)}...).`);
-            return true;
         }
 
         async function linkGithubTokenWithRepository() {
@@ -1520,103 +1496,60 @@
             let repo = (document.getElementById('inpGithubRepo')?.value || appState.githubConfig?.repo || '').trim();
             repo = repo.replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/^\/+|\/+$/g, '');
             const branch = (document.getElementById('inpGithubBranch')?.value || appState.githubConfig?.branch || 'main').trim() || 'main';
-            const existingTok = sanitizeGithubPatToken(document.getElementById('inpGithubToken')?.value || appState.githubConfig?.token || '');
-            const isRealGithubPat = /^gh[pou]_|^github_pat_/i.test(existingTok);
-            const token = isRealGithubPat ? existingTok : rotateInternalDeploymentToken(false);
+            const rawToken = sanitizeGithubPatToken(document.getElementById('inpGithubToken')?.value || appState.githubConfig?.token || '');
 
-            appState.githubConfig = {
-                ...appState.githubConfig,
-                repo: repo || appState.githubConfig?.repo || '',
-                token,
-                branch,
-                filePath: 'index.html',
-                publicUrl: appState.githubConfig?.publicUrl || window.location.href.split('#')[0].split('?')[0],
-                linkedAt: new Date().toLocaleString('es-MX')
-            };
-
-            loadGithubConfigToInputs();
-            persistBaseState(true, true, false);
-            broadcastUniversalDeploymentState();
-            refreshExtractedDeploymentSummary();
-
-            if (isRealGithubPat && repo && repo.includes('/')) {
-                const pushed = await pushHtmlFileDirectlyToGithubApi(buildCleanDeployableHtml(), true);
-                if (pushed) {
-                    if (statusBadge) statusBadge.textContent = `GitHub Conectado y Desplegado (${repo}) ✓`;
-                    if (helper) helper.innerHTML = `<span class="text-emerald-400 font-bold">✓ Repositorio ${repo} vinculado y actualizado vía GitHub API.</span>`;
-                    return true;
-                }
+            if (!repo || !repo.includes('/')) {
+                if (helper) helper.innerHTML = `<span class="text-rose-400 font-bold">⚠ Escribe primero tu repositorio en el Paso 1 (formato: usuario/repositorio).</span>`;
+                return showToast('Ingresa el usuario/repositorio de GitHub en el Paso 1.');
             }
 
-            if (statusBadge) statusBadge.textContent = `Vinculado en Tiempo Real (${token.slice(0, 16)}...) ✓`;
-            if (helper) helper.innerHTML = `<span class="text-emerald-400 font-bold">✓ Token vinculado automáticamente. Pega un token ghp_... para subir directo al repo GitHub.</span>`;
-            showToast(`Vinculación completada y guardada en el enlace.`);
-            return true;
-        }
-
-        async function pushHtmlFileDirectlyToGithubApi(htmlContent, notify = false) {
-            const cfg = appState.githubConfig || {};
-            const repo = (cfg.repo || '').trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/^\/+|\/+$/g, '');
-            const token = sanitizeGithubPatToken(cfg.token || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '');
-            const branch = (cfg.branch || 'main').trim() || 'main';
-            const filePath = (cfg.filePath || 'index.html').trim() || 'index.html';
-
-            if (!repo || !repo.includes('/') || !/^gh[pou]_|^github_pat_/i.test(token)) {
-                return false;
+            if (!isValidGithubPatToken(rawToken)) {
+                if (helper) helper.innerHTML = `<span class="text-rose-400 font-bold">⚠ Token inválido. Debe ser un Personal Access Token generado en GitHub (empieza con ghp_ o github_pat_).</span>`;
+                return showToast('Pega un Personal Access Token válido generado en GitHub (ghp_... o github_pat_...).');
             }
 
-            const [owner, repoName] = repo.split('/');
-            const apiUrl = `https://api.github.com/repos/${owner}/${repoName}/contents/${filePath}`;
+            if (statusBadge) statusBadge.textContent = 'Verificando token con GitHub API...';
 
             try {
-                let currentSha = undefined;
-                const getRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(branch)}&t=${Date.now()}`, {
+                const [owner, repoName] = repo.split('/');
+                const verifyRes = await fetch(`https://api.github.com/repos/${owner}/${repoName}`, {
                     headers: {
-                        Authorization: `Bearer ${token}`,
+                        Authorization: `Bearer ${rawToken}`,
                         Accept: 'application/vnd.github+json'
                     },
                     cache: 'no-store'
                 });
-                if (getRes.ok) {
-                    const fileInfo = await getRes.json();
-                    if (fileInfo && fileInfo.sha) currentSha = fileInfo.sha;
+
+                if (!verifyRes.ok) {
+                    const errData = await verifyRes.json().catch(() => ({}));
+                    if (statusBadge) statusBadge.textContent = 'Error de Autenticación GitHub';
+                    if (helper) helper.innerHTML = `<span class="text-rose-400 font-bold">✕ GitHub rechazó el token o repositorio (${errData.message || verifyRes.status}). Verifica que tenga permiso "repo".</span>`;
+                    return showToast(`GitHub rechazó la conexión: ${errData.message || verifyRes.status}`);
                 }
 
-                const utf8Bytes = new TextEncoder().encode(htmlContent);
-                let binary = '';
-                for (let i = 0; i < utf8Bytes.length; i++) binary += String.fromCharCode(utf8Bytes[i]);
-                const base64Content = btoa(binary);
-
-                const putBody = {
-                    message: `Actualización automática SISTEMA BUBU 1.0 (v${appState.version || 1})`,
-                    content: base64Content,
-                    branch
+                appState.githubConfig = {
+                    ...appState.githubConfig,
+                    repo,
+                    token: rawToken,
+                    branch,
+                    filePath: 'index.html',
+                    publicUrl: appState.githubConfig?.publicUrl || window.location.href.split('#')[0].split('?')[0],
+                    linkedAt: new Date().toLocaleString('es-MX')
                 };
-                if (currentSha) putBody.sha = currentSha;
 
-                const putRes = await fetch(apiUrl, {
-                    method: 'PUT',
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        Accept: 'application/vnd.github+json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(putBody)
-                });
+                try { localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, rawToken); } catch (e) {}
+                loadGithubConfigToInputs();
+                persistBaseState(true, true, false);
+                broadcastUniversalDeploymentState();
+                refreshExtractedDeploymentSummary();
 
-                if (putRes.ok) {
-                    const statusBadge = document.getElementById('githubSyncStatusBadge');
-                    if (statusBadge) statusBadge.textContent = `Publicado en GitHub (${repo}) v${appState.version || 1} ✓`;
-                    updateRealtimeCornerStatus(`Publicado en GitHub (${repo}) v${appState.version || 1} ✓`, 'ok');
-                    if (notify) showToast(`index.html guardado, cargado y publicado en GitHub (${repo}).`);
-                    return true;
-                } else {
-                    const errJson = await putRes.json().catch(() => ({}));
-                    if (notify) showToast(`Error GitHub API: ${errJson.message || putRes.status}`);
-                    return false;
-                }
+                if (statusBadge) statusBadge.textContent = `GitHub PAT Verificado y Conectado (${repo}) ✓`;
+                if (helper) helper.innerHTML = `<span class="text-emerald-400 font-bold">✓ Token PAT de GitHub verificado con permisos en ${repo} (${branch}).</span>`;
+                showToast(`Repositorio ${repo} vinculado exitosamente con tu token PAT de GitHub.`);
+                return true;
             } catch (err) {
-                if (notify) showToast('No se pudo conectar con GitHub API; guardado localmente.');
+                if (helper) helper.innerHTML = `<span class="text-rose-400 font-bold">✕ Error de red al conectar con api.github.com.</span>`;
+                showToast('No se pudo conectar con api.github.com para verificar el token.');
                 return false;
             }
         }
@@ -1710,12 +1643,12 @@
             const activeUsers = (appState.profiles || []).filter(p => String(p.code || '').trim());
             const curVer = appState.version || 1;
 
-            if (repoEl) repoEl.textContent = repoVal ? `${repoVal} (${branchVal})` : 'Sin repositorio (Modo Universal)';
+            if (repoEl) repoEl.textContent = repoVal ? `${repoVal} (${branchVal})` : 'Sin repositorio configurado';
             if (tokEl) {
-                const isRealPat = /^gh[pou]_|^github_pat_/i.test(tokVal);
+                const isRealPat = isValidGithubPatToken(tokVal);
                 tokEl.textContent = isRealPat
-                    ? `GitHub PAT Activo (${tokVal.slice(0, 8)}...)`
-                    : (tokVal ? `Token Auto Activo (${tokVal.slice(0, 12)}...)` : 'Pendiente de vinculación');
+                    ? `GitHub PAT Conectado (${tokVal.slice(0, 8)}...)`
+                    : 'Pendiente: Pega tu Token PAT de GitHub';
             }
             if (urlEl) {
                 urlEl.textContent = `${activeUsers.length} usuario(s) · v${curVer} en código fuente`;
@@ -1804,33 +1737,102 @@
             return serializedHtml;
         }
 
-        async function deployUpdateToGithub(manual = false, silent = false, reloadAfter = false) {
-            saveGithubIntegrationSettings();
-            const statusBadge = document.getElementById('githubSyncStatusBadge');
-            const currentTok = sanitizeGithubPatToken(appState.githubConfig?.token || '');
-            const isRealPat = /^gh[pou]_|^github_pat_/i.test(currentTok);
-            const activeToken = isRealPat ? currentTok : rotateInternalDeploymentToken(false);
-            const fullHtml = buildCleanDeployableHtml();
-
-            const githubUploaded = await pushHtmlFileDirectlyToGithubApi(fullHtml, false);
-            await purgeAllBrowserCaches();
-            await applyNewDeploymentToCurrentPage(fullHtml, githubUploaded);
-
-            if (statusBadge) {
-                statusBadge.textContent = githubUploaded
-                    ? `GitHub Publicado (${appState.githubConfig.repo}) v${appState.version} ✓`
-                    : `Despliegue v${appState.version} actualizado (${activeToken.slice(0, 16)}...) ✓`;
+        function encodeUtf8ToBase64(str) {
+            const bytes = new TextEncoder().encode(str);
+            let binary = '';
+            const chunkSize = 0x8000;
+            for (let i = 0; i < bytes.length; i += chunkSize) {
+                binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
             }
-            updateRealtimeCornerStatus(
-                githubUploaded ? `Publicado en GitHub v${appState.version} ✓` : `Despliegue v${appState.version} actualizado en tiempo real ✓`,
-                'ok'
-            );
-            if (!silent) {
-                showToast(
-                    githubUploaded
-                        ? `Despliegue v${appState.version} guardado y publicado en GitHub (${appState.githubConfig.repo}).`
-                        : `Despliegue v${appState.version} actualizado y sincronizado globalmente.`
-                );
+            return btoa(binary);
+        }
+
+        async function pushHtmlFileDirectlyToGithubApi(fullHtml, showFeedback = true) {
+            saveGithubIntegrationSettings();
+            const cfg = appState.githubConfig || {};
+            let repo = (cfg.repo || '').trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/^\/+|\/+$/g, '');
+            const token = sanitizeGithubPatToken(cfg.token || '');
+            const branch = (cfg.branch || 'main').trim() || 'main';
+            const filePath = (cfg.filePath || 'index.html').trim() || 'index.html';
+            const statusBadge = document.getElementById('githubSyncStatusBadge');
+            const helper = document.getElementById('githubTokenHelperMsg');
+
+            if (!repo || !repo.includes('/') || !isValidGithubPatToken(token)) {
+                if (showFeedback) {
+                    showToast('Configura tu repositorio (usuario/repositorio) y tu Token PAT de GitHub para actualizar el código fuente.');
+                }
+                return false;
+            }
+
+            const [owner, repoName] = repo.split('/');
+            const apiUrl = `https://api.github.com/repos/${owner}/${repoName}/contents/${encodeURIComponent(filePath)}`;
+            const headers = {
+                Authorization: `Bearer ${token}`,
+                Accept: 'application/vnd.github+json',
+                'Content-Type': 'application/json'
+            };
+
+            try {
+                if (statusBadge) statusBadge.textContent = `Subiendo ${filePath} a GitHub (${repo})...`;
+
+                let existingSha = null;
+                const getRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(branch)}&t=${Date.now()}`, {
+                    method: 'GET',
+                    headers,
+                    cache: 'no-store'
+                });
+
+                if (getRes.ok) {
+                    const fileInfo = await getRes.json();
+                    existingSha = fileInfo.sha || null;
+                } else if (getRes.status !== 404) {
+                    const errInfo = await getRes.json().catch(() => ({}));
+                    throw new Error(errInfo.message || `Error HTTP ${getRes.status}`);
+                }
+
+                const contentBase64 = encodeUtf8ToBase64(fullHtml);
+                const commitBody = {
+                    message: `Actualización SISTEMA BUBU 1.0 · v${appState.version || 1} (${new Date().toLocaleString('es-MX')})`,
+                    content: contentBase64,
+                    branch
+                };
+                if (existingSha) {
+                    commitBody.sha = existingSha;
+                }
+
+                const putRes = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers,
+                    body: JSON.stringify(commitBody)
+                });
+
+                if (!putRes.ok) {
+                    const errPut = await putRes.json().catch(() => ({}));
+                    throw new Error(errPut.message || `Error HTTP ${putRes.status}`);
+                }
+
+                const putData = await putRes.json().catch(() => ({}));
+                const commitShort = putData?.commit?.sha ? putData.commit.sha.slice(0, 7) : 'OK';
+
+                if (statusBadge) {
+                    statusBadge.textContent = `Código Fuente Actualizado en GitHub (${repo} @ ${commitShort}) ✓`;
+                }
+                if (helper) {
+                    helper.innerHTML = `<span class="text-emerald-400 font-bold">✓ Commit ${commitShort} publicado en ${repo}/${filePath} (${branch}).</span>`;
+                }
+                if (showFeedback) {
+                    showToast(`Código fuente (${filePath}) actualizado directamente en GitHub (${repo} · commit ${commitShort}).`);
+                }
+                return true;
+            } catch (err) {
+                if (statusBadge) statusBadge.textContent = 'Error al subir código fuente a GitHub';
+                if (helper) {
+                    helper.innerHTML = `<span class="text-rose-400 font-bold">✕ Error GitHub API: ${err.message || 'Verifica permisos repo y rama'}</span>`;
+                }
+                if (showFeedback) {
+                    showToast(`No se pudo actualizar en GitHub: ${err.message || 'Error de conexión'}`);
+                }
+                return false;
             }
         }
 
