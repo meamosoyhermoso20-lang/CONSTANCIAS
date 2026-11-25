@@ -247,6 +247,9 @@
                     <button type="button" id="btnHeaderExportIndex" data-admin-only="true" data-header-btn="btn_save_html" onclick="downloadSelfContainedPageWithData()" class="px-2.5 py-1.5 rounded-lg bg-indigo-900/80 hover:bg-indigo-800 border border-indigo-700 text-indigo-100 text-xs font-semibold transition">
                         Exportar index.html
                     </button>
+                    <button type="button" id="btnHeaderSyncVisitor" onclick="visitorSyncLatestDeploymentNow(this)" class="px-2.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold shadow transition">
+                        Actualizar Enlace
+                    </button>
                     <button type="button" id="btnRealtimeSaveAndRefresh" data-admin-only="true" data-header-btn="btn_realtime_sync" onclick="realtimeSaveAndRefreshSystem()" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow transition">
                         Guardar y Actualizar en Tiempo Real
                     </button>
@@ -257,12 +260,20 @@
             </div>
         </header>
 
-        <!-- AVISO DE NUEVA VERSIÓN DESPLEGADA (SOLO ADMINISTRADOR) -->
-        <div id="newDeploymentBanner" data-admin-only="true" class="no-print bg-amber-500 text-slate-950 px-4 py-2 text-xs font-extrabold flex items-center justify-center gap-3 shadow-md">
-            <span>Se detectó una nueva actualización oficial desplegada por el Administrador.</span>
-            <button type="button" onclick="forceReloadLatestDeployment()" class="px-3 py-1 rounded-lg bg-slate-950 text-white text-[11px] font-bold hover:bg-slate-800">
-                Cargar Nueva Versión Ahora
-            </button>
+        <!-- BARRA DE ACTUALIZACIÓN EN TIEMPO REAL PARA TODOS LOS USUARIOS Y ADMINISTRADOR -->
+        <div id="newDeploymentBanner" class="no-print bg-slate-950 text-slate-200 border-b border-slate-800 px-4 py-1.5 text-[11px] font-semibold flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Versión del Sistema Activa: <b id="bannerActiveVersionTag" class="text-amber-400 font-mono">v1</b> · <span id="autoSyncBannerState">Guardado Automático Selectivo: Activo</span></span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="visitorSyncLatestDeploymentNow(this)" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-extrabold transition">
+                    Actualizar Enlace a Última Versión
+                </button>
+                <button type="button" data-admin-only="true" onclick="forceReloadLatestDeployment()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-bold transition">
+                    Recargar Caché
+                </button>
+            </div>
         </div>
 
         <!-- VISTA 1: GENERADOR DE CONSTANCIAS -->
@@ -271,6 +282,55 @@
 
                 <!-- COLUMNA IZQUIERDA: PANEL DE CAMPOS Y CONFIGURACIÓN -->
                 <section class="no-print lg:col-span-5 xl:col-span-5 space-y-4 lg:max-h-[calc(100vh-5.5rem)] lg:overflow-y-auto lg:pr-1">
+
+                    <!-- CUADRO SELECTIVO DE GUARDADO AUTOMÁTICO Y DESPLIEGUE EN TIEMPO REAL -->
+                    <div id="selectiveAutoSaveBox" data-admin-only="true" class="bg-slate-900 text-white rounded-2xl border border-slate-800 shadow-md p-3.5 space-y-2.5">
+                        <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <h2 class="text-[11px] font-black uppercase tracking-wider text-amber-400">Cuadro Selectivo · Guardado Automático en Tiempo Real</h2>
+                            </div>
+                            <label class="inline-flex items-center gap-1.5 cursor-pointer bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">
+                                <input type="checkbox" id="chkMasterAutoSaveRealtime" checked onchange="toggleSelectiveAutoSaveSetting('enabled', this.checked)" class="rounded border-slate-600 text-emerald-500 focus:ring-emerald-500">
+                                <span class="text-[10px] font-extrabold text-emerald-300">Auto-Guardar</span>
+                            </label>
+                        </div>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[11px]">
+                            <label class="flex items-center gap-1.5 bg-slate-800/80 hover:bg-slate-800 px-2.5 py-1.5 rounded-xl border border-slate-700/80 cursor-pointer">
+                                <input type="checkbox" id="chkAutoSaveForm" checked onchange="toggleSelectiveAutoSaveSetting('form', this.checked)" class="rounded border-slate-600 text-amber-400">
+                                <span class="font-semibold text-slate-200 truncate">Datos Alumno</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 bg-slate-800/80 hover:bg-slate-800 px-2.5 py-1.5 rounded-xl border border-slate-700/80 cursor-pointer">
+                                <input type="checkbox" id="chkAutoSaveCatalogs" checked onchange="toggleSelectiveAutoSaveSetting('catalogs', this.checked)" class="rounded border-slate-600 text-amber-400">
+                                <span class="font-semibold text-slate-200 truncate">Ofertas y Periodos</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 bg-slate-800/80 hover:bg-slate-800 px-2.5 py-1.5 rounded-xl border border-slate-700/80 cursor-pointer">
+                                <input type="checkbox" id="chkAutoSaveTemplates" checked onchange="toggleSelectiveAutoSaveSetting('templates', this.checked)" class="rounded border-slate-600 text-amber-400">
+                                <span class="font-semibold text-slate-200 truncate">Esqueletos y Firma</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 bg-slate-800/80 hover:bg-slate-800 px-2.5 py-1.5 rounded-xl border border-slate-700/80 cursor-pointer">
+                                <input type="checkbox" id="chkAutoSaveTables" checked onchange="toggleSelectiveAutoSaveSetting('tables', this.checked)" class="rounded border-slate-600 text-amber-400">
+                                <span class="font-semibold text-slate-200 truncate">Tablas y Notas</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 bg-slate-800/80 hover:bg-slate-800 px-2.5 py-1.5 rounded-xl border border-slate-700/80 cursor-pointer">
+                                <input type="checkbox" id="chkAutoSaveUsers" checked onchange="toggleSelectiveAutoSaveSetting('users', this.checked)" class="rounded border-slate-600 text-amber-400">
+                                <span class="font-semibold text-slate-200 truncate">Usuarios y Códigos</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 bg-emerald-950/70 hover:bg-emerald-900/60 px-2.5 py-1.5 rounded-xl border border-emerald-700/70 cursor-pointer">
+                                <input type="checkbox" id="chkAutoPublishGithub" checked onchange="toggleSelectiveAutoSaveSetting('autoPublish', this.checked)" class="rounded border-emerald-600 text-emerald-400">
+                                <span class="font-bold text-emerald-300 truncate">Publicar Sitio Web</span>
+                            </label>
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-between gap-2 pt-1 text-[10px]">
+                            <span id="selectiveAutoSaveStatusText" class="text-slate-300 font-medium">Seleccionados: 6/6 · Sincronización automática lista</span>
+                            <div class="flex items-center gap-1.5">
+                                <button type="button" onclick="selectAllAutoSaveModules(true)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold">Marcar Todo</button>
+                                <button type="button" onclick="executeSelectiveAutoSaveNow(true)" class="px-2.5 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold">Guardar Selección Ahora</button>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- BLOQUE 1: SELECTOR DE MODALIDAD -->
                     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
@@ -304,11 +364,51 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="folioLugarRow">
                             <div data-field-wrap="folio">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1">Folio / Control ({FOLIO})</label>
-                                <input type="text" id="inpFolio" value="DIR.C.E. 552/2025" placeholder="Ej. DIR.C.E. 552/2025" oninput="updateDocument()" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-blue-300 bg-blue-50/30 text-xs font-extrabold text-blue-950 focus:ring-2 focus:ring-blue-800 outline-none">
+                                <input type="text" id="inpFolio" value="DIR.C.E. 552/2025" placeholder="Ej. DIR.C.E. 552/2025" oninput="updateDocument();queueSelectiveAutoSave('form');" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-blue-300 bg-blue-50/30 text-xs font-extrabold text-blue-950 focus:ring-2 focus:ring-blue-800 outline-none">
                             </div>
                             <div data-field-wrap="lugar_expedicion">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1">Lugar de Expedición ({LUGAR})</label>
-                                <input type="text" id="inpLugarExpedicion" value="Teziutlán, Puebla" placeholder="Ej. Teziutlán, Puebla" oninput="updateDocument()" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-blue-300 bg-blue-50/30 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
+                                <input type="text" id="inpLugarExpedicion" value="Teziutlán, Puebla" placeholder="Ej. Teziutlán, Puebla" oninput="updateDocument();queueSelectiveAutoSave('form');" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-blue-300 bg-blue-50/30 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="fechaAsuntoRow">
+                            <div data-field-wrap="fecha_expedicion">
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Fecha de Expedición ({FECHA})</label>
+                                <div class="space-y-1">
+                                    <input type="date" id="inpFechaExpedicion" oninput="syncExpeditionDateTextFromPicker();updateDocument();queueSelectiveAutoSave('form');" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
+                                    <input type="text" id="inpFechaExpedicionTexto" value="24 de Noviembre de 2026" placeholder="Ej. 24 de Noviembre de 2026" oninput="updateDocument();queueSelectiveAutoSave('form');" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50/30 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
+                                </div>
+                            </div>
+                            <div data-field-wrap="asunto_constancia">
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Asunto ({ASUNTO}) · Por Modalidad</label>
+                                <input type="text" id="inpAsuntoConstancia" value="Constancia de Estudios" placeholder="Ej. Constancia de Estudios" oninput="syncAsuntoInputToTemplate();updateDocument();queueSelectiveAutoSave('templates');" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-blue-300 bg-blue-50/30 text-xs font-bold text-blue-950 focus:ring-2 focus:ring-blue-800 outline-none">
+                                <p class="text-[10px] text-slate-400 mt-1">Se vincula en tiempo real con <code>{ASUNTO}</code> según la constancia elegida.</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div data-field-wrap="nombre_alumno" class="sm:col-span-2">
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Nombre Completo del Alumno ({NOMBRE})</label>
+                                <input type="text" id="inpNombre" value="GOMEZ AMORES ENRIQUE" placeholder="Nombre(s) y Apellidos (respeta mayúsculas/minúsculas)" oninput="updateDocument();queueSelectiveAutoSave('form');" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-800 outline-none">
+                            </div>
+                            <div data-field-wrap="genero_alumno">
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Género</label>
+                                <select id="selGeneroAlumno" onchange="updateDocument();queueSelectiveAutoSave('form');persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-800 bg-white focus:ring-2 focus:ring-blue-800 outline-none">
+                                    <option value="M">Niño (el alumno / inscrito)</option>
+                                    <option value="F">Niña (la alumna / inscrita)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div data-field-wrap="matricula">
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Matrícula ({MATRICULA})</label>
+                                <input type="text" id="inpMatricula" value="2211899" placeholder="Ej. 2211899" oninput="updateDocument();queueSelectiveAutoSave('form');" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono font-bold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
+                            </div>
+                            <div data-field-wrap="curp" id="curpFieldWrap">
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">CURP ({CURP})</label>
+                                <input type="text" id="inpCurp" value="GOAE010412HPLRND09" placeholder="18 caracteres" oninput="updateDocument();queueSelectiveAutoSave('form');" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
                             </div>
                         </div>
 
@@ -502,21 +602,7 @@
                                 <input type="text" id="inpNewMontoPeriodo" placeholder="Periodo" class="col-span-4 px-2 py-1.5 rounded-lg border border-slate-300 bg-white text-[11px]">
                                 <input type="number" id="inpNewMontoImporte" placeholder="Importe" class="col-span-3 px-2 py-1.5 rounded-lg border border-slate-300 bg-white text-[11px] text-right font-bold">
                             </div>
-                            <div id="montosRowsContainer" class="space-y-1.5">
-                <div class="grid grid-cols-12 gap-1 items-center">
-                    <input type="text" value="Inscripción Semestral" oninput="appState.montos[0].concepto=this.value;updateDocument();" placeholder="Concepto" class="col-span-5 px-2 py-1.5 rounded-lg border border-slate-300 text-[11px]">
-                    <input type="text" value="Agosto 2026 - Enero 2027" oninput="appState.montos[0].periodo=this.value;updateDocument();" placeholder="Periodo" class="col-span-4 px-2 py-1.5 rounded-lg border border-slate-300 text-[11px]">
-                    <input type="number" value="2500" oninput="appState.montos[0].importe=parseFloat(this.value)||0;updateDocument();" placeholder="Importe" class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] text-right font-bold">
-                    <button type="button" onclick="removeMontoRow(0)" class="col-span-1 px-1.5 py-1 rounded-lg bg-rose-100 text-rose-700 text-xs font-bold">✕</button>
-                </div>
-            
-                <div class="grid grid-cols-12 gap-1 items-center">
-                    <input type="text" value="Colegiatura Mensual (5 pagos)" oninput="appState.montos[1].concepto=this.value;updateDocument();" placeholder="Concepto" class="col-span-5 px-2 py-1.5 rounded-lg border border-slate-300 text-[11px]">
-                    <input type="text" value="Agosto - Diciembre 2026" oninput="appState.montos[1].periodo=this.value;updateDocument();" placeholder="Periodo" class="col-span-4 px-2 py-1.5 rounded-lg border border-slate-300 text-[11px]">
-                    <input type="number" value="9000" oninput="appState.montos[1].importe=parseFloat(this.value)||0;updateDocument();" placeholder="Importe" class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] text-right font-bold">
-                    <button type="button" onclick="removeMontoRow(1)" class="col-span-1 px-1.5 py-1 rounded-lg bg-rose-100 text-rose-700 text-xs font-bold">✕</button>
-                </div>
-            </div>
+                            <div id="montosRowsContainer" class="space-y-1.5"></div>
                         </div>
 
                         <!-- CONTROLES DE KARDEX -->
@@ -525,34 +611,7 @@
                                 <label class="text-[11px] font-extrabold uppercase text-blue-900">Historial Académico · Kardex (Máx. 20 Filas)</label>
                                 <button type="button" onclick="addKardexRow()" class="px-2 py-0.5 rounded-lg bg-blue-900 text-white text-[10px] font-bold">+ Materia</button>
                             </div>
-                            <div id="kardexRowsContainer" class="space-y-1.5">
-                <div class="grid grid-cols-12 gap-1 items-center">
-                    <input type="text" value="DER-101" oninput="appState.kardex[0].clave=this.value;updateDocument();" placeholder="Clave" class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] font-mono">
-                    <input type="text" value="Introducción al Estudio del Derecho" oninput="appState.kardex[0].asignatura=this.value;updateDocument();" placeholder="Asignatura" class="col-span-4 px-2 py-1.5 rounded-lg border border-slate-300 text-[11px]">
-                    <input type="text" value="1° Semestre" oninput="appState.kardex[0].ciclo=this.value;updateDocument();" placeholder="Ciclo" class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] text-center">
-                    <input type="text" value="8" oninput="appState.kardex[0].creditos=this.value;updateDocument();" placeholder="Créd." class="col-span-1 px-1 py-1.5 rounded-lg border border-slate-300 text-[11px] text-center">
-                    <input type="text" value="9.5" oninput="appState.kardex[0].calif=this.value;updateDocument();" placeholder="Calif." class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] text-center font-bold">
-                    <button type="button" onclick="removeKardexRow(0)" class="col-span-1 px-1.5 py-1 rounded-lg bg-rose-100 text-rose-700 text-xs font-bold">✕</button>
-                </div>
-            
-                <div class="grid grid-cols-12 gap-1 items-center">
-                    <input type="text" value="DER-102" oninput="appState.kardex[1].clave=this.value;updateDocument();" placeholder="Clave" class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] font-mono">
-                    <input type="text" value="Derecho Romano I" oninput="appState.kardex[1].asignatura=this.value;updateDocument();" placeholder="Asignatura" class="col-span-4 px-2 py-1.5 rounded-lg border border-slate-300 text-[11px]">
-                    <input type="text" value="1° Semestre" oninput="appState.kardex[1].ciclo=this.value;updateDocument();" placeholder="Ciclo" class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] text-center">
-                    <input type="text" value="8" oninput="appState.kardex[1].creditos=this.value;updateDocument();" placeholder="Créd." class="col-span-1 px-1 py-1.5 rounded-lg border border-slate-300 text-[11px] text-center">
-                    <input type="text" value="9.0" oninput="appState.kardex[1].calif=this.value;updateDocument();" placeholder="Calif." class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] text-center font-bold">
-                    <button type="button" onclick="removeKardexRow(1)" class="col-span-1 px-1.5 py-1 rounded-lg bg-rose-100 text-rose-700 text-xs font-bold">✕</button>
-                </div>
-            
-                <div class="grid grid-cols-12 gap-1 items-center">
-                    <input type="text" value="DER-201" oninput="appState.kardex[2].clave=this.value;updateDocument();" placeholder="Clave" class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] font-mono">
-                    <input type="text" value="Derecho Civil I" oninput="appState.kardex[2].asignatura=this.value;updateDocument();" placeholder="Asignatura" class="col-span-4 px-2 py-1.5 rounded-lg border border-slate-300 text-[11px]">
-                    <input type="text" value="2° Semestre" oninput="appState.kardex[2].ciclo=this.value;updateDocument();" placeholder="Ciclo" class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] text-center">
-                    <input type="text" value="8" oninput="appState.kardex[2].creditos=this.value;updateDocument();" placeholder="Créd." class="col-span-1 px-1 py-1.5 rounded-lg border border-slate-300 text-[11px] text-center">
-                    <input type="text" value="9.8" oninput="appState.kardex[2].calif=this.value;updateDocument();" placeholder="Calif." class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] text-center font-bold">
-                    <button type="button" onclick="removeKardexRow(2)" class="col-span-1 px-1.5 py-1 rounded-lg bg-rose-100 text-rose-700 text-xs font-bold">✕</button>
-                </div>
-            </div>
+                            <div id="kardexRowsContainer" class="space-y-1.5"></div>
                         </div>
 
                         <!-- CONTROLES DE RESGUARDO -->
@@ -561,23 +620,7 @@
                                 <label class="text-[11px] font-extrabold uppercase text-blue-900">Documentos / Bienes en Resguardo (Máx. 20 Filas)</label>
                                 <button type="button" onclick="addResguardoRow()" class="px-2 py-0.5 rounded-lg bg-blue-900 text-white text-[10px] font-bold">+ Registro</button>
                             </div>
-                            <div id="resguardoRowsContainer" class="space-y-1.5">
-                <div class="grid grid-cols-12 gap-1 items-center">
-                    <input type="text" value="1" oninput="appState.resguardo[0].cantidad=this.value;updateDocument();" placeholder="Cant." class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] text-center font-bold">
-                    <input type="text" value="Certificado Original de Bachillerato" oninput="appState.resguardo[0].descripcion=this.value;updateDocument();" placeholder="Descripción" class="col-span-4 px-2 py-1.5 rounded-lg border border-slate-300 text-[11px]">
-                    <input type="text" value="FOLIO-BACH-8821" oninput="appState.resguardo[0].serie=this.value;updateDocument();" placeholder="Folio/Serie" class="col-span-3 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] font-mono">
-                    <input type="text" value="Original / Buen Estado" oninput="appState.resguardo[0].estado=this.value;updateDocument();" placeholder="Estado" class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px]">
-                    <button type="button" onclick="removeResguardoRow(0)" class="col-span-1 px-1.5 py-1 rounded-lg bg-rose-100 text-rose-700 text-xs font-bold">✕</button>
-                </div>
-            
-                <div class="grid grid-cols-12 gap-1 items-center">
-                    <input type="text" value="1" oninput="appState.resguardo[1].cantidad=this.value;updateDocument();" placeholder="Cant." class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] text-center font-bold">
-                    <input type="text" value="Acta de Nacimiento Certificada" oninput="appState.resguardo[1].descripcion=this.value;updateDocument();" placeholder="Descripción" class="col-span-4 px-2 py-1.5 rounded-lg border border-slate-300 text-[11px]">
-                    <input type="text" value="ACTA-2026-091" oninput="appState.resguardo[1].serie=this.value;updateDocument();" placeholder="Folio/Serie" class="col-span-3 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px] font-mono">
-                    <input type="text" value="Original / Buen Estado" oninput="appState.resguardo[1].estado=this.value;updateDocument();" placeholder="Estado" class="col-span-2 px-1.5 py-1.5 rounded-lg border border-slate-300 text-[11px]">
-                    <button type="button" onclick="removeResguardoRow(1)" class="col-span-1 px-1.5 py-1 rounded-lg bg-rose-100 text-rose-700 text-xs font-bold">✕</button>
-                </div>
-            </div>
+                            <div id="resguardoRowsContainer" class="space-y-1.5"></div>
                         </div>
 
                         <div id="typographyControlsWrap" class="grid grid-cols-3 gap-2 pt-1">
@@ -785,9 +828,9 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="px-2 py-0.5 rounded bg-amber-400 text-slate-950 text-[10px] font-black uppercase">Solo Administrador</span>
-                                <h3 class="text-xs sm:text-sm font-black uppercase tracking-wider text-amber-400">Vinculación Fácil a GitHub y Publicación en Código Fuente (index.html)</h3>
+                                <h3 class="text-xs sm:text-sm font-black uppercase tracking-wider text-amber-400">Vinculación Automática y Despliegue en Tiempo Real (index.html)</h3>
                             </div>
-                            <p class="text-[11px] text-slate-300 mt-1">Al guardar cambios se sincroniza y despliega automáticamente en tu repositorio para que cualquier enlace o navegador entre con los códigos guardados.</p>
+                            <p class="text-[11px] text-slate-300 mt-1">Extrae automáticamente tus credenciales, vincula el repositorio y publica los cambios para todos los usuarios.</p>
                         </div>
                         <span id="githubSyncStatusBadge" class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">Listo para sincronizar</span>
                     </div>
@@ -795,44 +838,33 @@
                     <!-- RESUMEN DE DATOS EXTRAÍDOS AUTOMÁTICAMENTE DEL SISTEMA -->
                     <div id="extractedGithubSummaryBox" class="bg-slate-950 border border-emerald-500/40 rounded-xl p-3 space-y-2">
                         <div class="flex flex-wrap items-center justify-between gap-2">
-                            <span class="text-[11px] font-black uppercase tracking-wider text-emerald-400">Datos Extraídos del Sistema (Sincronización Global):</span>
-                            <button type="button" onclick="extractAllSystemDeploymentInfo(true)" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-extrabold transition">
-                                Extraer del Sistema Ahora
+                            <span class="text-[11px] font-black uppercase tracking-wider text-emerald-400">Datos Extraídos Automáticamente del Sistema:</span>
+                            <button type="button" id="btnExtractAndAutoLoad" data-header-btn="btn_extract_data" onclick="extractAndAutoLoadSystemData()" class="px-3 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-extrabold transition">
+                                Extraer Datos Automáticamente
                             </button>
                         </div>
                         <div id="extractedSystemInfoGrid" class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] font-mono">
                             <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-2">
-                                <div class="text-[9px] uppercase text-slate-400">Repositorio Detectado</div>
+                                <div class="text-[9px] uppercase text-slate-400">Repositorio y Rama</div>
                                 <div id="summaryRepoValue" class="text-amber-300 font-bold truncate">Detectando...</div>
                             </div>
                             <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-2">
-                                <div class="text-[9px] uppercase text-slate-400">Token Vinculado</div>
+                                <div class="text-[9px] uppercase text-slate-400">Estado de Vinculación</div>
                                 <div id="summaryTokenValue" class="text-emerald-300 font-bold truncate">Verificando...</div>
                             </div>
                             <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-2">
-                                <div class="text-[9px] uppercase text-slate-400">Enlace Público Activo</div>
+                                <div class="text-[9px] uppercase text-slate-400">Enlace Público Compartido</div>
                                 <div id="summaryUrlValue" class="text-sky-300 font-bold truncate">Detectando...</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- GUÍA ENUMERADA PASO A PASO DE CLICS PARA SINCRONIZAR -->
-                    <div class="bg-slate-950/90 border border-amber-500/40 rounded-xl p-3 space-y-1.5">
-                        <div class="text-[11px] font-black uppercase tracking-wider text-amber-300">Orden Exacto de Clics para Sincronizar y Actualizar Todo el Enlace:</div>
-                        <ol class="list-decimal list-inside text-[11px] text-slate-200 space-y-1 leading-relaxed">
-                            <li><b>Clic 1 · Guardar Usuario:</b> En el usuario que creaste o editaste abajo, escribe su código de acceso y haz clic en el botón verde <span class="px-1.5 py-0.5 rounded bg-emerald-700 text-white font-bold">Guardar Cambios</span>.</li>
-                            <li><b>Clic 2 · Detectar Repositorio:</b> En el Paso 1, haz clic en <span class="px-1.5 py-0.5 rounded bg-slate-700 text-amber-300 font-bold">Auto-detectar Repo</span> (o escribe <code>usuario/repositorio</code>).</li>
-                            <li><b>Clic 3 · Token de GitHub:</b> En el Paso 2, haz clic en <span class="px-1.5 py-0.5 rounded bg-emerald-600 text-white font-bold">GitHub ↗</span>, genera un token con permiso <code>repo</code>, pégalo en la casilla y haz clic en <span class="px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 font-bold">Guardar</span>.</li>
-                            <li><b>Clic 4 · Enlace Público:</b> En el Paso 3, verifica el enlace de tu página y haz clic en <span class="px-1.5 py-0.5 rounded bg-slate-700 text-white font-bold">Verificar Versión Publicada</span>.</li>
-                            <li><b>Clic 5 · Publicar y Actualizar Enlace:</b> Haz clic en el botón verde <span class="px-1.5 py-0.5 rounded bg-emerald-600 text-white font-bold">5. Publicar en GitHub y Notificar</span> (o en el botón amarillo superior <span class="px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 font-bold">Guardar y Actualizar en Tiempo Real</span>) para subir los cambios y actualizar la página.</li>
-                        </ol>
-                    </div>
-
+                    <!-- CONFIGURACIÓN ORGANIZADA EN 3 PASOS LIMPIOS -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                        <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-1.5">
+                        <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-2">
                             <div class="flex items-center justify-between">
-                                <span class="text-[10px] font-black uppercase text-amber-400">Paso 1 · Repositorio y Rama</span>
-                                <button type="button" onclick="autoDetectGithubRepoFromHost()" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-[10px] font-bold text-amber-300">Auto-detectar Repo</button>
+                                <span class="text-[10px] font-black uppercase text-amber-400">1. Repositorio y Rama</span>
+                                <button type="button" onclick="autoDetectGithubRepoFromHost(false)" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-[10px] font-bold text-amber-300">Auto-detectar</button>
                             </div>
                             <input type="text" id="inpGithubRepo" oninput="saveGithubIntegrationSettings()" placeholder="usuario/repositorio" class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono text-xs outline-none">
                             <div class="flex gap-1.5">
@@ -841,51 +873,41 @@
                             </div>
                         </div>
 
-                        <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-1.5">
+                        <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-2">
                             <div class="flex items-center justify-between">
-                                <span class="text-[10px] font-black uppercase text-amber-400">Paso 2 · Token GitHub (Permiso repo)</span>
-                                <div class="flex items-center gap-1">
-                                    <button type="button" onclick="pullGithubTokenFromSystem(true)" class="px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-black">Jalar de GitHub</button>
-                                    <a href="https://github.com/settings/tokens/new?description=SISTEMA_BUBU_1_0_UAMP&scopes=repo" target="_blank" rel="noopener noreferrer" onclick="listenForGithubTokenPaste()" class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-extrabold">GitHub ↗</a>
-                                </div>
+                                <span class="text-[10px] font-black uppercase text-amber-400">2. Token GitHub (repo)</span>
+                                <a href="https://github.com/settings/tokens/new?description=SISTEMA_BUBU_1_0_UAMP&scopes=repo" target="_blank" rel="noopener noreferrer" onclick="listenForGithubTokenPaste()" class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-extrabold">Obtener Token ↗</a>
                             </div>
                             <div class="flex gap-1.5">
-                                <input type="password" id="inpGithubToken" oninput="saveGithubIntegrationSettings()" placeholder="Pega tu token repo de GitHub (ghp_...)" class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono text-xs outline-none">
-                                <button type="button" onclick="linkGithubTokenWithRepository()" class="px-2.5 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-[10px] whitespace-nowrap transition">
-                                    Vincular Token con Repo
+                                <input type="password" id="inpGithubToken" oninput="saveGithubIntegrationSettings()" placeholder="ghp_... o github_pat_..." class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono text-xs outline-none">
+                                <button type="button" onclick="linkGithubTokenWithRepository()" class="px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-[11px] whitespace-nowrap transition">
+                                    Vincular
                                 </button>
                             </div>
-                            <p id="githubTokenHelperMsg" class="text-[10px] text-slate-400">Ingresa tu Repositorio (Paso 1) y Token (Paso 2), luego presiona <b>Vincular Token con Repo</b>.</p>
+                            <p id="githubTokenHelperMsg" class="text-[10px] text-slate-400">Pega el token con permiso <b>repo</b> y presiona <b>Vincular</b>.</p>
                         </div>
 
-                        <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-1.5">
-                            <div class="text-[10px] font-black uppercase text-amber-400">Paso 3 · Enlace Público (Visitantes)</div>
+                        <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] font-black uppercase text-amber-400">3. Enlace Público</span>
+                                <button type="button" onclick="copyGlobalSystemPublicLink()" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-sky-300 text-[10px] font-bold">Copiar Enlace</button>
+                            </div>
                             <input type="text" id="inpCustomDomainUrl" oninput="saveGithubIntegrationSettings()" placeholder="https://usuario.github.io/repo/" class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs outline-none">
-                            <button type="button" onclick="checkRemoteDeploymentVersion(true)" class="w-full py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100 text-[11px] font-bold transition">
-                                Verificar Versión Publicada
-                            </button>
+                            <p class="text-[10px] text-slate-400">Los usuarios verán los cambios al presionar <b>Actualizar Enlace</b>.</p>
                         </div>
                     </div>
 
-                    <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <!-- ACCIONES PRINCIPALES DE DESPLIEGUE (SOLO LO ESENCIAL) -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800">
+                        <button type="button" onclick="saveAllDataAndAutoUploadIndex()" class="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-lg transition">
+                            Guardar y Publicar Despliegue en Tiempo Real (index.html)
+                        </button>
                         <div class="flex flex-wrap items-center gap-2">
-                            <button type="button" onclick="autoGenerateNewTokenAndLinkRepo()" class="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-black shadow transition">
-                                0. Generar Token Nuevo y Vincular con Repo
-                            </button>
-                            <button type="button" id="btnExtractAndAutoLoad" data-header-btn="btn_extract_data" onclick="extractAndAutoLoadSystemData()" class="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-extrabold shadow transition">
-                                1. Extraer Datos
-                            </button>
-                            <button type="button" onclick="syncUpdatesInRealTimeNow(true)" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow transition">
-                                2. Actualizar en Tiempo Real
-                            </button>
-                            <button type="button" onclick="saveAllDataAndAutoUploadIndex()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow transition">
-                                3. Subir index.html y Actualizar Página al Nuevo Despliegue
-                            </button>
-                            <button type="button" id="btnGithubSectionRefreshDeployment" onclick="visitorSyncLatestDeploymentNow(this)" class="px-4 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black shadow transition">
-                                4. Despliegue Creado · Actualizarlo
+                            <button type="button" id="btnGithubSectionRefreshDeployment" onclick="visitorSyncLatestDeploymentNow(this)" class="px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold transition">
+                                Sincronizar Enlace Ahora
                             </button>
                             <button type="button" onclick="downloadSelfContainedPageWithData()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition">
-                                5. Descargar Respaldo index.html
+                                Descargar Respaldo index.html
                             </button>
                         </div>
                     </div>
@@ -997,7 +1019,6 @@
 
     <script>
         const ADMIN_MASTER_CODE = 'bubu03';
-        const ADMIN_MASTER_HASH = 'c8b9e6c1f8a2a1d7c4a52e1e0f4b7e3c9c0d1a2b3c4d5e6f7a8b9c0d1e2f3a4b';
         const CODE_HASH_SALT = 'UAMP_BUBU_1_0_SECURE_SALT_2026';
         const STORAGE_KEY = 'SISTEMA_BUBU_1_0_UAMP_STATE_V4';
         const BACKUP_STORAGE_KEY = 'SISTEMA_BUBU_1_0_PERMANENT_VAULT_BACKUP';
@@ -1152,8 +1173,99 @@
             studentsVault: [],
             deletedIds: [],
             githubConfig: { repo: '', token: '', branch: 'main', filePath: 'index.html', publicUrl: '' },
-            extractedFormState: null
+            extractedFormState: null,
+            selectiveAutoSave: {
+                enabled: true,
+                form: true,
+                catalogs: true,
+                templates: true,
+                tables: true,
+                users: true,
+                autoPublish: true
+            }
         };
+
+        let _selectiveAutoSaveDebounce = null;
+        function syncSelectiveAutoSaveCheckboxes() {
+            const cfg = appState.selectiveAutoSave || {};
+            const map = {
+                chkMasterAutoSaveRealtime: cfg.enabled !== false,
+                chkAutoSaveForm: cfg.form !== false,
+                chkAutoSaveCatalogs: cfg.catalogs !== false,
+                chkAutoSaveTemplates: cfg.templates !== false,
+                chkAutoSaveTables: cfg.tables !== false,
+                chkAutoSaveUsers: cfg.users !== false,
+                chkAutoPublishGithub: cfg.autoPublish !== false
+            };
+            Object.keys(map).forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.checked = map[id];
+            });
+            const activeCount = ['form', 'catalogs', 'templates', 'tables', 'users', 'autoPublish'].filter(k => cfg[k] !== false).length;
+            const statusEl = document.getElementById('selectiveAutoSaveStatusText');
+            const bannerState = document.getElementById('autoSyncBannerState');
+            if (statusEl) {
+                statusEl.textContent = cfg.enabled !== false
+                    ? `Seleccionados: ${activeCount}/6 · Guardado automático y actualización en tiempo real activos`
+                    : 'Guardado automático pausado (solo manual)';
+            }
+            if (bannerState) {
+                bannerState.textContent = cfg.enabled !== false
+                    ? `Guardado Automático Selectivo (${activeCount}/6): Activo`
+                    : 'Guardado Automático Selectivo: Pausado';
+            }
+        }
+
+        function toggleSelectiveAutoSaveSetting(key, checked) {
+            appState.selectiveAutoSave = appState.selectiveAutoSave || {
+                enabled: true, form: true, catalogs: true, templates: true, tables: true, users: true, autoPublish: true
+            };
+            appState.selectiveAutoSave[key] = Boolean(checked);
+            syncSelectiveAutoSaveCheckboxes();
+            persistBaseState(true, true, false);
+            if (appState.selectiveAutoSave.enabled && checked) {
+                executeSelectiveAutoSaveNow(false);
+            }
+        }
+
+        function selectAllAutoSaveModules(stateVal) {
+            appState.selectiveAutoSave = {
+                enabled: stateVal,
+                form: stateVal,
+                catalogs: stateVal,
+                templates: stateVal,
+                tables: stateVal,
+                users: stateVal,
+                autoPublish: stateVal
+            };
+            syncSelectiveAutoSaveCheckboxes();
+            executeSelectiveAutoSaveNow(true);
+        }
+
+        function queueSelectiveAutoSave(category = 'form') {
+            const cfg = appState.selectiveAutoSave || {};
+            if (cfg.enabled === false) return;
+            if (category && cfg[category] === false) return;
+            clearTimeout(_selectiveAutoSaveDebounce);
+            const statusEl = document.getElementById('selectiveAutoSaveStatusText');
+            if (statusEl) statusEl.textContent = 'Detectando cambios · Guardando en tiempo real...';
+            _selectiveAutoSaveDebounce = setTimeout(() => {
+                executeSelectiveAutoSaveNow(false);
+            }, 700);
+        }
+
+        async function executeSelectiveAutoSaveNow(manualToast = false) {
+            const cfg = appState.selectiveAutoSave || {};
+            if (cfg.form !== false) {
+                appState.extractedFormState = extractCurrentSystemFields();
+            }
+            const shouldBump = cfg.autoPublish !== false;
+            persistBaseState(true, true, shouldBump);
+            syncSelectiveAutoSaveCheckboxes();
+            if (manualToast) {
+                showToast('Datos seleccionados guardados y sincronizados en tiempo real.');
+            }
+        }
 
         function showToast(msg) {
             const toast = document.getElementById('toastNotification');
@@ -1168,9 +1280,23 @@
             const msgEl = document.getElementById('realtimeCornerMessage');
             const verEl = document.getElementById('realtimeCornerVersion');
             const timeEl = document.getElementById('realtimeCornerTime');
+            const bannerVerEl = document.getElementById('bannerActiveVersionTag');
             if (msgEl) msgEl.textContent = message;
             if (verEl) verEl.textContent = `v${appState.version || 1}`;
+            if (bannerVerEl) bannerVerEl.textContent = `v${appState.version || 1}`;
             if (timeEl) timeEl.textContent = `Actualizado: ${new Date().toLocaleTimeString('es-MX')}`;
+        }
+
+        function copyGlobalSystemPublicLink() {
+            const rawUrl = (document.getElementById('inpCustomDomainUrl')?.value || appState.githubConfig?.publicUrl || window.location.href).split('#')[0].split('?')[0];
+            const cleanUrl = `${rawUrl}?v=${appState.version || 1}`;
+            const ta = document.createElement('textarea');
+            ta.value = cleanUrl;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast('Enlace público actualizado copiado al portapapeles.');
         }
 
         function createDefaultDocAccessMatrix(val = true) {
@@ -1480,20 +1606,6 @@
             }
         }
 
-        function updateSystemGithubToken() {
-            saveGithubIntegrationSettings();
-            const token = sanitizeGithubPatToken(appState.githubConfig?.token || '');
-            if (!token) {
-                showToast('Pega tu token real de GitHub (ghp_... o github_pat_...) en el Paso 2 y presiona Vincular Token con Repo.');
-                return;
-            }
-            appState.githubConfig.token = token;
-            localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
-            persistBaseState(true, true, false);
-            refreshExtractedDeploymentSummary();
-            showToast('Token guardado. Ahora presiona "Vincular Token con Repo".');
-        }
-
         function sanitizeGithubPatToken(raw) {
             let clean = String(raw || '').trim();
             clean = clean.replace(/^["'`]+|["'`]+$/g, '').replace(/^(token|bearer)\s+/i, '').replace(/\s+/g, '');
@@ -1505,7 +1617,6 @@
             const statusBadge = document.getElementById('githubSyncStatusBadge');
             const helper = document.getElementById('githubTokenHelperMsg');
 
-            // 1. Detectar o solicitar repositorio antes de abrir GitHub
             let repo = (document.getElementById('inpGithubRepo')?.value || appState.githubConfig?.repo || '').trim();
             repo = repo.replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/^\/+|\/+$/g, '');
             if (!repo || !repo.includes('/')) {
@@ -1513,18 +1624,11 @@
                 repo = (appState.githubConfig?.repo || '').trim();
             }
             if (!repo || !repo.includes('/')) {
-                const askedRepo = window.prompt('Paso 1: Escribe tu Repositorio de GitHub (ejemplo: usuario/repositorio):', repo || '');
-                if (!askedRepo || !askedRepo.includes('/')) {
-                    showToast('Escribe tu repositorio en formato usuario/repositorio para continuar.');
-                    return false;
-                }
-                repo = askedRepo.trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/^\/+|\/+$/g, '');
-                if (document.getElementById('inpGithubRepo')) document.getElementById('inpGithubRepo').value = repo;
-                appState.githubConfig.repo = repo;
-                saveGithubIntegrationSettings();
+                showToast('Escribe primero tu repositorio en el Paso 1 (formato usuario/repositorio).');
+                document.getElementById('inpGithubRepo')?.focus();
+                return false;
             }
 
-            // 2. Limpiar cualquier token anterior caducado
             appState.githubConfig.token = '';
             localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
             if (document.getElementById('inpGithubToken')) document.getElementById('inpGithubToken').value = '';
@@ -1536,7 +1640,6 @@
                 helper.innerHTML = `<span class="text-cyan-300 font-bold">1) En la ventana de GitHub que se abrió, presiona "Generate token" y cópialo. 2) Regresa aquí y se vinculará solo con <b>${repo}</b>.</span>`;
             }
 
-            // 3. Configurar captura automática al volver a esta pestaña y vincular de inmediato con el repo
             const onReturnBindNewToken = async () => {
                 window.removeEventListener('focus', onReturnBindNewToken);
                 let captured = sanitizeGithubPatToken(scanAllSourcesForGithubRepoToken());
@@ -1560,7 +1663,6 @@
             };
             window.addEventListener('focus', onReturnBindNewToken);
 
-            // 4. Abrir generación directa de token nuevo en GitHub con permiso repo
             const tokenDesc = encodeURIComponent(`SISTEMA_BUBU_1_0_${Date.now()}`);
             window.open(`https://github.com/settings/tokens/new?description=${tokenDesc}&scopes=repo`, '_blank', 'noopener,noreferrer');
             showToast(`Se abrió GitHub para generar un Token nuevo. Al copiarlo y volver aquí se vinculará en automático con ${repo}.`);
@@ -1588,34 +1690,26 @@
             }
 
             if (!repo || !repo.includes('/')) {
-                const askedRepo = window.prompt('Escribe tu Repositorio de GitHub en formato usuario/repositorio (ejemplo: uamp-escolar/constancias):', repo || '');
-                if (!askedRepo || !askedRepo.includes('/')) {
-                    showToast('Debes indicar un repositorio válido en formato usuario/repositorio.');
-                    return false;
-                }
-                repo = askedRepo.trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/^\/+|\/+$/g, '');
-                if (document.getElementById('inpGithubRepo')) document.getElementById('inpGithubRepo').value = repo;
+                showToast('Indica un repositorio válido en el Paso 1 (formato usuario/repositorio).');
+                document.getElementById('inpGithubRepo')?.focus();
+                return false;
             }
 
             if (!token) {
                 const scanned = sanitizeGithubPatToken(await pullGithubTokenFromSystem(false));
                 if (scanned) {
                     token = scanned;
+                    if (document.getElementById('inpGithubToken')) document.getElementById('inpGithubToken').value = token;
                 } else {
-                    const askedToken = window.prompt('Pega tu Token real de GitHub con permiso "repo" (empieza con ghp_ o github_pat_):', '');
-                    token = sanitizeGithubPatToken(askedToken);
-                    if (!token) {
-                        showToast('Necesitas pegar un Token real de GitHub (ghp_... o github_pat_...) para vincularlo.');
-                        return false;
-                    }
+                    showToast('Pega tu Token real de GitHub (ghp_... o github_pat_...) en el Paso 2.');
+                    document.getElementById('inpGithubToken')?.focus();
+                    return false;
                 }
-                if (document.getElementById('inpGithubToken')) document.getElementById('inpGithubToken').value = token;
             }
 
             if (statusBadge) statusBadge.textContent = 'Validando credenciales en GitHub...';
 
             try {
-                // 1. Verificar primero que el token sea válido ante GitHub (/user)
                 const userCheckRes = await fetch('https://api.github.com/user', {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -1626,7 +1720,6 @@
                 });
 
                 if (userCheckRes.status === 401) {
-                    // Limpiar el token caducado o inválido de todas las memorias
                     appState.githubConfig.token = '';
                     localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
                     if (document.getElementById('inpGithubToken')) document.getElementById('inpGithubToken').value = '';
@@ -1634,13 +1727,11 @@
                     refreshExtractedDeploymentSummary();
 
                     if (statusBadge) statusBadge.textContent = 'Token caducado o inválido (401)';
-                    if (helper) helper.innerHTML = `<span class="text-rose-400 font-bold">✕ GitHub rechazó el token (caducado o revocado). Generando asistente para token nuevo...</span>`;
-                    showToast('Token caducado (401). Abriendo generador de Token nuevo para vincularlo con tu repositorio...');
-                    await autoGenerateNewTokenAndLinkRepo();
+                    if (helper) helper.innerHTML = `<span class="text-rose-400 font-bold">✕ GitHub rechazó el token (caducado o revocado). Genera uno nuevo con GitHub ↗.</span>`;
+                    showToast('Token caducado (401). Genera uno nuevo en GitHub ↗ y pégalo en el Paso 2.');
                     return false;
                 }
 
-                // 2. Verificar acceso y permisos de escritura en el repositorio
                 const res = await fetch(`https://api.github.com/repos/${repo}`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -1688,28 +1779,13 @@
 
                 if (statusBadge) statusBadge.textContent = `Vinculado: ${repo} (${defaultBranch}) ✓`;
                 if (helper) helper.innerHTML = `<span class="text-emerald-400 font-bold">✓ Token repo vinculado correctamente con ${repo} (${defaultBranch}).</span>`;
-                showToast(`¡Vinculación exitosa! Token repo conectado con ${repo}. Ya puedes publicar y actualizar el despliegue.`);
+                showToast(`¡Vinculación exitosa! Token repo conectado con ${repo}.`);
                 return true;
             } catch (e) {
                 if (statusBadge) statusBadge.textContent = 'Error de conexión con GitHub';
                 showToast('No se pudo conectar con GitHub para validar el repositorio.');
                 return false;
             }
-        }
-
-        async function autoGenerateAndBindGithubToken() {
-            const token = await autoGenerateDeploymentToken(false);
-            if (!token) return;
-            try {
-                const ta = document.createElement('textarea');
-                ta.value = token;
-                document.body.appendChild(ta);
-                ta.select();
-                document.execCommand('copy');
-                document.body.removeChild(ta);
-            } catch (e) {}
-            const badge = document.getElementById('githubSyncStatusBadge');
-            if (badge) badge.textContent = `Token generado y guardado ✓`;
         }
 
         function refreshExtractedDeploymentSummary() {
@@ -1857,13 +1933,11 @@
         async function extractAllSystemDeploymentInfo(showNotification = true) {
             appState.githubConfig = appState.githubConfig || { repo: '', token: '', branch: 'main', filePath: 'index.html', publicUrl: '' };
 
-            // 1. Jalar automáticamente el token repo de GitHub si existe en el sistema/navegador
             const pulledGhToken = await pullGithubTokenFromSystem(false);
             if (pulledGhToken) {
                 appState.githubConfig.token = pulledGhToken;
             }
 
-            // 2. Extraer desde almacenamiento local / IndexedDB / HTML embebido si algún campo está vacío
             try {
                 const savedTok = localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
                 if (savedTok && (!appState.githubConfig.token || /^gh[pou]_|^github_pat_/i.test(savedTok))) {
@@ -1882,7 +1956,6 @@
                 }
             } catch (e) {}
 
-            // 3. Extraer desde la URL actual (GitHub Pages o dominio personalizado)
             try {
                 const loc = window.location;
                 if (loc && /\.github\.io$/i.test(loc.hostname)) {
@@ -1895,11 +1968,6 @@
                     appState.githubConfig.publicUrl = loc.href.split('#')[0].split('?')[0];
                 }
             } catch (e) {}
-
-            // 4. Si aún no existe ningún token, generar respaldo interno
-            if (!appState.githubConfig.token) {
-                await autoGenerateDeploymentToken(true);
-            }
 
             loadGithubConfigToInputs();
             refreshExtractedDeploymentSummary();
@@ -2004,7 +2072,6 @@
             const statusBadge = document.getElementById('githubSyncStatusBadge');
             let isGithubPat = /^gh[pou]_|^github_pat_/i.test(activeToken);
 
-            // Vincular automáticamente el token en todas las capas al iniciar la subida
             if (activeToken) {
                 appState.githubConfig.token = activeToken;
                 localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, activeToken);
@@ -2013,38 +2080,20 @@
                 }
             }
 
-            // Si aún no hay un token PAT real de GitHub vinculado al subir, intentar jalarlo o pedirlo al momento
             if (manual && !isGithubPat) {
                 const pulled = sanitizeGithubPatToken(await pullGithubTokenFromSystem(false));
                 if (pulled) {
                     activeToken = pulled;
                     isGithubPat = true;
-                } else {
-                    const enteredPat = window.prompt(
-                        'Para subir automáticamente tu index.html a GitHub, pega aquí tu Token PAT de GitHub (empieza con ghp_ o github_pat_ y tiene permiso "repo"):'
-                    );
-                    const cleanEntered = sanitizeGithubPatToken(enteredPat);
-                    if (cleanEntered) {
-                        activeToken = cleanEntered;
-                        appState.githubConfig.token = activeToken;
-                        localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, activeToken);
-                        if (document.getElementById('inpGithubToken')) {
-                            document.getElementById('inpGithubToken').value = activeToken;
-                        }
-                        isGithubPat = /^gh[pou]_|^github_pat_/i.test(activeToken);
-                        refreshExtractedDeploymentSummary();
-                    }
                 }
             }
 
-            // 1. Generar siempre el index.html completo actualizado y guardarlo en el sistema local/embebido
             persistBaseState(true, true, false);
             const fullHtml = buildCleanDeployableHtml();
             try {
                 localStorage.setItem('SISTEMA_BUBU_1_0_DEPLOYED_INDEX_HTML', fullHtml);
             } catch (e) {}
 
-            // 2. Intentar subida directa a servidor local/remoto o API de GitHub con el token vinculado
             let uploadedToServer = false;
             try {
                 const sameOriginRes = await fetch(window.location.pathname || 'index.html', {
@@ -2101,14 +2150,13 @@
                             localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
                             if (document.getElementById('inpGithubToken')) document.getElementById('inpGithubToken').value = '';
                         }
-                        showToast(`GitHub respondió (${putRes.status}): ${errJson.message || 'Token caducado o sin permiso repo. Genera uno nuevo en GitHub ↗.'}`);
+                        showToast(`GitHub respondió (${putRes.status}): ${errJson.message || 'Token caducado o sin permiso repo.'}`);
                     }
                 } catch (e) {
                     if (!silent) showToast('No se pudo conectar con la API de GitHub en este momento.');
                 }
             }
 
-            // 3. Limpiar solo cachés HTTP (sin borrar localStorage/IndexedDB) y aplicar el nuevo despliegue a la página actual
             await purgeAllBrowserCaches();
             await applyNewDeploymentToCurrentPage(fullHtml, uploadedToServer);
 
@@ -2117,41 +2165,33 @@
                 updateRealtimeCornerStatus(`Página actualizada al nuevo despliegue v${appState.version} ✓`, 'ok');
                 if (!silent) showToast(`index.html subido y página actualizada al nuevo despliegue (v${appState.version}).`);
             } else {
-                if (statusBadge) statusBadge.textContent = `Despliegue local v${appState.version} aplicado ✓ (Falta Token ghp_)`;
+                if (statusBadge) statusBadge.textContent = `Despliegue local v${appState.version} aplicado ✓`;
                 updateRealtimeCornerStatus(`Despliegue local v${appState.version} aplicado ✓`, 'ok');
-                if (!silent) showToast(`Página actualizada al nuevo despliegue local (v${appState.version}). Vincula tu Repo y Token ghp_ para publicarlo en la web.`);
+                if (!silent) showToast(`Despliegue local actualizado (v${appState.version}).`);
             }
         }
 
         async function applyNewDeploymentToCurrentPage(deployedHtml, isCloudPublished = false) {
             try {
-                // Incrusta el nuevo despliegue en el DOM vivo y sincroniza todas las vistas y pestañas abiertas
                 const vaultFromDeployed = extractVaultFromHtmlString(deployedHtml);
                 if (vaultFromDeployed) {
                     const embeddedEl = document.getElementById('embeddedInternalVaultData');
                     if (embeddedEl) embeddedEl.textContent = JSON.stringify(vaultFromDeployed);
                 }
-
-                // Fuerza la verificación remota del commit recién desplegado en GitHub Pages / servidor
                 if (isCloudPublished) {
                     await checkRemoteDeploymentVersion(false);
                 }
-
-                // Actualiza la URL con el parámetro de versión del despliegue sin recargar ni cerrar tu sesión
                 try {
                     const urlObj = new URL(window.location.href);
                     urlObj.searchParams.set('deploy_v', String(appState.version || 1));
                     window.history.replaceState({ deployVersion: appState.version }, '', urlObj.toString());
                 } catch (e) {}
-
-                // Notifica en tiempo real a otras pestañas abiertas del mismo navegador
                 try {
                     localStorage.setItem('SISTEMA_BUBU_1_0_FORCE_SYNC_SIGNAL', JSON.stringify({
                         version: appState.version,
                         ts: Date.now()
                     }));
                 } catch (e) {}
-
                 refreshAllUI();
                 updateDocument();
             } catch (e) {}
@@ -2166,41 +2206,28 @@
 
         async function visitorSyncLatestDeploymentNow(btnEl) {
             const originalLabel = btnEl ? btnEl.innerHTML : '';
-            const statusEl = document.getElementById('visitorDeploymentSyncStatus');
             if (btnEl) {
                 btnEl.disabled = true;
-                btnEl.innerHTML = '<span>Actualizando despliegue más reciente...</span>';
+                btnEl.innerHTML = '<span>Actualizando...</span>';
             }
-            if (statusEl) {
-                statusEl.innerHTML = '<span class="text-blue-800 font-bold">Descargando formato y códigos más recientes...</span>';
-            }
-
             try {
                 await purgeAllBrowserCaches();
                 await loadPersistedState(true);
                 await checkRemoteDeploymentVersion(false);
                 refreshAllUI();
                 updateDocument();
-
-                const verLabel = `v${appState.version || 1}`;
-                if (statusEl) {
-                    statusEl.innerHTML = `<span class="text-emerald-700 font-extrabold">✓ Despliegue actualizado (${verLabel}). Ya puedes iniciar sesión con el formato más actual.</span>`;
-                }
-                showToast(`Despliegue actualizado a la versión más reciente (${verLabel}) con todas las modificaciones.`);
-            } catch (e) {
-                if (statusEl) {
-                    statusEl.innerHTML = '<span class="text-amber-700 font-bold">Se conservó la última versión disponible en el sistema.</span>';
-                }
+                updateRealtimeCornerStatus(`Enlace actualizado a v${appState.version || 1} ✓`, 'ok');
+                showToast(`Enlace actualizado a la versión más reciente (v${appState.version || 1}).`);
             } finally {
                 if (btnEl) {
                     btnEl.disabled = false;
-                    btnEl.innerHTML = originalLabel || '<span>Despliegue Creado · Actualizarlo</span>';
+                    btnEl.innerHTML = originalLabel || '<span>Actualizar Enlace</span>';
                 }
             }
         }
+
         async function purgeAllBrowserCaches() {
             try {
-                // Solo limpia CacheStorage HTTP y Service Workers sin borrar localStorage ni IndexedDB
                 if ('caches' in window) {
                     const names = await caches.keys();
                     await Promise.all(names.map(name => caches.delete(name)));
@@ -2210,35 +2237,6 @@
                     await Promise.all(regs.map(r => r.unregister()));
                 }
             } catch (e) {}
-        }
-
-        async function hashAccessCodeSecurely(rawCode) {
-            const clean = String(rawCode || '').trim();
-            if (!clean) return '';
-            if (clean.startsWith('sha256:')) return clean;
-            try {
-                if (window.crypto && window.crypto.subtle) {
-                    const encoder = new TextEncoder();
-                    const data = encoder.encode(`${CODE_HASH_SALT}:${clean}`);
-                    const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
-                    const hashHex = Array.from(new Uint8Array(hashBuffer))
-                        .map(b => b.toString(16).padStart(2, '0'))
-                        .join('');
-                    return `sha256:${hashHex}`;
-                }
-            } catch (e) {}
-            let fallbackHash = 2166136261;
-            const salted = `${CODE_HASH_SALT}:${clean}`;
-            for (let i = 0; i < salted.length; i++) {
-                fallbackHash ^= salted.charCodeAt(i);
-                fallbackHash = Math.imul(fallbackHash, 16777619);
-            }
-            return `sha256:${(fallbackHash >>> 0).toString(16).padStart(8, '0')}`;
-        }
-
-        function maskAccessCodeForDisplay(storedCode) {
-            if (!storedCode) return 'Sin asignar';
-            return '•••••••• (Codificado)';
         }
 
         function saveToIndexedDbVault(payload) {
@@ -2373,6 +2371,7 @@
             if (Array.isArray(best.history)) appState.history = best.history;
             if (Array.isArray(best.studentsVault)) appState.studentsVault = best.studentsVault;
             if (best.githubConfig) appState.githubConfig = { ...appState.githubConfig, ...best.githubConfig };
+            if (best.selectiveAutoSave) appState.selectiveAutoSave = { ...appState.selectiveAutoSave, ...best.selectiveAutoSave };
             const savedToken = localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
             if (savedToken && !appState.githubConfig.token) appState.githubConfig.token = savedToken;
             if (best.extractedFormState) {
@@ -2451,7 +2450,6 @@
 
             let appliedRemote = false;
 
-            // 1. Consulta directa sin caché a la API pública de GitHub (entrega el commit al instante a cualquier teléfono o PC sin esperar CDN)
             for (const rc of repoCandidates) {
                 try {
                     const apiRes = await fetch(`https://api.github.com/repos/${rc.owner}/${rc.repo}/contents/${rc.filePath}?ref=${encodeURIComponent(rc.branch)}&t=${Date.now()}`, {
@@ -2469,48 +2467,11 @@
                 } catch (e) {}
             }
 
-            // 2. Respaldo por URL pública y raw.githubusercontent.com
-            if (!appliedRemote) {
-                const urlsToTry = [];
-                if ((cfg.publicUrl || '').trim()) urlsToTry.push(cfg.publicUrl.trim());
-                repoCandidates.forEach(rc => {
-                    urlsToTry.push(`https://raw.githubusercontent.com/${rc.owner}/${rc.repo}/${rc.branch}/${rc.filePath}`);
-                    urlsToTry.push(`https://${rc.owner}.github.io/${rc.repo}/index.html`);
-                });
-                try {
-                    const loc = window.location;
-                    if (loc && /^https?:\/\//i.test(loc.href)) {
-                        const cleanHref = loc.href.split('#')[0].split('?')[0];
-                        urlsToTry.push(cleanHref);
-                        if (!cleanHref.endsWith('.html')) {
-                            urlsToTry.push(cleanHref.endsWith('/') ? `${cleanHref}index.html` : `${cleanHref}/index.html`);
-                        }
-                    }
-                } catch (e) {}
-
-                const uniqueUrls = Array.from(new Set(urlsToTry.filter(Boolean)));
-                for (const targetUrl of uniqueUrls) {
-                    try {
-                        const sep = targetUrl.includes('?') ? '&' : '?';
-                        const res = await fetch(`${targetUrl}${sep}nocache=${Date.now()}`, {
-                            cache: 'no-store'
-                        });
-                        if (!res.ok) continue;
-                        const htmlText = await res.text();
-                        const vault = extractVaultFromHtmlString(htmlText);
-                        if (vault && applyRemoteVaultToState(vault)) {
-                            appliedRemote = true;
-                            break;
-                        }
-                    } catch (e) {}
-                }
-            }
-
             if (appliedRemote) {
                 refreshAllUI();
-                if (manual) showToast(`Sincronizado desde la nube (v${appState.version}). Todos los teléfonos y PC tienen los últimos códigos.`);
+                if (manual) showToast(`Sincronizado desde la nube (v${appState.version}).`);
             } else if (manual) {
-                showToast('No se encontraron cambios remotos nuevos; asegúrate de haber publicado en GitHub con tu Token.');
+                showToast('No se encontraron cambios remotos nuevos.');
             }
         }
 
@@ -2534,13 +2495,17 @@
                 studentsVault: appState.studentsVault,
                 deletedIds: appState.deletedIds,
                 githubConfig: ghCfg,
-                extractedFormState: appState.extractedFormState
+                extractedFormState: appState.extractedFormState,
+                selectiveAutoSave: appState.selectiveAutoSave
             };
         }
 
         function persistBaseState(saveLocal = true, updateEmbedded = true, bumpVersion = false) {
             if (bumpVersion) {
                 appState.version = (appState.version || 1) + 1;
+            }
+            if ((appState.selectiveAutoSave?.form !== false) && document.getElementById('inpNombre')) {
+                appState.extractedFormState = extractCurrentSystemFields();
             }
             const fullPayload = buildSerializableVaultPayload(true);
             const safePayload = buildSerializableVaultPayload(false);
@@ -2563,7 +2528,7 @@
                 }
             }
             updateRealtimeCornerStatus('Guardado permanente activo ✓', 'ok');
-            if (bumpVersion) {
+            if (bumpVersion && (appState.selectiveAutoSave?.autoPublish !== false)) {
                 scheduleAutoDeployOnSave();
             }
         }
@@ -2612,7 +2577,6 @@
 
         async function unlockProfileByFrontLogin(e) {
             if (e) e.preventDefault();
-            // Mantiene el caché persistente (localStorage, IndexedDB y código fuente) y sincroniza la última versión
             await loadPersistedState(true);
             await checkRemoteDeploymentVersion(false);
             const input = document.getElementById('frontLoginCodeInput');
@@ -2786,6 +2750,14 @@
             `).join('') || '<p class="text-xs text-slate-400 text-center py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-300">No hay usuarios operativos registrados. Haz clic en "+ Agregar Nuevo Usuario".</p>';
         }
 
+        function deleteUserProfile(id) {
+            appState.deletedIds.push(id);
+            appState.profiles = appState.profiles.filter(p => p.id !== id);
+            persistBaseState(true, true, true);
+            renderProfilesManager();
+            showToast('Usuario eliminado.');
+        }
+
         async function createNewUserProfile() {
             if (!appState.activeSession || appState.activeSession.role !== 'admin') {
                 return showToast('Solo el Administrador puede crear usuarios.');
@@ -2851,7 +2823,7 @@
                 ta.select();
                 document.execCommand('copy');
                 document.body.removeChild(ta);
-                showToast(`Enlace copiado para "${p.name}" (Código: ${p.code}). Envíalo por WhatsApp o correo y podrá entrar al instante.`);
+                showToast(`Enlace copiado para "${p.name}" (Código: ${p.code}).`);
             } catch (e) {
                 showToast('No se pudo generar el enlace de acceso.');
             }
@@ -2894,13 +2866,7 @@
             }
             persistBaseState(true, true, true);
             renderProfilesManager();
-            const hasGhToken = /^gh[pou]_|^github_pat_/i.test((appState.githubConfig?.token || '').trim());
-            const hasGhRepo = Boolean((appState.githubConfig?.repo || '').includes('/'));
-            if (hasGhToken && hasGhRepo) {
-                showToast(`Usuario "${p.name}" guardado con código "${p.code}". Ahora presiona "3. Subir index.html y Actualizar Página al Nuevo Despliegue".`);
-            } else {
-                showToast(`Usuario "${p.name}" guardado localmente. Para que funcione en el enlace público, usa "Copiar Enlace con Acceso" o vincula tu Repo + Token GitHub (ghp_).`);
-            }
+            showToast(`Usuario "${p.name}" guardado con código "${p.code}".`);
         }
 
         function handlePreviewTextSelection() {
@@ -3227,7 +3193,7 @@
 
             const visibilityRules = {
                 curpFieldWrap: docType === 'kardex' || docType === 'resguardo',
-                periodoVacacionalControls: docType === 'estudios',
+                periodoVacacionalControls: docType === 'estudios' || docType === 'periodo_vacacional',
                 calificacionesControls: docType === 'calificaciones',
                 periodosAnterioresControls: docType === 'periodos_anteriores',
                 montosControls: docType === 'montos',
@@ -3491,6 +3457,30 @@
             persistBaseState(true, true, false);
         }
 
+        async function saveAndDownloadConstanciaPDF() {
+            const paper = document.getElementById('constanciaPaper');
+            if (!paper) return;
+            recordHistoryEntry();
+            if (!window.html2canvas || !window.jspdf) {
+                showToast('Preparando impresión PDF...');
+                window.print();
+                return;
+            }
+            try {
+                showToast('Generando archivo PDF oficial...');
+                const canvas = await html2canvas(paper, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+                const imgData = canvas.toDataURL('image/png');
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [215, 280] });
+                pdf.addImage(imgData, 'PNG', 0, 0, 215, 280);
+                const matricula = (document.getElementById('inpMatricula')?.value || 'CONSTANCIA').trim();
+                pdf.save(`Constancia_UAMP_${matricula}.pdf`);
+                showToast('PDF descargado correctamente.');
+            } catch (e) {
+                window.print();
+            }
+        }
+
         function printConstanciaDocument() {
             recordHistoryEntry();
             window.print();
@@ -3730,6 +3720,7 @@
             renderMontosEditor();
             renderKardexEditor();
             renderResguardoEditor();
+            syncSelectiveAutoSaveCheckboxes();
             selectDocType(appState.currentDocType);
             applySessionPermissions();
         }
@@ -3749,9 +3740,9 @@
             document.getElementById('realtimeCornerMonitor')?.classList.add('hidden');
             document.getElementById('frontLoginScreen')?.classList.remove('hidden');
 
-            // Conserva el caché local e IndexedDB con la versión más reciente y sincroniza con el servidor
             await loadPersistedState(false);
             hydrateUserFromSharedUrlParam();
+            await extractAllSystemDeploymentInfo(false);
             await checkRemoteDeploymentVersion(false);
             const picker = document.getElementById('inpFechaExpedicion');
             const textInp = document.getElementById('inpFechaExpedicionTexto');
