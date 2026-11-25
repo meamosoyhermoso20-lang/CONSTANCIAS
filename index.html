@@ -1681,9 +1681,36 @@
         async function deployUpdateToGithub(manual = false, silent = false, reloadAfter = false) {
             saveGithubIntegrationSettings();
             const cfg = appState.githubConfig || {};
-            const activeToken = (cfg.token || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '').trim();
+            const inputTok = (document.getElementById('inpGithubToken')?.value || '').trim();
+            let activeToken = (inputTok || cfg.token || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '').trim();
             const statusBadge = document.getElementById('githubSyncStatusBadge');
-            const isGithubPat = /^gh[ps]_|^github_pat_/i.test(activeToken);
+            let isGithubPat = /^gh[ps]_|^github_pat_/i.test(activeToken);
+
+            // Vincular automáticamente el token en todas las capas al iniciar la subida
+            if (activeToken) {
+                appState.githubConfig.token = activeToken;
+                localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, activeToken);
+                if (document.getElementById('inpGithubToken')) {
+                    document.getElementById('inpGithubToken').value = activeToken;
+                }
+            }
+
+            // Si aún no hay un token PAT real de GitHub vinculado al subir, solicitarlo y vincularlo al momento
+            if (manual && !isGithubPat) {
+                const enteredPat = window.prompt(
+                    'Para subir automáticamente tu index.html a GitHub, pega aquí tu Token PAT de GitHub (empieza con ghp_ o github_pat_ y tiene permiso "repo"):'
+                );
+                if (enteredPat && enteredPat.trim()) {
+                    activeToken = enteredPat.trim();
+                    appState.githubConfig.token = activeToken;
+                    localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, activeToken);
+                    if (document.getElementById('inpGithubToken')) {
+                        document.getElementById('inpGithubToken').value = activeToken;
+                    }
+                    isGithubPat = /^gh[ps]_|^github_pat_/i.test(activeToken);
+                    refreshExtractedDeploymentSummary();
+                }
+            }
 
             // 1. Generar siempre el index.html completo actualizado y guardarlo en el sistema local/embebido
             persistBaseState(true, true, false);
@@ -1692,23 +1719,30 @@
                 localStorage.setItem('SISTEMA_BUBU_1_0_DEPLOYED_INDEX_HTML', fullHtml);
             } catch (e) {}
 
-            // 2. Intentar subida directa a servidor local/remoto o API de GitHub
+            // 2. Intentar subida directa a servidor local/remoto o API de GitHub con el token vinculado
             let uploadedToServer = false;
             try {
                 const sameOriginRes = await fetch(window.location.pathname || 'index.html', {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+                    headers: {
+                        'Content-Type': 'text/html; charset=utf-8',
+                        ...(activeToken ? { Authorization: `Bearer ${activeToken}` } : {})
+                    },
                     body: fullHtml
                 });
                 if (sameOriginRes.ok) uploadedToServer = true;
             } catch (e) {}
 
+            if ((!cfg.repo || !cfg.repo.includes('/')) && isGithubPat) {
+                autoDetectGithubRepoFromHost(true);
+            }
+
             if (cfg.repo && cfg.repo.includes('/') && isGithubPat) {
                 try {
-                    if (statusBadge) statusBadge.textContent = 'Subiendo index.html a GitHub...';
+                    if (statusBadge) statusBadge.textContent = 'Token vinculado · Subiendo index.html a GitHub...';
                     const apiUrl = `https://api.github.com/repos/${cfg.repo}/contents/${cfg.filePath || 'index.html'}`;
                     const headers = {
-                        Authorization: `Bearer ${activeToken}`,
+                        Authorization: `token ${activeToken}`,
                         Accept: 'application/vnd.github+json',
                         'Content-Type': 'application/json'
                     };
@@ -1732,11 +1766,14 @@
                             ...(sha ? { sha } : {})
                         })
                     });
-                    if (!putRes.ok) throw new Error('HTTP ' + putRes.status);
+                    if (!putRes.ok) {
+                        const errJson = await putRes.json().catch(() => ({}));
+                        throw new Error(errJson.message || ('HTTP ' + putRes.status));
+                    }
                     uploadedToServer = true;
                 } catch (err) {
-                    if (statusBadge) statusBadge.textContent = 'Error en subida a GitHub (revisa token/repo)';
-                    if (!silent) showToast('Error al subir a GitHub: verifica que el repositorio exista y el token tenga permiso "repo".');
+                    if (statusBadge) statusBadge.textContent = `Error GitHub: ${err.message}`;
+                    if (!silent) showToast(`Error al subir con el token vinculado (${err.message}). Revisa el permiso "repo" y el nombre usuario/repositorio.`);
                     return;
                 }
             }
@@ -1746,13 +1783,13 @@
             refreshAllUI();
 
             if (uploadedToServer) {
-                if (statusBadge) statusBadge.textContent = `Despliegue actualizado v${appState.version} ✓`;
-                updateRealtimeCornerStatus(`index.html subido y desplegado v${appState.version} ✓`, 'ok');
-                if (!silent) showToast(`index.html subido automáticamente y despliegue actualizado (v${appState.version}).`);
+                if (statusBadge) statusBadge.textContent = `Token vinculado · index.html desplegado v${appState.version} ✓`;
+                updateRealtimeCornerStatus(`Token vinculado · index.html desplegado v${appState.version} ✓`, 'ok');
+                if (!silent) showToast(`Token vinculado y index.html subido automáticamente al despliegue (v${appState.version}).`);
             } else {
-                if (statusBadge) statusBadge.textContent = `Guardado en sistema v${appState.version} ✓`;
-                updateRealtimeCornerStatus(`index.html guardado en sistema v${appState.version} ✓`, 'ok');
-                if (!silent) showToast(`index.html guardado en el sistema (v${appState.version}). Para sincronizar otros dispositivos, vincula tu Repo y Token ghp_ en el Paso 1 y 2.`);
+                if (statusBadge) statusBadge.textContent = `Guardado en sistema v${appState.version} ✓ (Falta Token ghp_)`;
+                updateRealtimeCornerStatus(`Guardado en sistema v${appState.version} ✓`, 'ok');
+                if (!silent) showToast(`index.html guardado localmente (v${appState.version}). Vincula tu Repo (Paso 1) y Token ghp_ de GitHub (Paso 2) para subirlo a la nube.`);
             }
         }
 
