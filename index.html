@@ -899,15 +899,20 @@
 
                     <!-- ACCIONES PRINCIPALES DE DESPLIEGUE (SOLO LO ESENCIAL) -->
                     <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800">
-                        <button type="button" onclick="saveAllDataAndAutoUploadIndex()" class="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-lg transition">
-                            Guardar y Publicar Despliegue en Tiempo Real (index.html)
-                        </button>
+                        <div class="flex flex-wrap items-center gap-2 flex-1">
+                            <button type="button" onclick="saveAllDataAndAutoUploadIndex()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-lg transition">
+                                Guardar y Publicar Despliegue Universal (index.html)
+                            </button>
+                            <button type="button" onclick="saveVinculacionCredentialsExplicitly()" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow-lg transition">
+                                Guardar Datos de Vinculación
+                            </button>
+                        </div>
                         <div class="flex flex-wrap items-center gap-2">
                             <button type="button" id="btnGithubSectionRefreshDeployment" onclick="visitorSyncLatestDeploymentNow(this)" class="px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold transition">
                                 Sincronizar Enlace Ahora
                             </button>
                             <button type="button" onclick="downloadSelfContainedPageWithData()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition">
-                                Descargar Respaldo index.html
+                                Descargar Código Fuente index.html
                             </button>
                         </div>
                     </div>
@@ -1291,7 +1296,7 @@
             const rawUrl = (document.getElementById('inpCustomDomainUrl')?.value || appState.githubConfig?.publicUrl || window.location.href).split('#')[0].split('?')[0];
             const syncPayload = buildPortableSyncToken();
             const cleanUrl = syncPayload
-                ? `${rawUrl}?v=${appState.version || 1}&sync=${syncPayload}`
+                ? `${rawUrl}?v=${appState.version || 1}&sync=${syncPayload}#live=${syncPayload}`
                 : `${rawUrl}?v=${appState.version || 1}`;
             const ta = document.createElement('textarea');
             ta.value = cleanUrl;
@@ -1299,7 +1304,101 @@
             ta.select();
             document.execCommand('copy');
             document.body.removeChild(ta);
-            showToast('Enlace público con la última actualización copiado al portapapeles.');
+            showToast('Enlace universal en tiempo real con códigos de usuario y cambios copiado.');
+        }
+
+        function buildPortableSyncToken() {
+            try {
+                const compact = {
+                    v: appState.version || 1,
+                    s: appState.signer,
+                    m: appState.majors,
+                    p: appState.periods,
+                    t: appState.templates,
+                    u: (appState.profiles || []).map(x => ({
+                        id: x.id,
+                        name: x.name,
+                        roleLabel: x.roleLabel,
+                        code: String(x.code || '').trim(),
+                        docAccess: x.docAccess,
+                        headerPerms: x.headerPerms,
+                        fieldPerms: x.fieldPerms
+                    })),
+                    gh: {
+                        repo: appState.githubConfig?.repo || '',
+                        branch: appState.githubConfig?.branch || 'main',
+                        publicUrl: appState.githubConfig?.publicUrl || ''
+                    }
+                };
+                const bytes = new TextEncoder().encode(JSON.stringify(compact));
+                let bin = '';
+                for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+                return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+            } catch (e) {
+                return '';
+            }
+        }
+
+        const universalRealtimeChannel = typeof BroadcastChannel !== 'undefined'
+            ? new BroadcastChannel('SISTEMA_BUBU_1_0_UNIVERSAL_SYNC')
+            : null;
+
+        if (universalRealtimeChannel) {
+            universalRealtimeChannel.onmessage = async (event) => {
+                if (event?.data?.type === 'UNIVERSAL_DEPLOYMENT_UPDATE') {
+                    await loadPersistedState(true);
+                    loadGithubConfigToInputs();
+                    refreshAllUI();
+                    updateDocument();
+                    updateRealtimeCornerStatus(`Sincronizado en tiempo real (v${appState.version}) ✓`, 'ok');
+                }
+            };
+        }
+
+        function broadcastUniversalDeploymentState() {
+            const token = buildPortableSyncToken();
+            try {
+                if (token && window.history && window.history.replaceState) {
+                    const urlObj = new URL(window.location.href);
+                    urlObj.searchParams.set('v', String(appState.version || 1));
+                    urlObj.hash = `live=${token}`;
+                    window.history.replaceState({ deployVersion: appState.version }, '', urlObj.toString());
+                }
+            } catch (e) {}
+            try {
+                if (universalRealtimeChannel) {
+                    universalRealtimeChannel.postMessage({
+                        type: 'UNIVERSAL_DEPLOYMENT_UPDATE',
+                        version: appState.version || 1,
+                        ts: Date.now()
+                    });
+                }
+            } catch (e) {}
+        }
+
+        function saveVinculacionCredentialsExplicitly() {
+            saveGithubIntegrationSettings();
+            const repo = (appState.githubConfig?.repo || '').trim();
+            const branch = (appState.githubConfig?.branch || 'main').trim();
+            const token = sanitizeGithubPatToken(appState.githubConfig?.token || '');
+            const publicUrl = (appState.githubConfig?.publicUrl || '').trim();
+
+            appState.githubConfig = {
+                ...appState.githubConfig,
+                repo,
+                branch,
+                token,
+                filePath: 'index.html',
+                publicUrl,
+                savedAt: new Date().toLocaleString('es-MX')
+            };
+            if (token) {
+                try { localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token); } catch (e) {}
+            }
+            persistBaseState(true, true, true);
+            broadcastUniversalDeploymentState();
+            refreshExtractedDeploymentSummary();
+            showToast(`Datos de vinculación guardados y sincronizados (${repo || 'Modo Universal'}).`);
         }
 
         function buildPortableSyncToken() {
@@ -2078,6 +2177,10 @@
 
         function buildCleanDeployableHtml() {
             const safePayload = buildSerializableVaultPayload(false);
+            safePayload.profiles = (appState.profiles || []).map(p => ({
+                ...p,
+                code: String(p.code || '').trim()
+            }));
             const cloneDoc = document.documentElement.cloneNode(true);
             const loginEl = cloneDoc.querySelector('#frontLoginScreen');
             const workEl = cloneDoc.querySelector('#mainAppWorkspace');
@@ -2230,11 +2333,7 @@
                 if (isCloudPublished) {
                     await checkRemoteDeploymentVersion(false);
                 }
-                try {
-                    const urlObj = new URL(window.location.href);
-                    urlObj.searchParams.set('deploy_v', String(appState.version || 1));
-                    window.history.replaceState({ deployVersion: appState.version }, '', urlObj.toString());
-                } catch (e) {}
+                broadcastUniversalDeploymentState();
                 try {
                     localStorage.setItem('SISTEMA_BUBU_1_0_FORCE_SYNC_SIGNAL', JSON.stringify({
                         version: appState.version,
@@ -2527,6 +2626,10 @@
         function buildSerializableVaultPayload(includeToken = false) {
             const ghCfg = { ...(appState.githubConfig || {}) };
             if (!includeToken) delete ghCfg.token;
+            const normalizedProfiles = (appState.profiles || []).map(p => ({
+                ...p,
+                code: String(p.code || '').trim()
+            }));
             return {
                 version: appState.version || 1,
                 updatedAt: Date.now(),
@@ -2539,7 +2642,7 @@
                 montos: appState.montos,
                 kardex: appState.kardex,
                 resguardo: appState.resguardo,
-                profiles: appState.profiles,
+                profiles: normalizedProfiles,
                 history: appState.history,
                 studentsVault: appState.studentsVault,
                 deletedIds: appState.deletedIds,
@@ -2576,7 +2679,8 @@
                     embedded.textContent = JSON.stringify(safePayload);
                 }
             }
-            updateRealtimeCornerStatus('Guardado permanente activo ✓', 'ok');
+            broadcastUniversalDeploymentState();
+            updateRealtimeCornerStatus('Despliegue universal sincronizado ✓', 'ok');
             if (bumpVersion && (appState.selectiveAutoSave?.autoPublish !== false)) {
                 scheduleAutoDeployOnSave();
             }
@@ -2882,7 +2986,8 @@
         function hydrateUserFromSharedUrlParam() {
             try {
                 const params = new URLSearchParams(window.location.search);
-                const syncParam = params.get('sync');
+                const hashMatch = (window.location.hash || '').match(/live=([A-Za-z0-9\-_]+)/);
+                const syncParam = params.get('sync') || (hashMatch ? hashMatch[1] : '');
                 if (syncParam) {
                     let sb64 = syncParam.replace(/-/g, '+').replace(/_/g, '/');
                     while (sb64.length % 4) sb64 += '=';
@@ -2896,12 +3001,24 @@
                             if (synced.s) appState.signer = { ...appState.signer, ...synced.s };
                             if (Array.isArray(synced.m) && synced.m.length) appState.majors = synced.m;
                             if (Array.isArray(synced.p) && synced.p.length) appState.periods = synced.p;
+                            if (synced.t) appState.templates = { ...appState.templates, ...synced.t };
                             if (Array.isArray(synced.u)) {
                                 const pMap = new Map((appState.profiles || []).map(x => [x.id, x]));
-                                synced.u.forEach(u => { if (u && u.id) pMap.set(u.id, { ...(pMap.get(u.id) || {}), ...u }); });
+                                synced.u.forEach(u => {
+                                    if (u && u.id) {
+                                        pMap.set(u.id, { ...(pMap.get(u.id) || {}), ...u, code: String(u.code || '').trim() });
+                                    }
+                                });
                                 appState.profiles = Array.from(pMap.values());
                             }
-                            if (synced.gh) appState.githubConfig = { ...appState.githubConfig, ...synced.gh };
+                            if (synced.gh) {
+                                appState.githubConfig = {
+                                    ...appState.githubConfig,
+                                    repo: synced.gh.repo || appState.githubConfig?.repo || '',
+                                    branch: synced.gh.branch || appState.githubConfig?.branch || 'main',
+                                    publicUrl: synced.gh.publicUrl || appState.githubConfig?.publicUrl || ''
+                                };
+                            }
                             persistBaseState(true, true, false);
                         }
                     }
@@ -2917,9 +3034,9 @@
                 if (parsed && parsed.p && parsed.p.id && parsed.p.code) {
                     const idx = appState.profiles.findIndex(x => x.id === parsed.p.id);
                     if (idx >= 0) {
-                        appState.profiles[idx] = { ...appState.profiles[idx], ...parsed.p };
+                        appState.profiles[idx] = { ...appState.profiles[idx], ...parsed.p, code: String(parsed.p.code || '').trim() };
                     } else {
-                        appState.profiles.push(parsed.p);
+                        appState.profiles.push({ ...parsed.p, code: String(parsed.p.code || '').trim() });
                     }
                     if (parsed.gh) {
                         appState.githubConfig = { ...appState.githubConfig, ...parsed.gh };
@@ -2939,8 +3056,9 @@
                 p.code = String(codeInp.value || '').trim();
             }
             persistBaseState(true, true, true);
+            broadcastUniversalDeploymentState();
             renderProfilesManager();
-            showToast(`Usuario "${p.name}" guardado con código "${p.code}".`);
+            showToast(`Usuario "${p.name}" y código "${p.code}" guardados en el código fuente y desplegados.`);
         }
 
         function handlePreviewTextSelection() {
