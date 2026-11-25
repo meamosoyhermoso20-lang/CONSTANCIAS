@@ -2007,20 +2007,10 @@
                 return;
             }
 
-            const enteredHash = await hashAccessCodeSecurely(entered);
-            const adminHash = await hashAccessCodeSecurely(ADMIN_MASTER_CODE);
-
-            if (entered === ADMIN_MASTER_CODE || enteredHash === adminHash) {
+            if (entered === ADMIN_MASTER_CODE) {
                 appState.activeSession = { role: 'admin', profileId: 'admin', name: 'Administrador General' };
             } else {
-                let found = null;
-                for (const p of appState.profiles) {
-                    const storedHash = await hashAccessCodeSecurely(p.code || '');
-                    if (storedHash && storedHash === enteredHash) {
-                        found = p;
-                        break;
-                    }
-                }
+                const found = (appState.profiles || []).find(p => String(p.code || '').trim() === entered);
                 if (!found) {
                     if (errBox) {
                         errBox.textContent = 'Código de acceso no válido o usuario eliminado.';
@@ -2088,8 +2078,8 @@
                         <button type="button" onclick="toggleUserProfileAccordion(${idx})" class="flex items-center gap-2.5 text-left flex-1 min-w-[200px] cursor-pointer">
                             <span id="profileAccordionArrow_${idx}" class="w-6 h-6 rounded-lg bg-blue-900 text-white text-[10px] font-black flex items-center justify-center">▼</span>
                             <div>
-                                <div class="text-xs font-black text-slate-900">${p.name || 'Usuario sin nombre'} <span class="text-[11px] font-mono font-bold text-emerald-800 ml-1">[Código: ${maskAccessCodeForDisplay(p.code)}]</span></div>
-                                <div class="text-[10px] text-slate-500">${p.roleLabel || 'Control Escolar'} · Código protegido con cifrado SHA-256</div>
+                                <div class="text-xs font-black text-slate-900">${p.name || 'Usuario sin nombre'} <span class="text-[11px] font-mono font-bold text-emerald-800 ml-1">[Código: ${p.code || 'Sin asignar'}]</span></div>
+                                <div class="text-[10px] text-slate-500">${p.roleLabel || 'Control Escolar'} · Acceso directo guardado en el código</div>
                             </div>
                         </button>
                         <div class="flex items-center gap-2">
@@ -2109,8 +2099,8 @@
                                 <input type="text" value="${p.roleLabel}" oninput="appState.profiles[${idx}].roleLabel=this.value;" placeholder="Puesto / Rol" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs">
                             </div>
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Código de Acceso (Se registra codificado en el sistema)</label>
-                                <input type="password" id="profileCodeInput_${idx}" autocomplete="new-password" value="${p.pendingPlainCode || ''}" oninput="appState.profiles[${idx}].pendingPlainCode=this.value;" placeholder="${p.code ? '•••••••• (Escribir solo para cambiar)' : 'Escribe el código de acceso'}" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-mono font-bold text-blue-900">
+                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Código de Acceso (Se guarda tal cual en el código)</label>
+                                <input type="text" id="profileCodeInput_${idx}" autocomplete="off" value="${p.code || ''}" oninput="appState.profiles[${idx}].code=this.value;" placeholder="Escribe el código de acceso" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-mono font-bold text-blue-900">
                             </div>
                         </div>
 
@@ -2178,13 +2168,11 @@
             }
             const newId = 'usr_' + Date.now();
             const rawCode = String(Math.floor(1000 + Math.random() * 9000));
-            const hashedCode = await hashAccessCodeSecurely(rawCode);
             appState.profiles.push({
                 id: newId,
                 name: 'Nuevo Usuario',
                 roleLabel: 'Control Escolar',
-                code: hashedCode,
-                pendingPlainCode: '',
+                code: rawCode,
                 docAccess: createDefaultDocAccessMatrix(true),
                 headerPerms: createDefaultHeaderMatrix('edit'),
                 fieldPerms: createDefaultFieldMatrix('edit')
@@ -2196,7 +2184,7 @@
             const arrow = document.getElementById(`profileAccordionArrow_${idx}`);
             if (body) body.classList.remove('hidden');
             if (arrow) arrow.textContent = '▲';
-            showToast(`Nuevo usuario creado con código inicial: ${rawCode} (registrado en el código).`);
+            showToast(`Nuevo usuario creado con código: ${rawCode} (guardado en el código).`);
         }
 
         function deleteUserProfile(id) {
@@ -2217,17 +2205,12 @@
             const p = appState.profiles[idx];
             if (!p) return;
             const domCodeInput = document.getElementById(`profileCodeInput_${idx}`);
-            const newPlain = ((domCodeInput ? domCodeInput.value : p.pendingPlainCode) || '').trim();
-            if (newPlain) {
-                p.code = await hashAccessCodeSecurely(newPlain);
-                delete p.pendingPlainCode;
-                if (domCodeInput) domCodeInput.value = '';
-            } else if (p.code && !String(p.code).startsWith('sha256:')) {
-                p.code = await hashAccessCodeSecurely(p.code);
-            }
-            if (!p.code) {
+            const plainCode = ((domCodeInput ? domCodeInput.value : p.code) || '').trim();
+            if (!plainCode) {
                 return showToast('Escribe un código de acceso válido antes de guardar.');
             }
+            p.code = plainCode;
+            delete p.pendingPlainCode;
             appState.deletedIds = (appState.deletedIds || []).filter(delId => delId !== p.id);
             persistBaseState(true, true, true);
             renderProfilesManager();
@@ -2235,9 +2218,9 @@
             const activeToken = (cfg.token || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '').trim();
             if (cfg.repo && cfg.repo.includes('/') && /^gh[ps]_|^github_pat_/i.test(activeToken)) {
                 await deployUpdateToGithub(false, true, false);
-                showToast(`Código guardado en el código fuente y publicado en línea para "${p.name || 'Usuario'}".`);
+                showToast(`Código "${plainCode}" guardado en el código fuente y publicado para "${p.name || 'Usuario'}".`);
             } else {
-                showToast(`Código codificado y guardado permanentemente en el código para "${p.name || 'Usuario'}".`);
+                showToast(`Código "${plainCode}" guardado sin codificar en el código para "${p.name || 'Usuario'}".`);
             }
         }
 
