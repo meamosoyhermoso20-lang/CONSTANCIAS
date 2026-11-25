@@ -165,7 +165,7 @@
 <body class="bg-slate-100 text-slate-900 min-h-screen">
 
     <!-- PANTALLA DE INICIO DE SESIÓN OBLIGATORIA (SISTEMA BUBU 1.0) -->
-    <div id="frontLoginScreen" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 p-4 hidden">
+    <div id="frontLoginScreen" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 p-4">
         <div class="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-md w-full p-7 sm:p-8">
             <div class="flex flex-col items-center text-center mb-6">
                 <div class="w-16 h-16 rounded-2xl bg-blue-950 text-amber-400 flex items-center justify-center font-black text-xl shadow-lg border border-blue-800 mb-3">
@@ -196,7 +196,7 @@
     </div>
 
     <!-- CONTENEDOR PRINCIPAL DE TRABAJO -->
-    <div id="mainAppWorkspace" class="min-h-screen flex flex-col">
+    <div id="mainAppWorkspace" class="min-h-screen flex flex-col hidden">
 
         <!-- ENCABEZADO SUPERIOR DE SISTEMA BUBU 1.0 -->
         <header class="no-print bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40 shadow-md">
@@ -935,7 +935,7 @@
     <div id="toastNotification" class="fixed bottom-20 right-4 z-50 bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-2xl border border-slate-700 hidden">Bienvenido(a), Administrador General</div>
 
     <!-- MONITOR FLOTANTE EN ESQUINA DE ACTUALIZACIONES EN TIEMPO REAL -->
-    <div id="realtimeCornerMonitor" data-admin-only="true" class="no-print fixed bottom-4 right-4 z-40 bg-slate-950/95 text-white border border-slate-700/90 rounded-2xl px-3.5 py-2.5 shadow-2xl backdrop-blur-xs max-w-xs">
+    <div id="realtimeCornerMonitor" data-admin-only="true" class="no-print fixed bottom-4 right-4 z-40 bg-slate-950/95 text-white border border-slate-700/90 rounded-2xl px-3.5 py-2.5 shadow-2xl backdrop-blur-xs max-w-xs hidden">
         <div class="flex items-center gap-2">
             <span id="realtimeCornerDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
             <span class="text-[11px] font-black tracking-wide uppercase text-emerald-300">Tiempo Real Activo</span>
@@ -1161,7 +1161,7 @@
 
         const appState = {
             version: 1,
-            activeSession: { role: 'admin', profileId: 'admin', name: 'Administrador General' },
+            activeSession: null,
             currentDocType: 'estudios',
             signer: {
                 name: 'LIC. GISELLE SELENE LÓPEZ SÁNCHEZ',
@@ -4026,6 +4026,11 @@ window.onload = function() {
         });
 
         window.onload = async function() {
+            appState.activeSession = null;
+            document.getElementById('mainAppWorkspace')?.classList.add('hidden');
+            document.getElementById('realtimeCornerMonitor')?.classList.add('hidden');
+            document.getElementById('frontLoginScreen')?.classList.remove('hidden');
+
             await purgeAllBrowserCaches();
             loadPersistedState(false);
             await checkRemoteDeploymentVersion(false);
