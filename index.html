@@ -845,18 +845,20 @@
                         </div>
 
                         <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-2">
-                            <div class="flex items-center justify-between">
-                                <span class="text-[10px] font-black uppercase text-amber-400">2. Token Personal de GitHub (PAT)</span>
-                                <a href="https://github.com/settings/tokens/new?description=SISTEMA_BUBU_1_0_UAMP&scopes=repo" target="_blank" rel="noopener noreferrer" onclick="listenForGithubTokenPaste()" class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-extrabold transition">Generar en GitHub ↗</a>
+                            <div class="flex items-center justify-between gap-1 flex-wrap">
+                                <span class="text-[10px] font-black uppercase text-amber-400">2. Token PAT de GitHub Correspondiente</span>
+                                <div class="flex items-center gap-1">
+                                    <button type="button" onclick="openOfficialGithubTokenGenerator()" class="px-2.5 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black transition">Generar en GitHub ↗</button>
+                                </div>
                             </div>
                             <div class="flex gap-1.5">
-                                <input type="password" id="inpGithubToken" oninput="saveGithubIntegrationSettings()" placeholder="Pega tu token generado en GitHub (ghp_... o github_pat_...)" class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-emerald-300 font-mono text-xs font-bold outline-none">
+                                <input type="password" id="inpGithubToken" oninput="saveGithubIntegrationSettings()" placeholder="Pega aquí tu token ghp_... de GitHub" class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-emerald-300 font-mono text-xs font-bold outline-none">
                                 <button type="button" onclick="toggleGithubTokenVisibility()" title="Mostrar / Ocultar Token" class="px-2.5 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-[11px]">👁</button>
                                 <button type="button" onclick="linkGithubTokenWithRepository()" class="px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-[11px] whitespace-nowrap transition">
                                     Vincular
                                 </button>
                             </div>
-                            <p id="githubTokenHelperMsg" class="text-[10px] text-amber-300">Haz clic en "Generar en GitHub ↗" (permiso <b>repo</b>), copia el token y pégalo aquí.</p>
+                            <p id="githubTokenHelperMsg" class="text-[10px] text-emerald-300">Haz clic en <b>Generar en GitHub ↗</b>, copia el token <code>ghp_...</code> y al volver se pegará y vinculará solo.</p>
                         </div>
 
                         <div class="bg-slate-800/80 border border-emerald-700/70 rounded-xl p-3 space-y-2">
@@ -1184,7 +1186,7 @@
 
                 const pullFromGlobalRelay = async () => {
                     try {
-                        const res = await fetch(`${fallbackRelayUrl}/json?poll=1&since=all`, { cache: 'no-store' });
+                        const res = await fetch(`${fallbackRelayUrl}/json?poll=1&since=24h`, { cache: 'no-store' });
                         if (!res.ok) return false;
                         const text = await res.text();
                         const lines = text.trim().split('\n').filter(Boolean);
@@ -1194,8 +1196,10 @@
                                 const msg = JSON.parse(line);
                                 if (msg && msg.message) {
                                     const payload = JSON.parse(msg.message);
-                                    if (payload && payload.ts && payload.ts > _lastAppliedCloudTs) {
-                                        _lastAppliedCloudTs = payload.ts;
+                                    if (payload && typeof payload === 'object') {
+                                        if ((payload.ts || 0) >= _lastAppliedCloudTs) {
+                                            _lastAppliedCloudTs = Math.max(_lastAppliedCloudTs, payload.ts || 0);
+                                        }
                                         if (applyRemoteVaultToState(payload)) {
                                             updated = true;
                                         }
@@ -1453,7 +1457,23 @@
         }
 
         function isValidGithubPatToken(token) {
-            return /^gh[pou]_[A-Za-z0-9_]{20,}$|^github_pat_[A-Za-z0-9_]{20,}$/i.test(sanitizeGithubPatToken(token));
+            const clean = sanitizeGithubPatToken(token);
+            return /^gh[pou]_[A-Za-z0-9_]{20,}$|^github_pat_[A-Za-z0-9_]{20,}$/i.test(clean) && !/^ghp_UAMPBUBU/i.test(clean);
+        }
+
+        function openOfficialGithubTokenGenerator() {
+            saveGithubIntegrationSettings();
+            autoDetectGithubRepoFromHost(true);
+            const repoVal = (appState.githubConfig?.repo || '').trim();
+            const desc = encodeURIComponent(repoVal ? `SISTEMA_BUBU_${repoVal.replace(/[^a-zA-Z0-9_-]/g, '_')}` : 'SISTEMA_BUBU_1_0_UAMP');
+            const ghTokenUrl = `https://github.com/settings/tokens/new?description=${desc}&scopes=repo`;
+            listenForGithubTokenPaste();
+            window.open(ghTokenUrl, '_blank', 'noopener,noreferrer');
+            const helper = document.getElementById('githubTokenHelperMsg');
+            if (helper) {
+                helper.innerHTML = `<span class="text-amber-300 font-bold">1. Presiona "Generate token" en GitHub → 2. Cópialo → 3. Regresa aquí y se vinculará automáticamente.</span>`;
+            }
+            showToast('Abriendo GitHub para generar el token oficial de tu repositorio...');
         }
 
         function toggleGithubTokenVisibility() {
@@ -1483,7 +1503,7 @@
             }
             refreshExtractedDeploymentSummary();
             if (!silent && candidate) {
-                showToast(`Token PAT de GitHub guardado (${candidate.slice(0, 10)}...).`);
+                showToast(`Token PAT de GitHub vinculado (${candidate.slice(0, 10)}...).`);
             }
             return candidate;
         }
@@ -1499,13 +1519,14 @@
             const rawToken = sanitizeGithubPatToken(document.getElementById('inpGithubToken')?.value || appState.githubConfig?.token || '');
 
             if (!repo || !repo.includes('/')) {
-                if (helper) helper.innerHTML = `<span class="text-rose-400 font-bold">⚠ Escribe primero tu repositorio en el Paso 1 (formato: usuario/repositorio).</span>`;
-                return showToast('Ingresa el usuario/repositorio de GitHub en el Paso 1.');
+                if (helper) helper.innerHTML = `<span class="text-amber-300 font-bold">Escribe tu repositorio (usuario/repositorio) en el Paso 1.</span>`;
+                return showToast('Ingresa usuario/repositorio en el Paso 1.');
             }
 
-            if (!isValidGithubPatToken(rawToken)) {
-                if (helper) helper.innerHTML = `<span class="text-rose-400 font-bold">⚠ Token inválido. Debe ser un Personal Access Token generado en GitHub (empieza con ghp_ o github_pat_).</span>`;
-                return showToast('Pega un Personal Access Token válido generado en GitHub (ghp_... o github_pat_...).');
+            if (!rawToken || !isValidGithubPatToken(rawToken)) {
+                if (helper) helper.innerHTML = `<span class="text-amber-300 font-bold">Haz clic en "Generar en GitHub ↗" para obtener un token real (ghp_... o github_pat_...).</span>`;
+                openOfficialGithubTokenGenerator();
+                return false;
             }
 
             if (statusBadge) statusBadge.textContent = 'Verificando token con GitHub API...';
@@ -1597,7 +1618,7 @@
 
             for (const item of sources) {
                 const match = String(item).match(tokenRegex);
-                if (match && match[1]) return match[1].trim();
+                if (match && match[1] && isValidGithubPatToken(match[1])) return match[1].trim();
             }
             return '';
         }
@@ -1610,19 +1631,17 @@
                     appState.githubConfig.token = foundInSystem;
                     localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, foundInSystem);
                     loadGithubConfigToInputs();
-                    persistBaseState(true, true, false);
-                    showToast(`Token repo de GitHub jalado automáticamente (${foundInSystem.slice(0, 8)}...).`);
+                    await linkGithubTokenWithRepository();
                     return;
                 }
                 try {
                     if (navigator.clipboard && navigator.clipboard.readText) {
-                        const clip = (await navigator.clipboard.readText() || '').trim();
-                        if (/^gh[pou]_|^github_pat_/i.test(clip)) {
+                        const clip = sanitizeGithubPatToken(await navigator.clipboard.readText() || '');
+                        if (isValidGithubPatToken(clip)) {
                             appState.githubConfig.token = clip;
                             localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, clip);
                             loadGithubConfigToInputs();
-                            persistBaseState(true, true, false);
-                            showToast(`Token repo de GitHub detectado del portapapeles (${clip.slice(0, 8)}...).`);
+                            await linkGithubTokenWithRepository();
                         }
                     }
                 } catch (e) {}
@@ -1758,8 +1777,15 @@
             const helper = document.getElementById('githubTokenHelperMsg');
 
             if (!repo || !repo.includes('/') || !isValidGithubPatToken(token)) {
+                pushStateToGlobalCloudRealtime();
+                if (statusBadge) {
+                    statusBadge.textContent = `Sincronizado Globalmente (v${appState.version || 1}) · Falta PAT de GitHub`;
+                }
+                if (helper) {
+                    helper.innerHTML = `<span class="text-amber-300 font-bold">⚠ Configura tu repositorio (Paso 1) y genera tu token PAT en GitHub (Paso 2) para subir <code>index.html</code> directo al repo.</span>`;
+                }
                 if (showFeedback) {
-                    showToast('Configura tu repositorio (usuario/repositorio) y tu Token PAT de GitHub para actualizar el código fuente.');
+                    showToast('Configura tu repositorio y tu token PAT generado en GitHub para actualizar el código fuente.');
                 }
                 return false;
             }
@@ -2322,7 +2348,7 @@
             const submitBtn = document.getElementById('btnFrontLoginSubmit');
             const input = document.getElementById('frontLoginCodeInput');
             const errBox = document.getElementById('frontLoginError');
-            const entered = (input?.value || '').trim();
+            const entered = String(input?.value || '').trim();
             if (input) input.value = '';
 
             if (!entered) {
@@ -2335,27 +2361,43 @@
 
             if (submitBtn) {
                 submitBtn.disabled = true;
-                submitBtn.textContent = 'Verificando en tiempo real...';
+                submitBtn.textContent = 'Sincronizando y verificando...';
             }
 
             try {
                 await loadPersistedState(true);
+                hydrateUserFromSharedUrlParam();
                 if (window._pullGlobalCloudNow) {
                     await window._pullGlobalCloudNow();
+                } else {
+                    try {
+                        const res = await fetch(`https://ntfy.sh/${GLOBAL_RT_CHANNEL}/json?poll=1&since=24h`, { cache: 'no-store' });
+                        if (res.ok) {
+                            const txt = await res.text();
+                            txt.trim().split('\n').filter(Boolean).forEach(line => {
+                                try {
+                                    const msg = JSON.parse(line);
+                                    if (msg?.message) applyRemoteVaultToState(JSON.parse(msg.message));
+                                } catch (err) {}
+                            });
+                        }
+                    } catch (err) {}
                 }
                 await checkRemoteDeploymentVersion(false);
 
-                if (entered === ADMIN_MASTER_CODE) {
+                const cleanEntered = entered.replace(/\s+/g, '');
+                const normalizedEntered = cleanEntered.toLowerCase();
+
+                if (normalizedEntered === ADMIN_MASTER_CODE.toLowerCase()) {
                     appState.activeSession = { role: 'admin', profileId: 'admin', name: 'Administrador General' };
                 } else {
-                    const normalizedEntered = entered.toLowerCase();
                     const found = (appState.profiles || []).find(p => {
-                        const savedCode = String(p.code || '').trim();
-                        return savedCode === entered || savedCode.toLowerCase() === normalizedEntered;
+                        const savedCode = String(p?.code || '').trim().replace(/\s+/g, '');
+                        return savedCode && (savedCode === cleanEntered || savedCode.toLowerCase() === normalizedEntered);
                     });
                     if (!found) {
                         if (errBox) {
-                            errBox.textContent = 'Código de acceso no válido o usuario aún no sincronizado.';
+                            errBox.textContent = 'Código no encontrado. Verifica el código o abre el enlace compartido por el Administrador.';
                             errBox.classList.remove('hidden');
                         }
                         return;
