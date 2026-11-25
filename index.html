@@ -847,17 +847,17 @@
                             <div class="flex items-center justify-between">
                                 <span class="text-[10px] font-black uppercase text-amber-400">Paso 2 · Token GitHub (Permiso repo)</span>
                                 <div class="flex items-center gap-1">
-                                    <button type="button" onclick="autoGenerateAndBindGithubToken()" class="px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-black">Auto-Generar Token</button>
-                                    <a href="https://github.com/settings/tokens/new?description=SISTEMA_BUBU_1_0_UAMP&scopes=repo" target="_blank" rel="noopener noreferrer" class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-extrabold">GitHub ↗</a>
+                                    <button type="button" onclick="pullGithubTokenFromSystem(true)" class="px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-black">Jalar de GitHub</button>
+                                    <a href="https://github.com/settings/tokens/new?description=SISTEMA_BUBU_1_0_UAMP&scopes=repo" target="_blank" rel="noopener noreferrer" onclick="listenForGithubTokenPaste()" class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-extrabold">GitHub ↗</a>
                                 </div>
                             </div>
                             <div class="flex gap-1.5">
-                                <input type="password" id="inpGithubToken" oninput="saveGithubIntegrationSettings()" placeholder="Token automático o ghp_..." class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono text-xs outline-none">
+                                <input type="password" id="inpGithubToken" oninput="saveGithubIntegrationSettings()" placeholder="Jalar token repo de GitHub (ghp_...)" class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono text-xs outline-none">
                                 <button type="button" onclick="updateSystemGithubToken()" class="px-2.5 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-[10px] whitespace-nowrap transition">
                                     Guardar
                                 </button>
                             </div>
-                            <p id="githubTokenHelperMsg" class="text-[10px] text-slate-400">Usa <b>Auto-Generar Token</b> para crear y vincular tu token al instante (o pega tu <b>ghp_</b> con permiso <b>repo</b>).</p>
+                            <p id="githubTokenHelperMsg" class="text-[10px] text-slate-400">Presiona <b>Jalar de GitHub</b> para detectar tu token <code>repo</code> del sistema o créalo en <b>GitHub ↗</b>.</p>
                         </div>
 
                         <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-1.5">
@@ -1540,8 +1540,8 @@
             if (tokEl) {
                 if (!token) {
                     tokEl.textContent = 'Sin token';
-                } else if (/^gh[ps]_|^github_pat_/i.test(token)) {
-                    tokEl.textContent = `GitHub PAT (${token.slice(0, 8)}...) ✓`;
+                } else if (/^gh[pou]_|^github_pat_/i.test(token)) {
+                    tokEl.textContent = `GitHub Repo Token (${token.slice(0, 8)}...) ✓`;
                 } else {
                     tokEl.textContent = `Interno (${token.slice(0, 14)}...)`;
                 }
@@ -1551,13 +1551,140 @@
             }
         }
 
+        function scanAllSourcesForGithubRepoToken() {
+            const tokenRegex = /(gh[pou]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})/;
+            const sources = [];
+
+            try {
+                if (window.GITHUB_TOKEN) sources.push(String(window.GITHUB_TOKEN));
+                if (window.__GITHUB_TOKEN__) sources.push(String(window.__GITHUB_TOKEN__));
+                if (window.GH_TOKEN) sources.push(String(window.GH_TOKEN));
+            } catch (e) {}
+
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                ['token', 'access_token', 'gh_token', 'github_token'].forEach(k => {
+                    if (urlParams.get(k)) sources.push(urlParams.get(k));
+                });
+                const hashParams = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
+                ['token', 'access_token', 'gh_token', 'github_token'].forEach(k => {
+                    if (hashParams.get(k)) sources.push(hashParams.get(k));
+                });
+            } catch (e) {}
+
+            try {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    const val = localStorage.getItem(key);
+                    if (val) sources.push(val);
+                }
+            } catch (e) {}
+
+            try {
+                for (let i = 0; i < sessionStorage.length; i++) {
+                    const key = sessionStorage.key(i);
+                    const val = sessionStorage.getItem(key);
+                    if (val) sources.push(val);
+                }
+            } catch (e) {}
+
+            try {
+                if (document.cookie) sources.push(document.cookie);
+            } catch (e) {}
+
+            for (const item of sources) {
+                const match = String(item).match(tokenRegex);
+                if (match && match[1]) return match[1].trim();
+            }
+            return '';
+        }
+
+        function listenForGithubTokenPaste() {
+            const onFocusCapture = async () => {
+                window.removeEventListener('focus', onFocusCapture);
+                const foundInSystem = scanAllSourcesForGithubRepoToken();
+                if (foundInSystem) {
+                    appState.githubConfig.token = foundInSystem;
+                    localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, foundInSystem);
+                    loadGithubConfigToInputs();
+                    persistBaseState(true, true, false);
+                    showToast(`Token repo de GitHub jalado automáticamente (${foundInSystem.slice(0, 8)}...).`);
+                    return;
+                }
+                try {
+                    if (navigator.clipboard && navigator.clipboard.readText) {
+                        const clip = (await navigator.clipboard.readText() || '').trim();
+                        if (/^gh[pou]_|^github_pat_/i.test(clip)) {
+                            appState.githubConfig.token = clip;
+                            localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, clip);
+                            loadGithubConfigToInputs();
+                            persistBaseState(true, true, false);
+                            showToast(`Token repo de GitHub capturado y vinculado (${clip.slice(0, 8)}...).`);
+                        }
+                    }
+                } catch (e) {}
+            };
+            window.addEventListener('focus', onFocusCapture);
+        }
+
+        async function pullGithubTokenFromSystem(interactive = true) {
+            appState.githubConfig = appState.githubConfig || { repo: '', token: '', branch: 'main', filePath: 'index.html', publicUrl: '' };
+            autoDetectGithubRepoFromHost(true);
+
+            let ghToken = scanAllSourcesForGithubRepoToken();
+
+            if (!ghToken) {
+                try {
+                    const idbData = await loadFromIndexedDbVault();
+                    if (idbData?.githubConfig?.token && /^gh[pou]_|^github_pat_/i.test(idbData.githubConfig.token)) {
+                        ghToken = idbData.githubConfig.token.trim();
+                    }
+                } catch (e) {}
+            }
+
+            if (!ghToken && interactive) {
+                try {
+                    if (navigator.clipboard && navigator.clipboard.readText) {
+                        const clip = (await navigator.clipboard.readText() || '').trim();
+                        if (/^gh[pou]_|^github_pat_/i.test(clip)) ghToken = clip;
+                    }
+                } catch (e) {}
+            }
+
+            if (ghToken) {
+                appState.githubConfig.token = ghToken;
+                localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, ghToken);
+                loadGithubConfigToInputs();
+                persistBaseState(true, true, false);
+                const helper = document.getElementById('githubTokenHelperMsg');
+                if (helper) helper.innerHTML = `<span class="text-emerald-400 font-bold">✓ Token repo de GitHub jalado (${ghToken.slice(0, 10)}...)</span> · Listo para subir index.html.`;
+                if (interactive) showToast(`Token repo jalado de GitHub (${ghToken.slice(0, 10)}...) y vinculado al sistema.`);
+                return ghToken;
+            }
+
+            if (interactive) {
+                listenForGithubTokenPaste();
+                window.open('https://github.com/settings/tokens/new?description=SISTEMA_BUBU_1_0_UAMP&scopes=repo', '_blank', 'noopener,noreferrer');
+                showToast('No había un token ghp_ guardado en sesión; se abrió GitHub con permiso "repo" para generarlo y vincularlo al regresar.');
+            }
+            return '';
+        }
+
         async function extractAllSystemDeploymentInfo(showNotification = true) {
             appState.githubConfig = appState.githubConfig || { repo: '', token: '', branch: 'main', filePath: 'index.html', publicUrl: '' };
 
-            // 1. Extraer desde almacenamiento local / IndexedDB / HTML embebido si algún campo está vacío
+            // 1. Jalar automáticamente el token repo de GitHub si existe en el sistema/navegador
+            const pulledGhToken = await pullGithubTokenFromSystem(false);
+            if (pulledGhToken) {
+                appState.githubConfig.token = pulledGhToken;
+            }
+
+            // 2. Extraer desde almacenamiento local / IndexedDB / HTML embebido si algún campo está vacío
             try {
                 const savedTok = localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
-                if (savedTok && !appState.githubConfig.token) appState.githubConfig.token = savedTok;
+                if (savedTok && (!appState.githubConfig.token || /^gh[pou]_|^github_pat_/i.test(savedTok))) {
+                    appState.githubConfig.token = savedTok;
+                }
 
                 const rawLocal = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(BACKUP_STORAGE_KEY);
                 if (rawLocal) {
@@ -1571,7 +1698,7 @@
                 }
             } catch (e) {}
 
-            // 2. Extraer desde la URL actual (GitHub Pages o dominio personalizado)
+            // 3. Extraer desde la URL actual (GitHub Pages o dominio personalizado)
             try {
                 const loc = window.location;
                 if (loc && /\.github\.io$/i.test(loc.hostname)) {
@@ -1585,7 +1712,7 @@
                 }
             } catch (e) {}
 
-            // 3. Si aún no existe ningún token, generar el token interno automáticamente
+            // 4. Si aún no existe ningún token, generar respaldo interno
             if (!appState.githubConfig.token) {
                 await autoGenerateDeploymentToken(true);
             }
@@ -1682,9 +1809,17 @@
             saveGithubIntegrationSettings();
             const cfg = appState.githubConfig || {};
             const inputTok = (document.getElementById('inpGithubToken')?.value || '').trim();
-            let activeToken = (inputTok || cfg.token || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '').trim();
+            const scannedTok = scanAllSourcesForGithubRepoToken();
+            let activeToken = (
+                (/^gh[pou]_|^github_pat_/i.test(inputTok) ? inputTok : '') ||
+                scannedTok ||
+                inputTok ||
+                cfg.token ||
+                localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) ||
+                ''
+            ).trim();
             const statusBadge = document.getElementById('githubSyncStatusBadge');
-            let isGithubPat = /^gh[ps]_|^github_pat_/i.test(activeToken);
+            let isGithubPat = /^gh[pou]_|^github_pat_/i.test(activeToken);
 
             // Vincular automáticamente el token en todas las capas al iniciar la subida
             if (activeToken) {
@@ -1695,20 +1830,26 @@
                 }
             }
 
-            // Si aún no hay un token PAT real de GitHub vinculado al subir, solicitarlo y vincularlo al momento
+            // Si aún no hay un token PAT real de GitHub vinculado al subir, intentar jalarlo o pedirlo al momento
             if (manual && !isGithubPat) {
-                const enteredPat = window.prompt(
-                    'Para subir automáticamente tu index.html a GitHub, pega aquí tu Token PAT de GitHub (empieza con ghp_ o github_pat_ y tiene permiso "repo"):'
-                );
-                if (enteredPat && enteredPat.trim()) {
-                    activeToken = enteredPat.trim();
-                    appState.githubConfig.token = activeToken;
-                    localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, activeToken);
-                    if (document.getElementById('inpGithubToken')) {
-                        document.getElementById('inpGithubToken').value = activeToken;
+                const pulled = await pullGithubTokenFromSystem(false);
+                if (pulled) {
+                    activeToken = pulled;
+                    isGithubPat = true;
+                } else {
+                    const enteredPat = window.prompt(
+                        'Para subir automáticamente tu index.html a GitHub, pega aquí tu Token PAT de GitHub (empieza con ghp_ o github_pat_ y tiene permiso "repo"):'
+                    );
+                    if (enteredPat && enteredPat.trim()) {
+                        activeToken = enteredPat.trim();
+                        appState.githubConfig.token = activeToken;
+                        localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, activeToken);
+                        if (document.getElementById('inpGithubToken')) {
+                            document.getElementById('inpGithubToken').value = activeToken;
+                        }
+                        isGithubPat = /^gh[pou]_|^github_pat_/i.test(activeToken);
+                        refreshExtractedDeploymentSummary();
                     }
-                    isGithubPat = /^gh[ps]_|^github_pat_/i.test(activeToken);
-                    refreshExtractedDeploymentSummary();
                 }
             }
 
