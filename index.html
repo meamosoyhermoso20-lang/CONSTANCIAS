@@ -789,8 +789,22 @@
                                 <span class="px-2 py-0.5 rounded bg-amber-400 text-slate-950 text-[10px] font-black uppercase">Solo Administrador</span>
                                 <h3 class="text-xs sm:text-sm font-black uppercase tracking-wider text-amber-400">Vinculación Fácil a GitHub y Publicación en Código Fuente (index.html)</h3>
                             </div>
-                            <p class="text-[11px] text-slate-300 mt-1">Al guardar cambios se sincroniza y despliega automáticamente en tu repositorio para que todos vean las nuevas modificaciones sin perder datos.</p>
+                            <p class="text-[11px] text-slate-300 mt-1">Al guardar cambios se sincroniza y despliega automáticamente en tu repositorio para que cualquier enlace o navegador entre con los códigos guardados.</p>
                         </div>
+                        <span id="githubSyncStatusBadge" class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">Listo para sincronizar</span>
+                    </div>
+
+                    <!-- GUÍA ENUMERADA PASO A PASO DE CLICS PARA SINCRONIZAR -->
+                    <div class="bg-slate-950/90 border border-amber-500/40 rounded-xl p-3 space-y-1.5">
+                        <div class="text-[11px] font-black uppercase tracking-wider text-amber-300">Orden Exacto de Clics para Sincronizar y Actualizar Todo el Enlace:</div>
+                        <ol class="list-decimal list-inside text-[11px] text-slate-200 space-y-1 leading-relaxed">
+                            <li><b>Clic 1 · Guardar Usuario:</b> En el usuario que creaste o editaste abajo, escribe su código de acceso y haz clic en el botón verde <span class="px-1.5 py-0.5 rounded bg-emerald-700 text-white font-bold">Guardar Cambios</span>.</li>
+                            <li><b>Clic 2 · Detectar Repositorio:</b> En el Paso 1, haz clic en <span class="px-1.5 py-0.5 rounded bg-slate-700 text-amber-300 font-bold">Auto-detectar Repo</span> (o escribe <code>usuario/repositorio</code>).</li>
+                            <li><b>Clic 3 · Token de GitHub:</b> En el Paso 2, haz clic en <span class="px-1.5 py-0.5 rounded bg-emerald-600 text-white font-bold">GitHub ↗</span>, genera un token con permiso <code>repo</code>, pégalo en la casilla y haz clic en <span class="px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 font-bold">Guardar</span>.</li>
+                            <li><b>Clic 4 · Enlace Público:</b> En el Paso 3, verifica el enlace de tu página y haz clic en <span class="px-1.5 py-0.5 rounded bg-slate-700 text-white font-bold">Verificar Versión Publicada</span>.</li>
+                            <li><b>Clic 5 · Publicar y Actualizar Enlace:</b> Haz clic en el botón verde <span class="px-1.5 py-0.5 rounded bg-emerald-600 text-white font-bold">Publicar en GitHub y Recargar</span> (o en el botón amarillo superior <span class="px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 font-bold">Guardar y Actualizar en Tiempo Real</span>) para subir los cambios y actualizar la página.</li>
+                        </ol>
+                    </div>
                         <span id="githubSyncStatusBadge" class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">Listo para sincronizar</span>
                     </div>
 
@@ -836,19 +850,19 @@
                     <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
                         <div class="flex flex-wrap items-center gap-2">
                             <button type="button" id="btnExtractAndAutoLoad" data-header-btn="btn_extract_data" onclick="extractAndAutoLoadSystemData()" class="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-extrabold shadow transition">
-                                Extraer Datos
+                                1. Extraer Datos
                             </button>
                             <button type="button" onclick="syncUpdatesInRealTimeNow(true)" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow transition">
-                                Actualizar en Tiempo Real
+                                2. Actualizar en Tiempo Real
                             </button>
                             <button type="button" onclick="saveAllDataAndAutoUploadIndex()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-extrabold shadow transition">
-                                Guardar Cambios en Código Fuente y Subir index.html
+                                3. Guardar en Código y Subir index.html
                             </button>
                             <button type="button" onclick="downloadSelfContainedPageWithData()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition">
-                                Descargar index.html
+                                4. Descargar index.html
                             </button>
                             <button type="button" onclick="deployUpdateToGithub(true, false, true)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow transition">
-                                Publicar en GitHub y Recargar
+                                5. Publicar en GitHub y Recargar
                             </button>
                         </div>
                     </div>
@@ -1953,9 +1967,21 @@
                 const filePath = cfg.filePath || 'index.html';
                 urlsToTry.push(`https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${filePath}`);
             }
-            if (window.location && /^https?:\/\//i.test(window.location.href)) {
-                urlsToTry.push(window.location.href.split('#')[0].split('?')[0]);
-            }
+            try {
+                const loc = window.location;
+                if (loc && /^https?:\/\//i.test(loc.href)) {
+                    const cleanHref = loc.href.split('#')[0].split('?')[0];
+                    urlsToTry.push(cleanHref);
+                    if (/\.github\.io$/i.test(loc.hostname)) {
+                        const owner = loc.hostname.split('.')[0];
+                        const parts = loc.pathname.split('/').filter(Boolean);
+                        const repo = parts[0] || `${owner}.github.io`;
+                        urlsToTry.push(`https://raw.githubusercontent.com/${owner}/${repo}/main/index.html`);
+                        urlsToTry.push(`https://raw.githubusercontent.com/${owner}/${repo}/master/index.html`);
+                    }
+                }
+            } catch (e) {}
+
             const uniqueUrls = Array.from(new Set(urlsToTry.filter(Boolean)));
             if (!uniqueUrls.length) {
                 if (manual) showToast('Ingresa primero el Enlace Público en el Paso 3.');
@@ -2003,7 +2029,7 @@
                             persistBaseState(true, true, false);
                             refreshAllUI();
                             appliedRemote = true;
-                            if (manual) showToast(`Versión más reciente v${appState.version} sincronizada y guardada en caché.`);
+                            if (manual) showToast(`Enlace sincronizado con la versión v${appState.version}. Los usuarios ya pueden entrar con su código.`);
                             break;
                         }
                     }
@@ -2224,7 +2250,7 @@
             }
             persistBaseState(true, true, true);
             renderProfilesManager();
-            showToast(`Usuario "${p.name}" guardado con código "${p.code}".`);
+            showToast(`Usuario "${p.name}" guardado con código "${p.code}". Ahora sigue el Paso 5 para publicar en el enlace.`);
         }
 
         function deleteUserProfile(id) {
@@ -2288,63 +2314,6 @@
                 paper.style.boxShadow = prevShadow;
                 paper.style.border = prevBorder;
                 if (prevEditable !== null) paper.setAttribute('contenteditable', prevEditable);
-            }
-        }
-
-        async function checkRemoteDeploymentVersion(manual = false) {
-            const cfg = appState.githubConfig || {};
-            let publicUrl = (cfg.publicUrl || '').trim();
-            if (!publicUrl && window.location && /^https?:\/\//i.test(window.location.href)) {
-                publicUrl = window.location.href.split('#')[0].split('?')[0];
-            }
-            if (!publicUrl) {
-                if (manual) showToast('Ingresa primero el Enlace Público en el Paso 3.');
-                return;
-            }
-            try {
-                const sep = publicUrl.includes('?') ? '&' : '?';
-                const res = await fetch(`${publicUrl}${sep}nocache=${Date.now()}`, {
-                    cache: 'no-store',
-                    headers: {
-                        'Cache-Control': 'no-cache, no-store, must-revalidate',
-                        'Pragma': 'no-cache'
-                    }
-                });
-                if (!res.ok) return;
-                const htmlText = await res.text();
-                const match = htmlText.match(/<script type="application\/json" id="embeddedInternalVaultData">([\s\S]*?)<\/script>/i);
-                if (match && match[1]) {
-                    const remoteVault = JSON.parse(match[1]);
-                    if (remoteVault && remoteVault.version && remoteVault.version > (appState.version || 1)) {
-                        const mergedDeleted = Array.from(new Set([...(appState.deletedIds || []), ...(remoteVault.deletedIds || [])]));
-                        appState.deletedIds = mergedDeleted;
-                        const deletedSet = new Set(mergedDeleted);
-
-                        if (remoteVault.signer) appState.signer = { ...appState.signer, ...remoteVault.signer };
-                        if (Array.isArray(remoteVault.majors)) {
-                            appState.majors = remoteVault.majors.filter(m => m && !deletedSet.has(m.id));
-                        }
-                        if (Array.isArray(remoteVault.periods)) {
-                            appState.periods = remoteVault.periods.filter(p => p && !deletedSet.has('period:' + p.id) && !deletedSet.has(p.id));
-                        }
-                        if (remoteVault.templates) appState.templates = { ...appState.templates, ...remoteVault.templates };
-                        if (Array.isArray(remoteVault.grades)) appState.grades = remoteVault.grades.slice(0, 20);
-                        if (Array.isArray(remoteVault.montos)) appState.montos = remoteVault.montos.slice(0, 20);
-                        if (Array.isArray(remoteVault.kardex)) appState.kardex = remoteVault.kardex.slice(0, 20);
-                        if (Array.isArray(remoteVault.resguardo)) appState.resguardo = remoteVault.resguardo.slice(0, 20);
-                        if (Array.isArray(remoteVault.profiles)) {
-                            appState.profiles = remoteVault.profiles.filter(prof => prof && !deletedSet.has(prof.id));
-                        }
-                        appState.version = remoteVault.version;
-                        persistBaseState(true, true, false);
-                        refreshAllUI();
-                        if (manual) showToast(`Versión más reciente v${remoteVault.version} aplicada.`);
-                    } else if (manual) {
-                        showToast('Ya tienes la versión más reciente.');
-                    }
-                }
-            } catch (e) {
-                if (manual) showToast('No se pudo consultar la versión remota.');
             }
         }
 
