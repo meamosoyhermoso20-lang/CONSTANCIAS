@@ -1046,6 +1046,9 @@
         const CODE_HASH_SALT = 'UAMP_BUBU_1_0_SECURE_SALT_2026';
         const STORAGE_KEY = 'SISTEMA_BUBU_1_0_UAMP_STATE_V4';
         const BACKUP_STORAGE_KEY = 'SISTEMA_BUBU_1_0_PERMANENT_VAULT_BACKUP';
+        const CACHE_STORAGE_NAME = 'SISTEMA_BUBU_1_0_PERMANENT_CACHE_V1';
+        const CACHE_VAULT_URL = 'https://uamp-bubu-permanent.local/vault-state.json';
+        const CACHE_HTML_URL = 'https://uamp-bubu-permanent.local/index-source.html';
         const IDB_DB_NAME = 'SISTEMA_BUBU_1_0_PERMANENT_DB';
         const IDB_STORE_NAME = 'vault_store';
         const ADMIN_TOKEN_STORAGE_KEY = 'SISTEMA_BUBU_1_0_ADMIN_GH_TOKEN';
@@ -2082,6 +2085,7 @@
                     const embeddedEl = document.getElementById('embeddedInternalVaultData');
                     if (embeddedEl) embeddedEl.textContent = JSON.stringify(vaultFromDeployed);
                 }
+                await saveToBrowserCacheVault(buildSerializableVaultPayload(true), deployedHtml);
                 if (isCloudPublished) {
                     await checkRemoteDeploymentVersion(false);
                 }
@@ -2097,10 +2101,51 @@
             } catch (e) {}
         }
 
+        async function saveToBrowserCacheVault(payload, sourceHtml = '') {
+            try {
+                if (!('caches' in window)) return false;
+                const cache = await caches.open(CACHE_STORAGE_NAME);
+                await cache.put(
+                    CACHE_VAULT_URL,
+                    new Response(JSON.stringify(payload), {
+                        headers: {
+                            'Content-Type': 'application/json; charset=utf-8',
+                            'Cache-Control': 'public, max-age=31536000, immutable'
+                        }
+                    })
+                );
+                if (sourceHtml) {
+                    await cache.put(
+                        CACHE_HTML_URL,
+                        new Response(sourceHtml, {
+                            headers: {
+                                'Content-Type': 'text/html; charset=utf-8',
+                                'Cache-Control': 'public, max-age=31536000, immutable'
+                            }
+                        })
+                    );
+                }
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        async function loadFromBrowserCacheVault() {
+            try {
+                if (!('caches' in window)) return null;
+                const cache = await caches.open(CACHE_STORAGE_NAME);
+                const res = await cache.match(CACHE_VAULT_URL);
+                if (!res) return null;
+                return await res.json();
+            } catch (e) {
+                return null;
+            }
+        }
+
         function saveToIndexedDbVault(payload) {
             return new Promise((resolve) => {
                 try {
-                    if (!window.indexedDB) return resolve(false);
                     const req = indexedDB.open(IDB_DB_NAME, 1);
                     req.onupgradeneeded = (ev) => {
                         const db = ev.target.result;
@@ -2112,10 +2157,10 @@
                         try {
                             const db = ev.target.result;
                             const tx = db.transaction(IDB_STORE_NAME, 'readwrite');
-                            tx.objectStore(IDB_STORE_NAME).put(payload, 'main_vault');
-                            tx.oncomplete = () => { db.close(); resolve(true); };
-                            tx.onerror = () => { db.close(); resolve(false); };
-                        } catch (err) {
+                            tx.objectStore(IDB_STORE_NAME).put(payload, 'latest_vault');
+                            tx.oncomplete = () => resolve(true);
+                            tx.onerror = () => resolve(false);
+                        } catch (e) {
                             resolve(false);
                         }
                     };
@@ -2129,7 +2174,6 @@
         function loadFromIndexedDbVault() {
             return new Promise((resolve) => {
                 try {
-                    if (!window.indexedDB) return resolve(null);
                     const req = indexedDB.open(IDB_DB_NAME, 1);
                     req.onupgradeneeded = (ev) => {
                         const db = ev.target.result;
@@ -2141,10 +2185,10 @@
                         try {
                             const db = ev.target.result;
                             const tx = db.transaction(IDB_STORE_NAME, 'readonly');
-                            const getReq = tx.objectStore(IDB_STORE_NAME).get('main_vault');
-                            getReq.onsuccess = () => { const res = getReq.result || null; db.close(); resolve(res); };
-                            getReq.onerror = () => { db.close(); resolve(null); };
-                        } catch (err) {
+                            const getReq = tx.objectStore(IDB_STORE_NAME).get('latest_vault');
+                            getReq.onsuccess = () => resolve(getReq.result || null);
+                            getReq.onerror = () => resolve(null);
+                        } catch (e) {
                             resolve(null);
                         }
                     };
@@ -2160,33 +2204,24 @@
 
             try {
                 const embeddedEl = document.getElementById('embeddedInternalVaultData');
-                if (embeddedEl && embeddedEl.textContent.trim()) {
-                    const parsedEmbedded = JSON.parse(embeddedEl.textContent.trim());
-                    if (parsedEmbedded && typeof parsedEmbedded === 'object' && Object.keys(parsedEmbedded).length > 0) {
-                        candidates.push(parsedEmbedded);
+                if (embeddedEl && embeddedEl.textContent) {
+                    const parsedEmb = JSON.parse(embeddedEl.textContent.trim());
+                    if (parsedEmb && typeof parsedEmb === 'object' && Object.keys(parsedEmb).length > 0) {
+                        candidates.push(parsedEmb);
                     }
                 }
             } catch (e) {}
 
             try {
-                const codesEl = document.getElementById('embeddedUserAccessCodes');
-                if (codesEl && codesEl.textContent.trim()) {
-                    const parsedCodes = JSON.parse(codesEl.textContent.trim());
-                    if (Array.isArray(parsedCodes) && parsedCodes.length > 0) {
-                        candidates.push({ version: 1, profiles: parsedCodes });
-                    }
-                }
-            } catch (e) {}
-
-            if (Array.isArray(EMBEDDED_SOURCE_USERS) && EMBEDDED_SOURCE_USERS.length > 0) {
-                candidates.push({ version: 1, profiles: EMBEDDED_SOURCE_USERS });
-            }
-
-            try {
-                if (typeof window.name === 'string' && window.name.startsWith('BUBU_VAULT:')) {
+                if (window.name && window.name.startsWith('BUBU_VAULT:')) {
                     const parsedWin = JSON.parse(window.name.slice('BUBU_VAULT:'.length));
                     if (parsedWin && typeof parsedWin === 'object') candidates.push(parsedWin);
                 }
+            } catch (e) {}
+
+            try {
+                const cacheData = await loadFromBrowserCacheVault();
+                if (cacheData && typeof cacheData === 'object') candidates.push(cacheData);
             } catch (e) {}
 
             try {
@@ -2258,7 +2293,9 @@
                         ...(savedToken ? { token: savedToken } : {})
                     };
                 }
-                if (src.extractedFormState) appState.extractedFormState = src.extractedFormState;
+                if (src.extractedFormState) {
+                    appState.extractedFormState = { ...(appState.extractedFormState || {}), ...src.extractedFormState };
+                }
                 if (src.selectiveAutoSave) appState.selectiveAutoSave = { ...appState.selectiveAutoSave, ...src.selectiveAutoSave };
             }
 
@@ -2337,7 +2374,9 @@
             if (!remoteVault || typeof remoteVault !== 'object') return false;
             const remoteVer = Number(remoteVault.version) || 0;
             const localVer = Number(appState.version) || 1;
-            if (!forceLatestLink && remoteVer < localVer) {
+            const remoteTs = Number(remoteVault.updatedAt || remoteVault.ts || 0);
+            const localTs = Number(appState._lastLocalSaveTs || 0);
+            if (!forceLatestLink && (remoteVer < localVer || (remoteVer === localVer && localTs > remoteTs))) {
                 return false;
             }
             const mergedDeleted = Array.from(new Set([...(appState.deletedIds || []), ...(remoteVault.deletedIds || [])]));
@@ -2356,6 +2395,7 @@
                 appState.profiles = Array.from(profMap.values());
             }
 
+            if (remoteVault.currentDocType) appState.currentDocType = remoteVault.currentDocType;
             if (remoteVault.signer) appState.signer = { ...appState.signer, ...remoteVault.signer };
             if (Array.isArray(remoteVault.majors)) {
                 appState.majors = remoteVault.majors.filter(m => m && !deletedSet.has(m.id));
@@ -2368,6 +2408,12 @@
             if (Array.isArray(remoteVault.montos)) appState.montos = remoteVault.montos.slice(0, 20);
             if (Array.isArray(remoteVault.kardex)) appState.kardex = remoteVault.kardex.slice(0, 20);
             if (Array.isArray(remoteVault.resguardo)) appState.resguardo = remoteVault.resguardo.slice(0, 20);
+            if (Array.isArray(remoteVault.history)) appState.history = remoteVault.history;
+            if (Array.isArray(remoteVault.studentsVault)) appState.studentsVault = remoteVault.studentsVault;
+            if (remoteVault.extractedFormState) {
+                appState.extractedFormState = { ...(appState.extractedFormState || {}), ...remoteVault.extractedFormState };
+                applyExtractedFormFields(appState.extractedFormState);
+            }
             appState.version = Math.max(appState.version || 1, Number(remoteVault.version) || 1);
 
             persistBaseState(true, true, false);
@@ -2536,25 +2582,30 @@
             if (shouldBump) {
                 appState.version = (appState.version || 1) + 1;
             }
+            appState._lastLocalSaveTs = Date.now();
             if ((appState.selectiveAutoSave?.form !== false) && document.getElementById('inpNombre')) {
                 appState.extractedFormState = extractCurrentSystemFields();
             }
             const fullPayload = buildSerializableVaultPayload(true);
             const safePayload = buildSerializableVaultPayload(false);
+            if (updateEmbedded) {
+                syncUserCodesToSourceCodeDom();
+            }
+            const updatedSourceHtml = buildCleanDeployableHtml();
+            window.__LATEST_REGENERATED_BASE_HTML__ = updatedSourceHtml;
             if (saveLocal) {
                 try {
                     const serializedFull = JSON.stringify(fullPayload);
                     localStorage.setItem(STORAGE_KEY, serializedFull);
                     localStorage.setItem(BACKUP_STORAGE_KEY, serializedFull);
+                    localStorage.setItem('SISTEMA_BUBU_1_0_REGENERATED_HTML', updatedSourceHtml);
                     if (fullPayload.githubConfig?.token) {
                         localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, fullPayload.githubConfig.token);
                     }
                     window.name = `BUBU_VAULT:${JSON.stringify(safePayload)}`;
                 } catch (e) {}
                 saveToIndexedDbVault(fullPayload);
-            }
-            if (updateEmbedded) {
-                syncUserCodesToSourceCodeDom();
+                saveToBrowserCacheVault(fullPayload, updatedSourceHtml);
             }
             const labelTag = shouldBump ? 'Publicado por Admin' : 'Despliegue Guardado Actual';
             registerDeployedVersionSnapshot(safePayload, labelTag);
@@ -2672,8 +2723,9 @@
             try {
                 await loadPersistedState(true);
                 hydrateUserFromSharedUrlParam();
+                const preLoginLocalVer = Number(appState.version || 1);
                 if (window._pullGlobalCloudNow) {
-                    await window._pullGlobalCloudNow();
+                    await window._pullGlobalCloudNow(false);
                 } else {
                     try {
                         const res = await fetch(`https://ntfy.sh/${GLOBAL_RT_CHANNEL}/json?poll=1&since=24h`, { cache: 'no-store' });
@@ -2685,7 +2737,9 @@
                                     if (msg?.message) {
                                         const parsedMsg = JSON.parse(msg.message);
                                         registerDeployedVersionSnapshot(parsedMsg, 'Nube Global');
-                                        applyRemoteVaultToState(parsedMsg, true);
+                                        if (Number(parsedMsg.version || 0) > Number(appState.version || 1)) {
+                                            applyRemoteVaultToState(parsedMsg, false);
+                                        }
                                     }
                                 } catch (err) {}
                             });
@@ -2695,8 +2749,8 @@
                 await checkRemoteDeploymentVersion(false);
                 if (_deployedVersionsRegistry.length > 0) {
                     const newest = _deployedVersionsRegistry[0];
-                    if (newest && newest.vault && Number(newest.version) >= Number(appState.version || 1)) {
-                        applyRemoteVaultToState(newest.vault, true);
+                    if (newest && newest.vault && Number(newest.version) > Math.max(preLoginLocalVer, Number(appState.version || 1))) {
+                        applyRemoteVaultToState(newest.vault, false);
                     }
                 }
                 renderLoginDeployedVersionsSelect();
@@ -4138,6 +4192,7 @@
                 folio: document.getElementById('inpFolio')?.value || '',
                 lugar: document.getElementById('inpLugarExpedicion')?.value || '',
                 fecha: document.getElementById('inpFechaExpedicionTexto')?.value || '',
+                asunto: document.getElementById('inpAsuntoConstancia')?.value || '',
                 nombre: document.getElementById('inpNombre')?.value || '',
                 genero: document.getElementById('selGeneroAlumno')?.value || 'M',
                 matricula: document.getElementById('inpMatricula')?.value || '',
@@ -4145,8 +4200,35 @@
                 licenciatura: document.getElementById('selLicenciatura')?.value || '',
                 grado: document.getElementById('inpPeriodoGrado')?.value || '',
                 periodo: document.getElementById('selPeriodoEscolar')?.value || '',
+                vacacional: document.getElementById('inpPeriodoVacacional')?.value || '',
+                verbo: document.getElementById('selVerboCursado')?.value || 'cursó',
                 nota: document.getElementById('inpDestinoNota')?.value || ''
             };
+        }
+
+        function applyExtractedFormFields(data) {
+            if (!data || typeof data !== 'object') return;
+            if (data.folio !== undefined && document.getElementById('inpFolio')) document.getElementById('inpFolio').value = data.folio;
+            if (data.lugar !== undefined && document.getElementById('inpLugarExpedicion')) document.getElementById('inpLugarExpedicion').value = data.lugar;
+            if (data.fecha !== undefined && document.getElementById('inpFechaExpedicionTexto')) document.getElementById('inpFechaExpedicionTexto').value = data.fecha;
+            if (data.asunto !== undefined && document.getElementById('inpAsuntoConstancia')) document.getElementById('inpAsuntoConstancia').value = data.asunto;
+            if (data.nombre !== undefined && document.getElementById('inpNombre')) document.getElementById('inpNombre').value = data.nombre;
+            if (data.genero !== undefined && document.getElementById('selGeneroAlumno')) document.getElementById('selGeneroAlumno').value = data.genero;
+            if (data.matricula !== undefined && document.getElementById('inpMatricula')) document.getElementById('inpMatricula').value = data.matricula;
+            if (data.curp !== undefined && document.getElementById('inpCurp')) document.getElementById('inpCurp').value = data.curp;
+            if (data.licenciatura && document.getElementById('selLicenciatura') && (appState.majors || []).some(m => m.id === data.licenciatura)) {
+                document.getElementById('selLicenciatura').value = data.licenciatura;
+            }
+            if (data.grado !== undefined && document.getElementById('inpPeriodoGrado')) {
+                document.getElementById('inpPeriodoGrado').value = data.grado;
+                if (document.getElementById('selPeriodoGrado')) document.getElementById('selPeriodoGrado').value = data.grado;
+            }
+            if (data.periodo && document.getElementById('selPeriodoEscolar') && (appState.periods || []).some(p => p.id === data.periodo)) {
+                document.getElementById('selPeriodoEscolar').value = data.periodo;
+            }
+            if (data.vacacional !== undefined && document.getElementById('inpPeriodoVacacional')) document.getElementById('inpPeriodoVacacional').value = data.vacacional;
+            if (data.verbo !== undefined && document.getElementById('selVerboCursado')) document.getElementById('selVerboCursado').value = data.verbo;
+            if (data.nota !== undefined && document.getElementById('inpDestinoNota')) document.getElementById('inpDestinoNota').value = data.nota;
         }
 
         function applyExtractedFormFields(data) {
@@ -4336,6 +4418,10 @@
             if (document.getElementById('inpFirmanteNombre')) document.getElementById('inpFirmanteNombre').value = appState.signer?.name || '';
             if (document.getElementById('inpFirmanteCargo')) document.getElementById('inpFirmanteCargo').value = appState.signer?.title || '';
             selectDocType(appState.currentDocType || 'estudios');
+            if (appState.extractedFormState) {
+                applyExtractedFormFields(appState.extractedFormState);
+                updateDocument();
+            }
             renderProfilesManager();
             updateRealtimeCornerStatus(`Versión activa v${appState.version || 1}`, 'ok');
         }
