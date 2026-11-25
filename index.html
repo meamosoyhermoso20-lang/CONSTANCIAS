@@ -3635,8 +3635,8 @@ window.onload = function() {
                                 <input type="text" value="${p.roleLabel}" oninput="appState.profiles[${idx}].roleLabel=this.value;" placeholder="Puesto / Rol" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs">
                             </div>
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Nuevo Código de Acceso (Se codifica al guardar)</label>
-                                <input type="password" autocomplete="new-password" value="${p.pendingPlainCode || ''}" oninput="appState.profiles[${idx}].pendingPlainCode=this.value;" placeholder="•••••••• (Escribir solo para cambiar)" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-mono font-bold text-blue-900">
+                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Código de Acceso (Se registra codificado en el sistema)</label>
+                                <input type="password" id="profileCodeInput_${idx}" autocomplete="new-password" value="${p.pendingPlainCode || ''}" oninput="appState.profiles[${idx}].pendingPlainCode=this.value;" placeholder="${p.code ? '•••••••• (Escribir solo para cambiar)' : 'Escribe el código de acceso'}" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-mono font-bold text-blue-900">
                             </div>
                         </div>
 
@@ -3649,81 +3649,183 @@ window.onload = function() {
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                            <div class="bg-white rounded-xl border border-slate-200 p-3 space-y-2">
-                                <h4 class="text-[11px] font-black uppercase text-blue-950 border-b border-slate-100 pb-1.5">1. Constancias Autorizadas</h4>
-                                <ul class="space-y-1.5">
-                                    ${DOC_MODALITIES_LIST.map(d => {
-                                        const isAllowed = p.docAccess?.[d.id] !== false;
-                                        return `
-                                            <li class="flex items-center justify-between gap-2 text-xs py-1 border-b border-slate-50 last:border-0">
-                                                <span class="font-semibold text-slate-700">${d.label}</span>
-                                                <select onchange="appState.profiles[${idx}].docAccess['${d.id}']=(this.value==='true');" class="px-2 py-1 rounded-lg border border-slate-300 text-[11px] font-bold ${isAllowed ? 'text-emerald-800 bg-emerald-50' : 'text-rose-800 bg-rose-50'}">
-                                                    <option value="true" ${isAllowed ? 'selected' : ''}>Permitido</option>
-                                                    <option value="false" ${!isAllowed ? 'selected' : ''}>Bloqueado</option>
-                                                </select>
-                                            </li>
-                                        `;
-                                    }).join('')}
-                                </ul>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
+                                <div class="text-[11px] font-black uppercase text-slate-700">1. Constancias Permitidas</div>
+                                <div class="space-y-1.5">
+                                    ${DOC_MODALITIES_LIST.map(d => `
+                                        <label class="flex items-center justify-between text-xs text-slate-700 cursor-pointer">
+                                            <span>${d.label}</span>
+                                            <input type="checkbox" ${p.docAccess?.[d.id] !== false ? 'checked' : ''} onchange="appState.profiles[${idx}].docAccess['${d.id}']=this.checked;" class="rounded border-slate-300 text-blue-900">
+                                        </label>
+                                    `).join('')}
+                                </div>
                             </div>
 
-                            <div class="bg-white rounded-xl border border-slate-200 p-3 space-y-2">
-                                <h4 class="text-[11px] font-black uppercase text-blue-950 border-b border-slate-100 pb-1.5">2. Campos de Captura por Constancia</h4>
-                                <ul class="space-y-1.5 max-h-72 overflow-y-auto pr-1">
-                                    ${DOC_FIELD_DEFINITIONS.map(f => {
-                                        const mode = p.fieldPerms?.[f.id] || 'edit';
-                                        return `
-                                            <li class="flex items-center justify-between gap-2 text-xs py-1 border-b border-slate-50 last:border-0">
-                                                <span class="font-medium text-slate-700">${f.label}</span>
-                                                <select onchange="appState.profiles[${idx}].fieldPerms['${f.id}']=this.value;" class="px-2 py-1 rounded-lg border border-slate-300 text-[11px] font-bold bg-slate-50">
-                                                    <option value="edit" ${mode === 'edit' ? 'selected' : ''}>Modificar y Seleccionar</option>
-                                                    <option value="select" ${mode === 'select' ? 'selected' : ''}>Solo Seleccionar</option>
-                                                    <option value="hide" ${mode === 'hide' ? 'selected' : ''}>Ocultar</option>
-                                                </select>
-                                            </li>
-                                        `;
-                                    }).join('')}
-                                </ul>
+                            <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
+                                <div class="text-[11px] font-black uppercase text-slate-700">2. Botones y Acciones</div>
+                                <div class="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+                                    ${HEADER_BUTTON_DEFINITIONS.map(b => `
+                                        <div class="flex items-center justify-between gap-2 text-xs">
+                                            <span class="text-slate-700 truncate">${b.label}</span>
+                                            <select onchange="appState.profiles[${idx}].headerPerms['${b.id}']=this.value;" class="px-2 py-0.5 rounded border border-slate-300 text-[11px] font-semibold bg-slate-50">
+                                                <option value="edit" ${(p.headerPerms?.[b.id] || 'edit') === 'edit' ? 'selected' : ''}>Permitir</option>
+                                                <option value="hide" ${p.headerPerms?.[b.id] === 'hide' ? 'selected' : ''}>Ocultar</option>
+                                            </select>
+                                        </div>
+                                    `).join('')}
+                                </div>
                             </div>
 
-                            <div class="bg-white rounded-xl border border-slate-200 p-3 space-y-2">
-                                <h4 class="text-[11px] font-black uppercase text-blue-950 border-b border-slate-100 pb-1.5">3. Botones y Herramientas</h4>
-                                <ul class="space-y-1.5 max-h-72 overflow-y-auto pr-1">
-                                    ${HEADER_BUTTON_DEFINITIONS.map(b => {
-                                        const mode = p.headerPerms?.[b.id] || 'edit';
-                                        return `
-                                            <li class="flex items-center justify-between gap-2 text-xs py-1 border-b border-slate-50 last:border-0">
-                                                <span class="font-medium text-slate-700">${b.label}</span>
-                                                <select onchange="appState.profiles[${idx}].headerPerms['${b.id}']=this.value;" class="px-2 py-1 rounded-lg border border-slate-300 text-[11px] font-bold bg-slate-50">
-                                                    <option value="edit" ${mode === 'edit' ? 'selected' : ''}>Permitir</option>
-                                                    <option value="hide" ${mode === 'hide' ? 'selected' : ''}>Ocultar</option>
-                                                </select>
-                                            </li>
-                                        `;
-                                    }).join('')}
-                                </ul>
+                            <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
+                                <div class="text-[11px] font-black uppercase text-slate-700">3. Campos del Formulario</div>
+                                <div class="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+                                    ${DOC_FIELD_DEFINITIONS.map(f => `
+                                        <div class="flex items-center justify-between gap-2 text-xs">
+                                            <span class="text-slate-700 truncate">${f.label}</span>
+                                            <select onchange="appState.profiles[${idx}].fieldPerms['${f.id}']=this.value;" class="px-2 py-0.5 rounded border border-slate-300 text-[11px] font-semibold bg-slate-50">
+                                                <option value="edit" ${(p.fieldPerms?.[f.id] || 'edit') === 'edit' ? 'selected' : ''}>Editar</option>
+                                                <option value="select" ${p.fieldPerms?.[f.id] === 'select' ? 'selected' : ''}>Solo Ver</option>
+                                                <option value="hide" ${p.fieldPerms?.[f.id] === 'hide' ? 'selected' : ''}>Ocultar</option>
+                                            </select>
+                                        </div>
+                                    `).join('')}
+                                </div>
                             </div>
-                        </div>
-
-                        <div class="flex justify-end pt-2 border-t border-slate-200">
-                            <button type="button" onclick="saveSingleUserProfile(${idx})" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow transition">
-                                Guardar Cambios de ${p.name || 'este Usuario'}
-                            </button>
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `).join('') || '<p class="text-xs text-slate-400 text-center py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-300">No hay usuarios operativos registrados. Haz clic en "+ Agregar Nuevo Usuario".</p>';
+        }
+
+        async function createNewUserProfile() {
+            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
+                return showToast('Solo el Administrador puede crear usuarios.');
+            }
+            const newId = 'usr_' + Date.now();
+            const rawCode = String(Math.floor(1000 + Math.random() * 9000));
+            const hashedCode = await hashAccessCodeSecurely(rawCode);
+            appState.profiles.push({
+                id: newId,
+                name: 'Nuevo Usuario',
+                roleLabel: 'Control Escolar',
+                code: hashedCode,
+                pendingPlainCode: '',
+                docAccess: createDefaultDocAccessMatrix(true),
+                headerPerms: createDefaultHeaderMatrix('edit'),
+                fieldPerms: createDefaultFieldMatrix('edit')
+            });
+            persistBaseState(true, true, true);
+            renderProfilesManager();
+            const idx = appState.profiles.length - 1;
+            const body = document.getElementById(`profileAccordionBody_${idx}`);
+            const arrow = document.getElementById(`profileAccordionArrow_${idx}`);
+            if (body) body.classList.remove('hidden');
+            if (arrow) arrow.textContent = '▲';
+            showToast(`Nuevo usuario creado con código inicial: ${rawCode} (registrado en el código).`);
+        }
+
+        function deleteUserProfile(id) {
+            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
+                return showToast('Solo el Administrador puede eliminar usuarios.');
+            }
+            appState.deletedIds.push(id);
+            appState.profiles = appState.profiles.filter(p => p.id !== id);
+            persistBaseState(true, true, true);
+            renderProfilesManager();
+            showToast('Usuario eliminado permanentemente.');
+        }
+
+        async function saveSingleUserProfile(idx) {
+            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
+                return showToast('Solo el Administrador puede guardar cambios de usuario.');
+            }
+            const p = appState.profiles[idx];
+            if (!p) return;
+            const domCodeInput = document.getElementById(`profileCodeInput_${idx}`);
+            const newPlain = ((domCodeInput ? domCodeInput.value : p.pendingPlainCode) || '').trim();
+            if (newPlain) {
+                p.code = await hashAccessCodeSecurely(newPlain);
+                delete p.pendingPlainCode;
+                if (domCodeInput) domCodeInput.value = '';
+            } else if (p.code && !String(p.code).startsWith('sha256:')) {
+                p.code = await hashAccessCodeSecurely(p.code);
+            }
+            if (!p.code) {
+                return showToast('Escribe un código de acceso válido antes de guardar.');
+            }
+            persistBaseState(true, true, true);
+            renderProfilesManager();
+            const cfg = appState.githubConfig || {};
+            if (cfg.repo && cfg.repo.includes('/') && cfg.token) {
+                await deployUpdateToGithub(false, true, false);
+                showToast(`Código registrado en el código fuente y publicado en línea para "${p.name || 'Usuario'}".`);
+            } else {
+                showToast(`Código codificado y registrado en el código para "${p.name || 'Usuario'}".`);
+            }
+        }
+
+        async function checkRemoteDeploymentVersion(manual = false) {
+            const cfg = appState.githubConfig || {};
+            let publicUrl = (cfg.publicUrl || '').trim();
+            if (!publicUrl && window.location && /^https?:\/\//i.test(window.location.href)) {
+                publicUrl = window.location.href.split('#')[0].split('?')[0];
+            }
+            if (!publicUrl) {
+                if (manual) showToast('Ingresa primero el Enlace Público en el Paso 3.');
+                return;
+            }
+            try {
+                const sep = publicUrl.includes('?') ? '&' : '?';
+                const res = await fetch(`${publicUrl}${sep}nocache=${Date.now()}`, {
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                if (!res.ok) return;
+                const htmlText = await res.text();
+                const match = htmlText.match(/<script type="application\/json" id="embeddedInternalVaultData">([\s\S]*?)<\/script>/i);
+                if (match && match[1]) {
+                    const remoteVault = JSON.parse(match[1]);
+                    if (remoteVault && remoteVault.version && remoteVault.version > (appState.version || 1)) {
+                        const mergedDeleted = Array.from(new Set([...(appState.deletedIds || []), ...(remoteVault.deletedIds || [])]));
+                        appState.deletedIds = mergedDeleted;
+                        const deletedSet = new Set(mergedDeleted);
+
+                        if (remoteVault.signer) appState.signer = { ...appState.signer, ...remoteVault.signer };
+                        if (Array.isArray(remoteVault.majors)) {
+                            appState.majors = remoteVault.majors.filter(m => m && !deletedSet.has(m.id));
+                        }
+                        if (Array.isArray(remoteVault.periods)) {
+                            appState.periods = remoteVault.periods.filter(p => p && !deletedSet.has('period:' + p.id) && !deletedSet.has(p.id));
+                        }
+                        if (remoteVault.templates) appState.templates = { ...appState.templates, ...remoteVault.templates };
+                        if (Array.isArray(remoteVault.grades)) appState.grades = remoteVault.grades.slice(0, 20);
+                        if (Array.isArray(remoteVault.montos)) appState.montos = remoteVault.montos.slice(0, 20);
+                        if (Array.isArray(remoteVault.kardex)) appState.kardex = remoteVault.kardex.slice(0, 20);
+                        if (Array.isArray(remoteVault.resguardo)) appState.resguardo = remoteVault.resguardo.slice(0, 20);
+                        if (Array.isArray(remoteVault.profiles)) {
+                            appState.profiles = remoteVault.profiles.filter(prof => prof && !deletedSet.has(prof.id));
+                        }
+                        appState.version = remoteVault.version;
+                        persistBaseState(true, true, false);
+                        refreshAllUI();
+                        if (manual) showToast(`Versión más reciente v${remoteVault.version} aplicada.`);
+                    } else if (manual) {
+                        showToast('Ya tienes la versión más reciente.');
+                    }
+                }
+            } catch (e) {
+                if (manual) showToast('No se pudo consultar la versión remota.');
+            }
         }
 
         function handlePreviewTextSelection() {
             const toolbar = document.getElementById('selectionFormatToolbar');
             const paper = document.getElementById('constanciaPaper');
             if (!toolbar || !paper) return;
-            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
-                toolbar.classList.add('hidden');
-                return;
-            }
             const sel = window.getSelection();
             if (!sel || sel.isCollapsed || !sel.toString().trim()) {
                 toolbar.classList.add('hidden');
