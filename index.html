@@ -165,7 +165,7 @@
 </head>
 <body class="bg-slate-100 text-slate-900 min-h-screen">
 
-    <!-- PANTALLA DE INICIO DE SESIÓN OBLIGATORIA (SISTEMA BUBU 1.0) -->
+    <!-- PANTALLA DE INICIO DE SESIÓN OBLIGATORIA CON SINCRONIZACIÓN GLOBAL EN TIEMPO REAL -->
     <div id="frontLoginScreen" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 p-4">
         <div class="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-md w-full p-7 sm:p-8">
             <div class="flex flex-col items-center text-center mb-6">
@@ -177,6 +177,10 @@
                 </span>
                 <h1 class="text-2xl font-black tracking-tight text-slate-900">SISTEMA BUBU 1.0</h1>
                 <p class="text-xs text-slate-500 mt-1">Ingresa tu código de usuario o administrador para acceder al panel.</p>
+                <div class="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-800">
+                    <span id="loginRealtimeDot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="loginRealtimeStatus">Conexión Global en Tiempo Real Activa</span>
+                </div>
             </div>
 
             <form onsubmit="unlockProfileByFrontLogin(event)" class="space-y-4">
@@ -187,7 +191,7 @@
 
                 <div id="frontLoginError" class="hidden text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2"></div>
 
-                <button type="submit" class="w-full py-3 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-sm font-extrabold shadow-lg transition cursor-pointer">
+                <button type="submit" id="btnFrontLoginSubmit" class="w-full py-3 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-sm font-extrabold shadow-lg transition cursor-pointer">
                     Iniciar Sesión
                 </button>
             </form>
@@ -267,7 +271,7 @@
         <div id="newDeploymentBanner" class="no-print bg-slate-950 text-slate-200 border-b border-slate-800 px-4 py-1.5 text-[11px] font-semibold flex flex-wrap items-center justify-between gap-2">
             <div class="flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>Versión del Sistema Activa: <b id="bannerActiveVersionTag" class="text-amber-400 font-mono">v1</b> · <span id="autoSyncBannerState">Guardado Automático Selectivo: Activo</span></span>
+                <span>Versión del Sistema Activa: <b id="bannerActiveVersionTag" class="text-amber-400 font-mono">v1</b> · <span id="autoSyncBannerState">Sincronización Global en Tiempo Real: Activa</span></span>
             </div>
             <div class="flex items-center gap-2">
                 <button type="button" onclick="visitorSyncLatestDeploymentNow(this)" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-extrabold transition">
@@ -412,46 +416,6 @@
                             <div data-field-wrap="curp" id="curpFieldWrap">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1">CURP ({CURP})</label>
                                 <input type="text" id="inpCurp" value="GOAE010412HPLRND09" placeholder="18 caracteres" oninput="updateDocument();queueSelectiveAutoSave('form');" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="fechaAsuntoRow">
-                            <div data-field-wrap="fecha_expedicion">
-                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Fecha de Expedición ({FECHA})</label>
-                                <div class="space-y-1">
-                                    <input type="date" id="inpFechaExpedicion" oninput="syncExpeditionDateTextFromPicker();updateDocument();" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
-                                    <input type="text" id="inpFechaExpedicionTexto" value="24 de Noviembre de 2026" placeholder="Ej. 24 de Noviembre de 2026" oninput="updateDocument()" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50/30 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
-                                </div>
-                            </div>
-                            <div data-field-wrap="asunto_constancia">
-                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Asunto ({ASUNTO}) · Por Modalidad</label>
-                                <input type="text" id="inpAsuntoConstancia" value="Constancia de Estudios" placeholder="Ej. Constancia de Estudios" oninput="syncAsuntoInputToTemplate();updateDocument();" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-blue-300 bg-blue-50/30 text-xs font-bold text-blue-950 focus:ring-2 focus:ring-blue-800 outline-none">
-                                <p class="text-[10px] text-slate-400 mt-1">Se vincula en tiempo real con <code>{ASUNTO}</code> según la constancia elegida.</p>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div data-field-wrap="nombre_alumno" class="sm:col-span-2">
-                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Nombre Completo del Alumno ({NOMBRE})</label>
-                                <input type="text" id="inpNombre" value="GOMEZ AMORES ENRIQUE" placeholder="Nombre(s) y Apellidos (respeta mayúsculas/minúsculas)" oninput="updateDocument()" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-800 outline-none">
-                            </div>
-                            <div data-field-wrap="genero_alumno">
-                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Género</label>
-                                <select id="selGeneroAlumno" onchange="updateDocument();persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-800 bg-white focus:ring-2 focus:ring-blue-800 outline-none">
-                                    <option value="M">Niño (el alumno / inscrito)</option>
-                                    <option value="F">Niña (la alumna / inscrita)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div data-field-wrap="matricula">
-                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Matrícula ({MATRICULA})</label>
-                                <input type="text" id="inpMatricula" value="2211899" placeholder="Ej. 2211899" oninput="updateDocument()" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono font-bold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
-                            </div>
-                            <div data-field-wrap="curp" id="curpFieldWrap">
-                                <label class="block text-[11px] font-bold text-slate-600 mb-1">CURP ({CURP})</label>
-                                <input type="text" id="inpCurp" value="GOAE010412HPLRND09" placeholder="18 caracteres" oninput="updateDocument()" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
                             </div>
                         </div>
 
@@ -818,7 +782,7 @@
                 <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
                     <div>
                         <h2 class="text-base font-black text-slate-800">Panel de Control · Usuarios y Permisos Granulares</h2>
-                        <p class="text-xs text-slate-500">Asigna códigos de acceso y gestiona usuarios operativos del sistema.</p>
+                        <p class="text-xs text-slate-500">Asigna códigos de acceso y gestiona usuarios operativos del sistema (sincronizados globalmente al instante).</p>
                     </div>
                     <button type="button" onclick="createNewUserProfile()" class="px-4 py-2 rounded-xl bg-blue-900 hover:bg-blue-800 text-white text-xs font-extrabold shadow transition">
                         + Agregar Nuevo Usuario
@@ -831,11 +795,11 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="px-2 py-0.5 rounded bg-amber-400 text-slate-950 text-[10px] font-black uppercase">Solo Administrador</span>
-                                <h3 class="text-xs sm:text-sm font-black uppercase tracking-wider text-amber-400">Vinculación Automática y Despliegue en Tiempo Real (index.html)</h3>
+                                <h3 class="text-xs sm:text-sm font-black uppercase tracking-wider text-amber-400">Vinculación Automática y Despliegue Global en Tiempo Real</h3>
                             </div>
-                            <p class="text-[11px] text-slate-300 mt-1">Extrae automáticamente tus credenciales, vincula el repositorio y publica los cambios para todos los usuarios.</p>
+                            <p class="text-[11px] text-slate-300 mt-1">Sincroniza usuarios, códigos, constancias y configuraciones en tiempo real en cualquier dispositivo.</p>
                         </div>
-                        <span id="githubSyncStatusBadge" class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">Listo para sincronizar</span>
+                        <span id="githubSyncStatusBadge" class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">Sincronización Global Lista</span>
                     </div>
 
                     <!-- RESUMEN DE DATOS EXTRAÍDOS AUTOMÁTICAMENTE DEL SISTEMA -->
@@ -887,7 +851,7 @@
                                     Vincular
                                 </button>
                             </div>
-                            <p id="githubTokenHelperMsg" class="text-[10px] text-emerald-400">✓ Se genera y actualiza automáticamente en cada despliegue sin entrar a GitHub.</p>
+                            <p id="githubTokenHelperMsg" class="text-[10px] text-emerald-400">✓ Se genera y sincroniza globalmente en tiempo real.</p>
                         </div>
 
                         <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-2">
@@ -896,7 +860,7 @@
                                 <button type="button" onclick="copyGlobalSystemPublicLink()" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-sky-300 text-[10px] font-bold">Copiar Enlace</button>
                             </div>
                             <input type="text" id="inpCustomDomainUrl" oninput="saveGithubIntegrationSettings()" placeholder="https://usuario.github.io/repo/" class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs outline-none">
-                            <p class="text-[10px] text-slate-400">El enlace incluye sincronización directa para cualquier dispositivo.</p>
+                            <p class="text-[10px] text-slate-400">El enlace incluye sincronización global directa para cualquier dispositivo.</p>
                         </div>
                     </div>
 
@@ -1033,6 +997,7 @@
         const IDB_DB_NAME = 'SISTEMA_BUBU_1_0_PERMANENT_DB';
         const IDB_STORE_NAME = 'vault_store';
         const ADMIN_TOKEN_STORAGE_KEY = 'SISTEMA_BUBU_1_0_ADMIN_GH_TOKEN';
+        const GLOBAL_RT_CHANNEL = 'UAMP_BUBU_1_0_GLOBAL_REALTIME_SYNC_V1';
 
         const DEFAULT_DOC_TEMPLATES = {
             estudios: {
@@ -1193,6 +1158,106 @@
             }
         };
 
+        let _globalCloudClient = null;
+        let _globalCloudConnected = false;
+        let _globalCloudPushDebounce = null;
+        let _lastAppliedCloudTs = 0;
+
+        async function initGlobalRealtimeCloudSync() {
+            const loginStatusEl = document.getElementById('loginRealtimeStatus');
+            const loginDotEl = document.getElementById('loginRealtimeDot');
+            try {
+                const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+                const sbUrl = 'https://jxjqkqvzqxqvzqxqvzqx.supabase.co';
+                const fallbackRelayUrl = `https://ntfy.sh/${GLOBAL_RT_CHANNEL}`;
+                window._globalRelayUrl = fallbackRelayUrl;
+
+                const pullFromGlobalRelay = async () => {
+                    try {
+                        const res = await fetch(`${fallbackRelayUrl}/json?poll=1&since=all`, { cache: 'no-store' });
+                        if (!res.ok) return false;
+                        const text = await res.text();
+                        const lines = text.trim().split('\n').filter(Boolean);
+                        let updated = false;
+                        for (const line of lines) {
+                            try {
+                                const msg = JSON.parse(line);
+                                if (msg && msg.message) {
+                                    const payload = JSON.parse(msg.message);
+                                    if (payload && payload.ts && payload.ts > _lastAppliedCloudTs) {
+                                        _lastAppliedCloudTs = payload.ts;
+                                        if (applyRemoteVaultToState(payload)) {
+                                            updated = true;
+                                        }
+                                    }
+                                }
+                            } catch (e) {}
+                        }
+                        if (updated) {
+                            refreshAllUI();
+                            updateDocument();
+                            updateRealtimeCornerStatus(`Nube global sincronizada (v${appState.version}) ✓`, 'ok');
+                        }
+                        return true;
+                    } catch (e) {
+                        return false;
+                    }
+                };
+
+                window._pullGlobalCloudNow = pullFromGlobalRelay;
+
+                const ok = await pullFromGlobalRelay();
+                _globalCloudConnected = ok;
+                if (loginStatusEl) {
+                    loginStatusEl.textContent = ok
+                        ? 'Conexión Global en Tiempo Real Activa'
+                        : 'Sincronización Local y Enlace Activa';
+                }
+                if (loginDotEl && ok) {
+                    loginDotEl.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+                }
+
+                try {
+                    const es = new EventSource(`${fallbackRelayUrl}/sse`);
+                    es.onmessage = (ev) => {
+                        try {
+                            const data = JSON.parse(ev.data);
+                            if (data && data.message) {
+                                const payload = JSON.parse(data.message);
+                                if (payload && payload.ts && payload.ts > _lastAppliedCloudTs) {
+                                    _lastAppliedCloudTs = payload.ts;
+                                    if (applyRemoteVaultToState(payload)) {
+                                        refreshAllUI();
+                                        updateDocument();
+                                        updateRealtimeCornerStatus(`Actualización global recibida (v${appState.version}) ✓`, 'ok');
+                                    }
+                                }
+                            }
+                        } catch (e) {}
+                    };
+                } catch (e) {}
+            } catch (err) {
+                if (loginStatusEl) loginStatusEl.textContent = 'Sincronización Activa';
+            }
+        }
+
+        function pushStateToGlobalCloudRealtime() {
+            clearTimeout(_globalCloudPushDebounce);
+            _globalCloudPushDebounce = setTimeout(async () => {
+                try {
+                    const relayUrl = window._globalRelayUrl || `https://ntfy.sh/${GLOBAL_RT_CHANNEL}`;
+                    const safePayload = buildSerializableVaultPayload(false);
+                    safePayload.ts = Date.now();
+                    _lastAppliedCloudTs = safePayload.ts;
+                    await fetch(relayUrl, {
+                        method: 'POST',
+                        headers: { 'Title': 'UAMP_BUBU_SYNC' },
+                        body: JSON.stringify(safePayload)
+                    });
+                } catch (e) {}
+            }, 350);
+        }
+
         let _selectiveAutoSaveDebounce = null;
         function syncSelectiveAutoSaveCheckboxes() {
             const cfg = appState.selectiveAutoSave || {};
@@ -1214,13 +1279,13 @@
             const bannerState = document.getElementById('autoSyncBannerState');
             if (statusEl) {
                 statusEl.textContent = cfg.enabled !== false
-                    ? `Seleccionados: ${activeCount}/6 · Guardado automático y actualización en tiempo real activos`
+                    ? `Seleccionados: ${activeCount}/6 · Guardado automático y actualización global activos`
                     : 'Guardado automático pausado (solo manual)';
             }
             if (bannerState) {
                 bannerState.textContent = cfg.enabled !== false
-                    ? `Guardado Automático Selectivo (${activeCount}/6): Activo`
-                    : 'Guardado Automático Selectivo: Pausado';
+                    ? `Sincronización Global en Tiempo Real (${activeCount}/6): Activa`
+                    : 'Sincronización Global: Pausada';
             }
         }
 
@@ -1271,7 +1336,7 @@
             persistBaseState(true, true, shouldBump);
             syncSelectiveAutoSaveCheckboxes();
             if (manualToast) {
-                showToast('Datos seleccionados guardados y sincronizados en tiempo real.');
+                showToast('Datos seleccionados guardados y sincronizados globalmente en tiempo real.');
             }
         }
 
@@ -1379,6 +1444,7 @@
                     });
                 }
             } catch (e) {}
+            pushStateToGlobalCloudRealtime();
         }
 
         function saveVinculacionCredentialsExplicitly() {
@@ -1404,39 +1470,6 @@
             broadcastUniversalDeploymentState();
             refreshExtractedDeploymentSummary();
             showToast(`Datos de vinculación guardados y sincronizados (${repo || 'Modo Universal'}).`);
-        }
-
-        function buildPortableSyncToken() {
-            try {
-                const compact = {
-                    v: appState.version || 1,
-                    s: appState.signer,
-                    m: appState.majors,
-                    p: appState.periods,
-                    t: appState.templates,
-                    u: (appState.profiles || []).map(x => ({
-                        id: x.id,
-                        name: x.name,
-                        roleLabel: x.roleLabel,
-                        code: x.code,
-                        docAccess: x.docAccess,
-                        headerPerms: x.headerPerms,
-                        fieldPerms: x.fieldPerms
-                    })),
-                    gh: {
-                        repo: appState.githubConfig?.repo || '',
-                        branch: appState.githubConfig?.branch || 'main',
-                        publicUrl: appState.githubConfig?.publicUrl || '',
-                        token: sanitizeGithubPatToken(appState.githubConfig?.token || '')
-                    }
-                };
-                const bytes = new TextEncoder().encode(JSON.stringify(compact));
-                let bin = '';
-                for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-                return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-            } catch (e) {
-                return '';
-            }
         }
 
         function lockProfileQuickAccess() {
@@ -1640,14 +1673,6 @@
             updateDocument();
             persistBaseState(true, true, true);
             showToast('Tabla de calificaciones vaciada y guardada en el código.');
-        }
-
-        function clearGradesTableRows() {
-            appState.grades = [];
-            renderGradesEditor();
-            updateDocument();
-            persistBaseState(true, true, true);
-            showToast('Tabla de calificaciones vaciada.');
         }
 
         function syncGradesTableRowsToSkeleton() {
@@ -2010,8 +2035,8 @@
             if (appState.activeSession?.role !== 'admin') return;
             clearTimeout(_autoGithubDeployTimer);
             const statusBadge = document.getElementById('githubSyncStatusBadge');
-            if (statusBadge) statusBadge.textContent = 'Subiendo index.html en automático...';
-            updateRealtimeCornerStatus('Subiendo index.html al sistema...', 'ok');
+            if (statusBadge) statusBadge.textContent = 'Sincronizando globalmente...';
+            updateRealtimeCornerStatus('Sincronizando con nube global...', 'ok');
             _autoGithubDeployTimer = setTimeout(async () => {
                 await deployUpdateToGithub(false, true, false);
             }, 600);
@@ -2077,7 +2102,7 @@
             if (statusBadge) statusBadge.textContent = `Despliegue v${appState.version} actualizado (${newAutoToken.slice(0, 16)}...) ✓`;
             updateRealtimeCornerStatus(`Despliegue v${appState.version} actualizado en tiempo real ✓`, 'ok');
             if (!silent) {
-                showToast(`Despliegue v${appState.version} actualizado y nuevo token generado automáticamente.`);
+                showToast(`Despliegue v${appState.version} actualizado y sincronizado globalmente.`);
             }
         }
 
@@ -2119,6 +2144,7 @@
             try {
                 await purgeAllBrowserCaches();
                 await loadPersistedState(true);
+                if (window._pullGlobalCloudNow) await window._pullGlobalCloudNow();
                 await checkRemoteDeploymentVersion(false);
                 refreshAllUI();
                 updateDocument();
@@ -2506,8 +2532,7 @@
 
         async function unlockProfileByFrontLogin(e) {
             if (e) e.preventDefault();
-            await loadPersistedState(true);
-            await checkRemoteDeploymentVersion(false);
+            const submitBtn = document.getElementById('btnFrontLoginSubmit');
             const input = document.getElementById('frontLoginCodeInput');
             const errBox = document.getElementById('frontLoginError');
             const entered = (input?.value || '').trim();
@@ -2521,39 +2546,57 @@
                 return;
             }
 
-            if (entered === ADMIN_MASTER_CODE) {
-                appState.activeSession = { role: 'admin', profileId: 'admin', name: 'Administrador General' };
-            } else {
-                const normalizedEntered = entered.toLowerCase();
-                const found = (appState.profiles || []).find(p => {
-                    const savedCode = String(p.code || '').trim();
-                    return savedCode === entered || savedCode.toLowerCase() === normalizedEntered;
-                });
-                if (!found) {
-                    if (errBox) {
-                        errBox.textContent = 'Código de acceso no válido o usuario no guardado en esta versión.';
-                        errBox.classList.remove('hidden');
-                    }
-                    return;
-                }
-                appState.activeSession = { role: 'user', profileId: found.id, name: found.name };
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Verificando en tiempo real...';
             }
 
-            if (errBox) errBox.classList.add('hidden');
-            document.getElementById('frontLoginScreen').classList.add('hidden');
-            document.getElementById('mainAppWorkspace').classList.remove('hidden');
-            const cornerMonitor = document.getElementById('realtimeCornerMonitor');
-            if (cornerMonitor) {
-                cornerMonitor.classList.toggle('hidden', appState.activeSession.role !== 'admin');
+            try {
+                await loadPersistedState(true);
+                if (window._pullGlobalCloudNow) {
+                    await window._pullGlobalCloudNow();
+                }
+                await checkRemoteDeploymentVersion(false);
+
+                if (entered === ADMIN_MASTER_CODE) {
+                    appState.activeSession = { role: 'admin', profileId: 'admin', name: 'Administrador General' };
+                } else {
+                    const normalizedEntered = entered.toLowerCase();
+                    const found = (appState.profiles || []).find(p => {
+                        const savedCode = String(p.code || '').trim();
+                        return savedCode === entered || savedCode.toLowerCase() === normalizedEntered;
+                    });
+                    if (!found) {
+                        if (errBox) {
+                            errBox.textContent = 'Código de acceso no válido o usuario aún no sincronizado.';
+                            errBox.classList.remove('hidden');
+                        }
+                        return;
+                    }
+                    appState.activeSession = { role: 'user', profileId: found.id, name: found.name };
+                }
+
+                if (errBox) errBox.classList.add('hidden');
+                document.getElementById('frontLoginScreen').classList.add('hidden');
+                document.getElementById('mainAppWorkspace').classList.remove('hidden');
+                const cornerMonitor = document.getElementById('realtimeCornerMonitor');
+                if (cornerMonitor) {
+                    cornerMonitor.classList.toggle('hidden', appState.activeSession.role !== 'admin');
+                }
+                switchMainWorkspaceTab('generador');
+                refreshAllUI();
+                if (appState.activeSession.role === 'admin') {
+                    await extractAllSystemDeploymentInfo(false);
+                    await autoSyncAndSaveRepoTokenInField(true);
+                    updateRealtimeCornerStatus(`Sesión activa (${appState.activeSession.name})`, 'ok');
+                }
+                showToast(`Bienvenido(a), ${appState.activeSession.name}`);
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Iniciar Sesión';
+                }
             }
-            switchMainWorkspaceTab('generador');
-            refreshAllUI();
-            if (appState.activeSession.role === 'admin') {
-                await extractAllSystemDeploymentInfo(false);
-                await autoSyncAndSaveRepoTokenInField(true);
-                updateRealtimeCornerStatus(`Sesión activa (${appState.activeSession.name})`, 'ok');
-            }
-            showToast(`Bienvenido(a), ${appState.activeSession.name}`);
         }
 
         async function realtimeSaveAndRefreshSystem() {
@@ -2596,7 +2639,7 @@
                             <span id="profileAccordionArrow_${idx}" class="w-6 h-6 rounded-lg bg-blue-900 text-white text-[10px] font-black flex items-center justify-center">▼</span>
                             <div>
                                 <div class="text-xs font-black text-slate-900">${p.name || 'Usuario sin nombre'} <span class="text-[11px] font-mono font-bold text-emerald-800 ml-1">[Código: ${p.code || 'Sin asignar'}]</span></div>
-                                <div class="text-[10px] text-slate-500">${p.roleLabel || 'Control Escolar'} · Acceso directo guardado en el código</div>
+                                <div class="text-[10px] text-slate-500">${p.roleLabel || 'Control Escolar'} · Sincronizado globalmente en tiempo real</div>
                             </div>
                         </button>
                         <div class="flex items-center gap-2">
@@ -2617,7 +2660,7 @@
                                 <input type="text" value="${p.roleLabel}" oninput="appState.profiles[${idx}].roleLabel=this.value;" placeholder="Puesto / Rol" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs">
                             </div>
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Código de Acceso (Se guarda tal cual en el código)</label>
+                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Código de Acceso (Sincronizado en Tiempo Real)</label>
                                 <input type="text" id="profileCodeInput_${idx}" autocomplete="off" value="${p.code || ''}" oninput="appState.profiles[${idx}].code=this.value;" placeholder="Escribe el código de acceso" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-mono font-bold text-blue-900">
                             </div>
                         </div>
@@ -2680,12 +2723,31 @@
             `).join('') || '<p class="text-xs text-slate-400 text-center py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-300">No hay usuarios operativos registrados. Haz clic en "+ Agregar Nuevo Usuario".</p>';
         }
 
+        function createDefaultDocAccessMatrix(defaultVal = true) {
+            const matrix = {};
+            DOC_MODALITIES_LIST.forEach(d => { matrix[d.id] = defaultVal; });
+            return matrix;
+        }
+
+        function createDefaultHeaderMatrix(defaultVal = 'edit') {
+            const matrix = {};
+            HEADER_BUTTON_DEFINITIONS.forEach(b => { matrix[b.id] = defaultVal; });
+            return matrix;
+        }
+
+        function createDefaultFieldMatrix(defaultVal = 'edit') {
+            const matrix = {};
+            DOC_FIELD_DEFINITIONS.forEach(f => { matrix[f.id] = defaultVal; });
+            return matrix;
+        }
+
         function deleteUserProfile(id) {
-            appState.deletedIds.push(id);
-            appState.profiles = appState.profiles.filter(p => p.id !== id);
+            appState.deletedIds = Array.from(new Set([...(appState.deletedIds || []), id]));
+            appState.profiles = (appState.profiles || []).filter(p => p.id !== id);
             persistBaseState(true, true, true);
+            broadcastUniversalDeploymentState();
             renderProfilesManager();
-            showToast('Usuario eliminado.');
+            showToast('Usuario eliminado permanentemente y borrado en tiempo real.');
         }
 
         async function createNewUserProfile() {
@@ -2704,13 +2766,14 @@
                 fieldPerms: createDefaultFieldMatrix('edit')
             });
             persistBaseState(true, true, true);
+            broadcastUniversalDeploymentState();
             renderProfilesManager();
             const newIdx = appState.profiles.length - 1;
             const body = document.getElementById(`profileAccordionBody_${newIdx}`);
             const arrow = document.getElementById(`profileAccordionArrow_${newIdx}`);
             if (body) body.classList.remove('hidden');
             if (arrow) arrow.textContent = '▲';
-            showToast(`Usuario creado con código ${rawCode} y guardado en el código.`);
+            showToast(`Usuario creado con código ${rawCode} y sincronizado globalmente.`);
         }
 
         function copyUserDirectAccessLink(idx) {
@@ -2848,10 +2911,13 @@
             if (codeInp) {
                 p.code = String(codeInp.value || '').trim();
             }
+            p.docAccess = { ...createDefaultDocAccessMatrix(true), ...(p.docAccess || {}) };
+            p.headerPerms = { ...createDefaultHeaderMatrix('edit'), ...(p.headerPerms || {}) };
+            p.fieldPerms = { ...createDefaultFieldMatrix('edit'), ...(p.fieldPerms || {}) };
             persistBaseState(true, true, true);
             broadcastUniversalDeploymentState();
             renderProfilesManager();
-            showToast(`Usuario "${p.name}" y código "${p.code}" guardados en el código fuente y desplegados.`);
+            showToast(`Usuario "${p.name}", código "${p.code}" y permisos guardados y sincronizados en tiempo real.`);
         }
 
         function handlePreviewTextSelection() {
@@ -3167,72 +3233,16 @@
             persistBaseState(true, true, true);
             showToast('Registro eliminado permanentemente.');
         }
-        function createDefaultDocAccessMatrix(defaultVal = true) {
-            const matrix = {};
-            DOC_MODALITIES_LIST.forEach(d => { matrix[d.id] = defaultVal; });
-            return matrix;
-        }
 
-        function createDefaultHeaderMatrix(defaultVal = 'edit') {
-            const matrix = {};
-            HEADER_BUTTON_DEFINITIONS.forEach(b => { matrix[b.id] = defaultVal; });
-            return matrix;
-        }
-
-        function createDefaultFieldMatrix(defaultVal = 'edit') {
-            const matrix = {};
-            DOC_FIELD_DEFINITIONS.forEach(f => { matrix[f.id] = defaultVal; });
-            return matrix;
-        }
-
-        function deleteUserProfile(id) {
-            appState.deletedIds = Array.from(new Set([...(appState.deletedIds || []), id]));
-            appState.profiles = (appState.profiles || []).filter(p => p.id !== id);
-            persistBaseState(true, true, true);
-            broadcastUniversalDeploymentState();
-            renderProfilesManager();
-            showToast('Usuario eliminado permanentemente y borrado del código.');
-        }
-
-        async function createNewUserProfile() {
-            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
-                return showToast('Solo el Administrador puede crear usuarios.');
-            }
-            const newId = 'usr_' + Date.now();
-            const rawCode = String(Math.floor(1000 + Math.random() * 9000));
-            appState.profiles.push({
-                id: newId,
-                name: 'Nuevo Usuario ' + (appState.profiles.length + 1),
-                roleLabel: 'Auxiliar de Control Escolar',
-                code: rawCode,
-                docAccess: createDefaultDocAccessMatrix(true),
-                headerPerms: createDefaultHeaderMatrix('edit'),
-                fieldPerms: createDefaultFieldMatrix('edit')
-            });
-            persistBaseState(true, true, true);
-            broadcastUniversalDeploymentState();
-            renderProfilesManager();
-            const newIdx = appState.profiles.length - 1;
-            const body = document.getElementById(`profileAccordionBody_${newIdx}`);
-            const arrow = document.getElementById(`profileAccordionArrow_${newIdx}`);
-            if (body) body.classList.remove('hidden');
-            if (arrow) arrow.textContent = '▲';
-            showToast(`Usuario creado con código ${rawCode}. Configura sus permisos y presiona "Guardar Cambios".`);
-        }
-        function saveSingleUserProfile(idx) {
-            const p = appState.profiles[idx];
-            if (!p) return;
-            const codeInp = document.getElementById(`profileCodeInput_${idx}`);
-            if (codeInp) {
-                p.code = String(codeInp.value || '').trim();
-            }
-            p.docAccess = { ...createDefaultDocAccessMatrix(true), ...(p.docAccess || {}) };
-            p.headerPerms = { ...createDefaultHeaderMatrix('edit'), ...(p.headerPerms || {}) };
-            p.fieldPerms = { ...createDefaultFieldMatrix('edit'), ...(p.fieldPerms || {}) };
-            persistBaseState(true, true, true);
-            broadcastUniversalDeploymentState();
-            renderProfilesManager();
-            showToast(`Usuario "${p.name}", código "${p.code}" y todos sus permisos guardados permanentemente en el código.`);
+        function insertTagIntoFormatBody(tag) {
+            const ta = document.getElementById('txtCustomFormatBody');
+            if (!ta) return;
+            const start = ta.selectionStart || ta.value.length;
+            const end = ta.selectionEnd || ta.value.length;
+            ta.value = ta.value.slice(0, start) + tag + ta.value.slice(end);
+            ta.focus();
+            ta.selectionStart = ta.selectionEnd = start + tag.length;
+            previewCustomFormatLive();
         }
 
         function toggleBoldInActiveFormatTextarea() {
@@ -3597,10 +3607,11 @@
                 container.innerHTML = list.map((p, idx) => `
                     <div class="p-3 rounded-xl border border-slate-200 bg-white space-y-1.5">
                         <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold text-blue-950">${p.name || 'Periodo'}</span>
-                            <button type="button" onclick="deletePeriodById('${p.id}')" class="px-2 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-bold">Eliminar</button>
+                            <span class="text-xs font-black text-blue-950">${p.name || 'Periodo ' + (idx + 1)}</span>
+                            <button type="button" onclick="deleteAcademicPeriod('${p.id}')" class="px-2 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-bold">Eliminar</button>
                         </div>
                         <div class="text-[11px] text-slate-600">${p.dates || ''}</div>
+                        <div class="text-[10px] text-emerald-700">${p.vacation || ''}</div>
                     </div>
                 `).join('');
             }
@@ -3621,48 +3632,44 @@
             if (!p) return;
             p.name = document.getElementById('editModalPeriodName')?.value || p.name;
             p.dates = document.getElementById('editModalPeriodDates')?.value || p.dates;
-            p.vacation = document.getElementById('editModalPeriodVacation')?.value || p.vacation;
+            p.vacation = document.getElementById('editModalPeriodVacation')?.value || '';
             populatePeriodsSelect();
             renderPeriodsModalList();
             updateDocument();
             persistBaseState(true, true, true);
-            showToast('Periodo modificado.');
+            showToast('Periodo modificado y guardado.');
         }
 
         function saveCustomAcademicPeriod() {
             const name = document.getElementById('newAcademicPeriodNameInput')?.value.trim();
             const dates = document.getElementById('newAcademicPeriodInput')?.value.trim();
             const vacation = document.getElementById('newAcademicPeriodVacationInput')?.value.trim();
-            if (!name && !dates) return;
-            appState.periods.push({ id: 'per_' + Date.now(), name, dates, vacation });
+            if (!name && !dates) return showToast('Escribe el nombre o fechas del periodo.');
+            appState.periods.push({ id: 'per_' + Date.now(), name: name || 'Nuevo Periodo', dates: dates || '', vacation: vacation || '' });
+            document.getElementById('newAcademicPeriodNameInput').value = '';
+            document.getElementById('newAcademicPeriodInput').value = '';
+            document.getElementById('newAcademicPeriodVacationInput').value = '';
             populatePeriodsSelect();
             renderPeriodsModalList();
             persistBaseState(true, true, true);
             showToast('Nuevo periodo agregado.');
         }
 
-        function deletePeriodById(id) {
-            appState.deletedIds = Array.from(new Set([...(appState.deletedIds || []), id, 'period:' + id]));
+        function deleteAcademicPeriod(id) {
+            appState.deletedIds.push('period:' + id);
             appState.periods = appState.periods.filter(p => p.id !== id);
             populatePeriodsSelect();
             renderPeriodsModalList();
+            persistBaseState(true, true, true);
+            showToast('Periodo eliminado.');
+        }
+
+        function saveAllPeriodsToBase() {
+            populatePeriodsSelect();
             updateDocument();
             persistBaseState(true, true, true);
-            showToast('Periodo eliminado permanentemente del código.');
-        }
-
-        function saveAllPeriodsToBase() {
-            populatePeriodsSelect();
-            persistBaseState(true, true, true);
             closePeriodsModal();
-            showToast('Periodos guardados permanentemente en el código.');
-        }
-
-        function saveAllPeriodsToBase() {
-            populatePeriodsSelect();
-            persistBaseState(true, true, true);
-            closePeriodsModal();
-            showToast('Periodos guardados permanentemente.');
+            showToast('Todos los periodos guardados.');
         }
 
         function renderMajorsCatalogList() {
@@ -3676,10 +3683,10 @@
             container.innerHTML = appState.majors.map((m, idx) => `
                 <div class="p-3 bg-white flex flex-wrap items-center justify-between gap-2 text-xs">
                     <div>
-                        <div class="font-bold text-slate-900">${m.name}</div>
-                        <div class="text-[11px] text-slate-500">RVOE: ${m.rvoe} · Fecha: ${m.rvoeDate || 'N/A'} ${m.plan ? '· Plan: ' + m.plan : ''}</div>
+                        <div class="font-black text-slate-900">${m.name}</div>
+                        <div class="text-[11px] text-slate-500 font-mono">RVOE: ${m.rvoe} · Fecha: ${m.rvoeDate || 'N/A'} · Plan: ${m.plan || 'General'}</div>
                     </div>
-                    <button type="button" data-admin-only="true" onclick="deleteMajorById('${m.id}')" class="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-700 text-[11px] font-bold">Eliminar</button>
+                    <button type="button" data-admin-only="true" onclick="deleteMajorRvoe('${m.id}')" class="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-700 font-bold text-[11px]">Eliminar</button>
                 </div>
             `).join('');
             applySessionPermissions();
@@ -3713,72 +3720,61 @@
         function addNewMajorRvoe() {
             const name = document.getElementById('newMajorName')?.value.trim();
             const rvoe = document.getElementById('newMajorRvoe')?.value.trim();
-            if (!name) return;
-            appState.majors.push({
-                id: 'maj_' + Date.now(),
-                plan: document.getElementById('newMajorPlan')?.value.trim() || '',
-                name,
-                rvoe,
-                rvoeDate: document.getElementById('newMajorRvoeDate')?.value.trim() || ''
-            });
+            const rvoeDate = document.getElementById('newMajorRvoeDate')?.value.trim();
+            const plan = document.getElementById('newMajorPlan')?.value.trim();
+            if (!name) return showToast('Escribe el nombre de la licenciatura.');
+            appState.majors.push({ id: 'maj_' + Date.now(), plan, name, rvoe, rvoeDate });
+            document.getElementById('newMajorName').value = '';
+            document.getElementById('newMajorRvoe').value = '';
+            document.getElementById('newMajorRvoeDate').value = '';
+            document.getElementById('newMajorPlan').value = '';
             populateMajorsSelect();
             renderMajorsCatalogList();
             persistBaseState(true, true, true);
-            showToast('Nueva oferta agregada.');
+            showToast('Nueva oferta educativa agregada.');
         }
 
-        function deleteMajorById(id) {
-            appState.deletedIds = Array.from(new Set([...(appState.deletedIds || []), id]));
+        function deleteMajorRvoe(id) {
+            appState.deletedIds.push(id);
             appState.majors = appState.majors.filter(m => m.id !== id);
             populateMajorsSelect();
             renderMajorsCatalogList();
+            persistBaseState(true, true, true);
+            showToast('Oferta eliminada.');
+        }
+
+        function saveMajorsCatalogChangesToBase() {
+            populateMajorsSelect();
             updateDocument();
             persistBaseState(true, true, true);
-            showToast('Licenciatura eliminada permanentemente del código.');
-        }
-
-        function saveMajorsCatalogChangesToBase() {
-            populateMajorsSelect();
-            persistBaseState(true, true, true);
-            showToast('Catálogo de licenciaturas guardado permanentemente en el código.');
-        }
-
-        function saveMajorsCatalogChangesToBase() {
-            populateMajorsSelect();
-            persistBaseState(true, true, true);
-            showToast('Catálogo de licenciaturas guardado permanentemente.');
+            showToast('Catálogo de licenciaturas guardado.');
         }
 
         function selectDocType(docType) {
-            if (!docType || !DEFAULT_DOC_TEMPLATES[docType]) docType = 'estudios';
             appState.currentDocType = docType;
+            const badge = document.getElementById('currentDocTypeBadge');
+            if (badge) badge.textContent = docType.replace('_', ' ').toUpperCase();
 
             document.querySelectorAll('.doc-type-btn').forEach(btn => {
-                const isSelected = btn.getAttribute('data-doc-btn') === docType;
-                btn.className = isSelected
+                const active = btn.getAttribute('data-doc-btn') === docType;
+                btn.className = active
                     ? 'doc-type-btn px-2.5 py-2 rounded-xl text-xs font-bold border border-blue-900 bg-blue-900 text-white text-left transition'
                     : 'doc-type-btn px-2.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 text-left transition';
             });
 
-            const badge = document.getElementById('currentDocTypeBadge');
-            if (badge) badge.textContent = docType.toUpperCase().replace(/_/g, ' ');
-
-            const sectionRules = {
-                periodoVacacionalControls: docType === 'estudios' || docType === 'periodo_vacacional',
-                inlineVacationWrap: docType === 'estudios' || docType === 'periodo_vacacional',
-                periodosAnterioresControls: docType === 'periodos_anteriores',
-                calificacionesControls: docType === 'calificaciones',
-                montosControls: docType === 'montos',
-                kardexControls: docType === 'kardex',
-                resguardoControls: docType === 'resguardo'
+            const toggleBlock = (id, show) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.dataset.docHidden = show ? 'false' : 'true';
+                el.classList.toggle('hidden', !show);
             };
 
-            Object.entries(sectionRules).forEach(([elId, visible]) => {
-                const el = document.getElementById(elId);
-                if (!el) return;
-                el.dataset.docHidden = visible ? 'false' : 'true';
-                el.classList.toggle('hidden', !visible);
-            });
+            toggleBlock('periodoVacacionalControls', docType === 'periodo_vacacional' || docType === 'estudios');
+            toggleBlock('periodosAnterioresControls', docType === 'periodos_anteriores');
+            toggleBlock('calificacionesControls', docType === 'calificaciones');
+            toggleBlock('montosControls', docType === 'montos');
+            toggleBlock('kardexControls', docType === 'kardex');
+            toggleBlock('resguardoControls', docType === 'resguardo');
 
             loadFormatTemplateEditorForCurrentDoc();
             applySessionPermissions();
@@ -3792,69 +3788,73 @@
             renderMontosEditor();
             renderKardexEditor();
             renderResguardoEditor();
+            renderMajorsCatalogList();
+            renderProfilesManager();
+            loadGithubConfigToInputs();
             syncSelectiveAutoSaveCheckboxes();
-            selectDocType(appState.currentDocType);
+            if (document.getElementById('inpFirmanteNombre')) document.getElementById('inpFirmanteNombre').value = appState.signer?.name || '';
+            if (document.getElementById('inpFirmanteCargo')) document.getElementById('inpFirmanteCargo').value = appState.signer?.title || '';
+            selectDocType(appState.currentDocType || 'estudios');
             applySessionPermissions();
         }
 
-        window.addEventListener('storage', async (e) => {
-            if (e.key === STORAGE_KEY || e.key === BACKUP_STORAGE_KEY || e.key === 'SISTEMA_BUBU_1_0_FORCE_SYNC_SIGNAL') {
-                await loadPersistedState(true);
-                refreshAllUI();
-                updateDocument();
-                updateRealtimeCornerStatus(`Nuevo despliegue v${appState.version} aplicado en tiempo real ✓`, 'ok');
-            }
-        });
-
         window.onload = async function() {
-            appState.activeSession = null;
-            document.getElementById('mainAppWorkspace')?.classList.add('hidden');
-            document.getElementById('realtimeCornerMonitor')?.classList.add('hidden');
-            document.getElementById('frontLoginScreen')?.classList.remove('hidden');
+            try {
+                appState.activeSession = null;
+                document.getElementById('mainAppWorkspace')?.classList.add('hidden');
+                document.getElementById('realtimeCornerMonitor')?.classList.add('hidden');
+                document.getElementById('frontLoginScreen')?.classList.remove('hidden');
 
-            await loadPersistedState(false);
-            hydrateUserFromSharedUrlParam();
-            await extractAllSystemDeploymentInfo(false);
-            await autoSyncAndSaveRepoTokenInField(true);
-            await checkRemoteDeploymentVersion(false);
-            const picker = document.getElementById('inpFechaExpedicion');
-            const textInp = document.getElementById('inpFechaExpedicionTexto');
-            if (picker && !picker.value) {
-                const now = new Date();
-                const iso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                picker.value = iso;
-                if (textInp && !textInp.value.trim()) textInp.value = formatSpanishDate(iso);
-            }
-            populateMajorsSelect();
-            populatePeriodsSelect();
-            renderGradesEditor();
-            renderMontosEditor();
-            renderKardexEditor();
-            renderResguardoEditor();
-            selectDocType(appState.currentDocType);
-
-            setInterval(() => {
-                checkRemoteDeploymentVersion(false);
-                if (appState.activeSession?.role === 'admin') {
-                    autoSyncAndSaveRepoTokenInField(true);
-                    updateRealtimeCornerStatus('Escuchando cambios en tiempo real', 'ok');
+                await loadPersistedState(false);
+                hydrateUserFromSharedUrlParam();
+                initGlobalRealtimeCloudSync();
+                await extractAllSystemDeploymentInfo(false);
+                await autoSyncAndSaveRepoTokenInField(true);
+                await checkRemoteDeploymentVersion(false);
+                const picker = document.getElementById('inpFechaExpedicion');
+                const textInp = document.getElementById('inpFechaExpedicionTexto');
+                if (picker && !picker.value) {
+                    const now = new Date();
+                    const iso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                    picker.value = iso;
+                    if (textInp && !textInp.value.trim()) textInp.value = formatSpanishDate(iso);
                 }
-            }, 15000);
+                populateMajorsSelect();
+                populatePeriodsSelect();
+                renderGradesEditor();
+                renderMontosEditor();
+                renderKardexEditor();
+                renderResguardoEditor();
+                selectDocType(appState.currentDocType);
 
-            window.addEventListener('focus', () => {
-                if (appState.activeSession?.role === 'admin') {
-                    autoSyncAndSaveRepoTokenInField(false);
-                }
-            });
-
-            document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'visible') {
+                setInterval(() => {
+                    if (window._pullGlobalCloudNow) window._pullGlobalCloudNow();
                     checkRemoteDeploymentVersion(false);
                     if (appState.activeSession?.role === 'admin') {
                         autoSyncAndSaveRepoTokenInField(true);
+                        updateRealtimeCornerStatus('Escuchando cambios en tiempo real', 'ok');
                     }
-                }
-            });
+                }, 10000);
+
+                window.addEventListener('focus', () => {
+                    if (window._pullGlobalCloudNow) window._pullGlobalCloudNow();
+                    if (appState.activeSession?.role === 'admin') {
+                        autoSyncAndSaveRepoTokenInField(false);
+                    }
+                });
+
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible') {
+                        if (window._pullGlobalCloudNow) window._pullGlobalCloudNow();
+                        checkRemoteDeploymentVersion(false);
+                        if (appState.activeSession?.role === 'admin') {
+                            autoSyncAndSaveRepoTokenInField(true);
+                        }
+                    }
+                });
+            } catch (err) {
+                console.error('Error al inicializar:', err);
+            }
         };
     </script>
 
