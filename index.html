@@ -950,204 +950,104 @@
 
     <script>
         const ADMIN_MASTER_CODE = 'bubu03';
+        const ADMIN_MASTER_HASH = 'c8b9e6c1f8a2a1d7c4a52e1e0f4b7e3c9c0d1a2b3c4d5e6f7a8b9c0d1e2f3a4b';
+        const CODE_HASH_SALT = 'UAMP_BUBU_1_0_SECURE_SALT_2026';
         const STORAGE_KEY = 'SISTEMA_BUBU_1_0_UAMP_STATE_V4';
+        const BACKUP_STORAGE_KEY = 'SISTEMA_BUBU_1_0_PERMANENT_VAULT_BACKUP';
+        const IDB_DB_NAME = 'SISTEMA_BUBU_1_0_PERMANENT_DB';
+        const IDB_STORE_NAME = 'vault_store';
         const ADMIN_TOKEN_STORAGE_KEY = 'SISTEMA_BUBU_1_0_ADMIN_GH_TOKEN';
 
-        const HEADER_BUTTON_DEFINITIONS = [
-            { id: 'tab_generador', label: 'Pestaña Generador' },
-            { id: 'tab_catalogos', label: 'Pestaña Licenciaturas y RVOE' },
-            { id: 'btn_pdf', label: 'Botón Descargar PDF' },
-            { id: 'btn_print', label: 'Botón Imprimir' },
-            { id: 'btn_history', label: 'Botón Historial' },
-            { id: 'btn_excel', label: 'Botón Base Excel' },
-            { id: 'btn_periods', label: 'Botón Periodos' },
-            { id: 'btn_catalogos_direct', label: 'Botón Licenciaturas' },
-            { id: 'cmd_folio', label: 'Atajo +1 Folio' },
-            { id: 'cmd_clear', label: 'Atajo Limpiar' },
-            { id: 'cmd_copy', label: 'Atajo Copiar' },
-            { id: 'cmd_today', label: 'Atajo Fecha Hoy' },
-            { id: 'cmd_reset_all', label: 'Atajo Restablecer' }
+        const DEFAULT_DOC_TEMPLATES = {
+            estudios: {
+                title: 'Constancia de Estudios',
+                asunto: 'Constancia de Estudios',
+                useBold: true,
+                body: `<div data-block="destinatario" style="text-align: left; font-size: 12pt; font-weight: bold; line-height: 1.35; margin-bottom: 16pt;">A QUIEN CORRESPONDA<br>P R E S E N T E</div><div data-block="cuerpo" style="text-align: justify; text-indent: 42px; font-size: 12pt;">La que suscribe Lic. Giselle Selene López Sánchez, responsable del Departamento de Control Escolar de la Universidad Americana de Puebla, hace constar que {ARTICULO_ALUMNO} <b>{NOMBRE}</b>, con matrícula <b>{MATRICULA}</b>, se encuentra legalmente {INSCRITO_GENERO} en el <b>{GRADO}</b> de la <b>{LICENCIATURA}</b>, con Acuerdo de Reconocimiento de Validez Oficial de Estudios (RVOE) número <b>{RVOE}</b>{FECHA_RVOE_TEXTO}, cursando el periodo escolar <b>{NOMBRE_PERIODO}</b>{PERIODO_TEXTO}. {PERIODO_VACACIONAL}</div><br><div data-block="nota" style="text-align: justify; font-size: 12pt;">{NOTA}</div>`
+            },
+            periodo_vacacional: {
+                title: 'Constancia con Periodo Vacacional',
+                asunto: 'Constancia con Periodo Vacacional',
+                useBold: true,
+                body: `<div data-block="destinatario" style="text-align: left; font-size: 12pt; font-weight: bold; line-height: 1.35; margin-bottom: 16pt;">A QUIEN CORRESPONDA<br>P R E S E N T E</div><div data-block="cuerpo" style="text-align: justify; text-indent: 42px; font-size: 12pt;">La que suscribe Lic. Giselle Selene López Sánchez, responsable del Departamento de Control Escolar de la Universidad Americana de Puebla, hace constar que {ARTICULO_ALUMNO} <b>{NOMBRE}</b>, con matrícula <b>{MATRICULA}</b>, se encuentra legalmente {INSCRITO_GENERO} en el <b>{GRADO}</b> de la <b>{LICENCIATURA}</b>, con RVOE <b>{RVOE}</b>{FECHA_RVOE_TEXTO}, durante el ciclo <b>{NOMBRE_PERIODO}</b>{PERIODO_TEXTO}. {PERIODO_VACACIONAL}</div><br><div data-block="nota" style="text-align: justify; font-size: 12pt;">{NOTA}</div>`
+            },
+            calificaciones: {
+                title: 'Constancia de Calificaciones',
+                asunto: 'Constancia de Calificaciones',
+                useBold: true,
+                body: `<div data-block="destinatario" style="text-align: left; font-size: 12pt; font-weight: bold; line-height: 1.35; margin-bottom: 16pt;">A QUIEN CORRESPONDA<br>P R E S E N T E</div><div data-block="cuerpo" style="text-align: justify; text-indent: 42px; font-size: 12pt;">La que suscribe Lic. Giselle Selene López Sánchez, responsable del Departamento de Control Escolar de la Universidad Americana de Puebla, hace constar que {ARTICULO_ALUMNO} <b>{NOMBRE}</b>, con matrícula <b>{MATRICULA}</b>, {INSCRITO_GENERO} en el <b>{GRADO}</b> de la <b>{LICENCIATURA}</b>, con RVOE <b>{RVOE}</b>{FECHA_RVOE_TEXTO}, obtuvo en el periodo <b>{NOMBRE_PERIODO}</b>{PERIODO_TEXTO} las siguientes calificaciones:</div><table class="grades-pdf-table" border="1" cellspacing="0" cellpadding="0" style="width:165mm;max-width:165mm;border-collapse:collapse;margin:2mm 0 4mm 0;font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;line-height:1.15;table-layout:fixed;border:0.25mm solid #000000;"><thead><tr style="height:6.5mm;"><th style="border:0.25mm solid #000000;width:20mm;text-align:center;">GRUPO</th><th style="border:0.25mm solid #000000;width:40mm;text-align:center;">CÓDIGO DE MATERIA</th><th style="border:0.25mm solid #000000;width:77mm;text-align:left;">MATERIA</th><th style="border:0.25mm solid #000000;width:28mm;text-align:center;">CALIFICACIÓN</th></tr></thead><tbody>{FILAS_CALIFICACIONES}</tbody><tfoot><tr style="height:6.5mm;"><td colspan="3" style="border:0.25mm solid #000000;text-align:right;font-weight:bold;">PROMEDIO ARITMÉTICO:</td><td style="border:0.25mm solid #000000;text-align:center;font-weight:bold;">{PROMEDIO_ARITMETICO}</td></tr></tfoot></table><div data-block="nota" style="text-align: justify; font-size: 12pt;">{NOTA}</div>`
+            },
+            periodos_anteriores: {
+                title: 'Constancia de Periodos Anteriores',
+                asunto: 'Constancia de Periodos Anteriores',
+                useBold: true,
+                body: `<div data-block="destinatario" style="text-align: left; font-size: 12pt; font-weight: bold; line-height: 1.35; margin-bottom: 16pt;">A QUIEN CORRESPONDA<br>P R E S E N T E</div><div data-block="cuerpo" style="text-align: justify; text-indent: 42px; font-size: 12pt;">La que suscribe Lic. Giselle Selene López Sánchez, responsable del Departamento de Control Escolar de la Universidad Americana de Puebla, hace constar que {ARTICULO_ALUMNO} <b>{NOMBRE}</b>, con matrícula <b>{MATRICULA}</b>, <b>{VERBO_CURSADO}</b> el <b>{GRADO}</b> de la <b>{LICENCIATURA}</b>, con RVOE <b>{RVOE}</b>{FECHA_RVOE_TEXTO}, en el periodo <b>{NOMBRE_PERIODO}</b>{PERIODO_TEXTO}.</div><br><div data-block="nota" style="text-align: justify; font-size: 12pt;">{NOTA}</div>`
+            },
+            montos: {
+                title: 'Constancia de Montos y Cuotas',
+                asunto: 'Constancia de Montos y Cuotas',
+                useBold: true,
+                body: `<div data-block="destinatario" style="text-align: left; font-size: 12pt; font-weight: bold; line-height: 1.35; margin-bottom: 16pt;">A QUIEN CORRESPONDA<br>P R E S E N T E</div><div data-block="cuerpo" style="text-align: justify; text-indent: 42px; font-size: 12pt;">La que suscribe Lic. Giselle Selene López Sánchez, responsable del Departamento de Control Escolar de la Universidad Americana de Puebla, hace constar que {ARTICULO_ALUMNO} <b>{NOMBRE}</b>, con matrícula <b>{MATRICULA}</b>, {INSCRITO_GENERO} en el <b>{GRADO}</b> de la <b>{LICENCIATURA}</b>, con RVOE <b>{RVOE}</b>{FECHA_RVOE_TEXTO}, en el periodo <b>{NOMBRE_PERIODO}</b>{PERIODO_TEXTO}, cubre los siguientes conceptos y cuotas escolares:</div><table border="1" cellspacing="0" cellpadding="4" style="width:100%;border-collapse:collapse;margin:6px 0;font-size:9.5pt;"><thead><tr style="background:#f1f5f9;"><th style="border:1px solid #000000;padding:5px 8px;text-align:left;">CONCEPTO</th><th style="border:1px solid #000000;padding:5px 8px;text-align:left;">PERIODO</th><th style="border:1px solid #000000;padding:5px 8px;text-align:right;width:120px;">IMPORTE</th></tr></thead><tbody>{FILAS_MONTOS}</tbody><tfoot><tr style="background:#f8fafc;"><td colspan="2" style="border:1px solid #000000;padding:4px 8px;text-align:right;font-weight:bold;">TOTAL:</td><td style="border:1px solid #000000;padding:4px 8px;text-align:right;font-weight:bold;">{TOTAL_MONTOS}</td></tr></tfoot></table><div data-block="nota" style="text-align: justify; font-size: 12pt;">{NOTA}</div>`
+            },
+            kardex: {
+                title: 'Kardex Académico',
+                asunto: 'Kardex Académico',
+                useBold: true,
+                body: `<div style="text-align:center;font-weight:bold;font-size:13pt;margin-bottom:8pt;">HISTORIAL ACADÉMICO · KARDEX</div><div data-block="cuerpo" style="text-align: justify; font-size: 11pt;">Alumno(a): <b>{NOMBRE}</b> · Matrícula: <b>{MATRICULA}</b> · CURP: <b>{CURP}</b> · Programa: <b>{LICENCIATURA}</b> (RVOE: <b>{RVOE}</b>) · Grado: <b>{GRADO}</b>.</div><table border="1" cellspacing="0" cellpadding="3" style="width:100%;border-collapse:collapse;margin:6px 0;font-size:9pt;"><thead><tr style="background:#f1f5f9;"><th style="border:1px solid #000000;padding:4px 6px;text-align:left;">CLAVE</th><th style="border:1px solid #000000;padding:4px 6px;text-align:left;">ASIGNATURA</th><th style="border:1px solid #000000;padding:4px 6px;text-align:center;">CICLO</th><th style="border:1px solid #000000;padding:4px 6px;text-align:center;">CRÉD.</th><th style="border:1px solid #000000;padding:4px 6px;text-align:center;">CALIF.</th></tr></thead><tbody>{FILAS_KARDEX}</tbody><tfoot><tr style="background:#f8fafc;"><td colspan="3" style="border:1px solid #000000;padding:4px 6px;text-align:right;font-weight:bold;">TOTAL CRÉDITOS Y PROMEDIO ACUMULADO:</td><td style="border:1px solid #000000;padding:4px 6px;text-align:center;font-weight:bold;">{TOTAL_CREDITOS_KARDEX}</td><td style="border:1px solid #000000;padding:4px 6px;text-align:center;font-weight:bold;">{PROMEDIO_KARDEX}</td></tr></tfoot></table><div data-block="nota" style="text-align: justify; font-size: 11pt;">{NOTA}</div>`
+            },
+            resguardo: {
+                title: 'Constancia de Resguardo de Documentos',
+                asunto: 'Constancia de Resguardo de Documentos',
+                useBold: true,
+                body: `<div style="text-align:center;font-weight:bold;font-size:13pt;margin-bottom:8pt;">CONSTANCIA DE RESGUARDO DE DOCUMENTACIÓN</div><div data-block="cuerpo" style="text-align: justify; font-size: 11pt;">Se hace constar que en el archivo de Control Escolar de la Universidad Americana de Puebla obran en resguardo los siguientes documentos pertenecientes a <b>{NOMBRE}</b>, con matrícula <b>{MATRICULA}</b> y CURP <b>{CURP}</b>, de la <b>{LICENCIATURA}</b>:</div><table border="1" cellspacing="0" cellpadding="4" style="width:100%;border-collapse:collapse;margin:6px 0;font-size:9.5pt;"><thead><tr style="background:#f1f5f9;"><th style="border:1px solid #000000;padding:5px 8px;text-align:center;width:65px;">CANT.</th><th style="border:1px solid #000000;padding:5px 8px;text-align:left;">DESCRIPCIÓN DEL BIEN / DOCUMENTO</th><th style="border:1px solid #000000;padding:5px 8px;text-align:left;">FOLIO / SERIE</th><th style="border:1px solid #000000;padding:5px 8px;text-align:left;">ESTADO</th></tr></thead><tbody>{FILAS_RESGUARDO}</tbody></table><div data-block="nota" style="text-align: justify; font-size: 11pt;">{NOTA}</div>`
+            }
+        };
+
+        const DOC_MODALITIES_LIST = [
+            { id: 'estudios', label: 'Constancia Sencilla' },
+            { id: 'periodo_vacacional', label: 'Periodo Vacacional' },
+            { id: 'calificaciones', label: 'Calificaciones' },
+            { id: 'periodos_anteriores', label: 'Periodos Anteriores' },
+            { id: 'montos', label: 'Montos y Cuotas' },
+            { id: 'kardex', label: 'Kardex' },
+            { id: 'resguardo', label: 'Resguardo' }
         ];
 
         const DOC_FIELD_DEFINITIONS = [
             { id: 'folio', label: 'Folio / Control' },
             { id: 'lugar_expedicion', label: 'Lugar de Expedición' },
             { id: 'fecha_expedicion', label: 'Fecha de Expedición' },
-            { id: 'asunto_constancia', label: 'Asunto de la Constancia' },
-            { id: 'nombre_alumno', label: 'Nombre del Alumno' },
-            { id: 'genero_alumno', label: 'Género (el alumno / la alumna)' },
+            { id: 'asunto_constancia', label: 'Asunto' },
+            { id: 'nombre_alumno', label: 'Nombre Completo' },
+            { id: 'genero_alumno', label: 'Género' },
             { id: 'matricula', label: 'Matrícula' },
             { id: 'curp', label: 'CURP' },
-            { id: 'licenciatura', label: 'Plan, Licenciatura y RVOE' },
-            { id: 'grado', label: 'Grado (Semestre/Cuatrimestre)' },
+            { id: 'licenciatura', label: 'Licenciatura y RVOE' },
+            { id: 'grado', label: 'Grado / Semestre' },
             { id: 'periodo_escolar', label: 'Periodo Escolar' },
             { id: 'periodo_vacacional', label: 'Periodo Vacacional' },
             { id: 'verbo_cursado', label: 'Estatus Periodos Anteriores' },
             { id: 'tabla_calificaciones', label: 'Tabla de Calificaciones' },
-            { id: 'tabla_montos', label: 'Tabla de Montos y Cuotas' },
-            { id: 'tabla_kardex', label: 'Tabla de Kardex Académico' },
-            { id: 'tabla_resguardo', label: 'Tabla de Resguardo' },
-            { id: 'editor_formato', label: 'Cuadro Editor de Formato' },
-            { id: 'observaciones', label: 'Nota / A petición' },
-            { id: 'firmante_nombre', label: 'Nombre del Firmante' },
-            { id: 'firmante_cargo', label: 'Cargo del Firmante' }
+            { id: 'tabla_montos', label: 'Tabla de Montos' },
+            { id: 'tabla_kardex', label: 'Tabla de Kardex' },
+            { id: 'tabla_resguardo', label: 'Tabla de Resguardo' }
         ];
 
-        const DOC_MODALITIES_LIST = [
-            { id: 'estudios', label: 'Constancia de Estudios' },
-            { id: 'periodo_vacacional', label: 'Constancia de Periodo Vacacional' },
-            { id: 'calificaciones', label: 'Constancia de Calificaciones' },
-            { id: 'periodos_anteriores', label: 'Periodos Anteriores' },
-            { id: 'montos', label: 'Montos y Cuotas' },
-            { id: 'kardex', label: 'Kardex Académico' },
-            { id: 'resguardo', label: 'Constancia de Resguardo' }
+        const HEADER_BUTTON_DEFINITIONS = [
+            { id: 'tab_generador', label: 'Pestaña Generador' },
+            { id: 'tab_catalogos', label: 'Pestaña Licenciaturas' },
+            { id: 'btn_pdf', label: 'Descargar PDF' },
+            { id: 'btn_print', label: 'Imprimir' },
+            { id: 'btn_history', label: 'Historial' },
+            { id: 'btn_excel', label: 'Base Excel' },
+            { id: 'btn_periods', label: 'Periodos' },
+            { id: 'btn_catalogos_direct', label: 'Acceso Licenciaturas' },
+            { id: 'cmd_folio', label: '+1 Folio' },
+            { id: 'cmd_clear', label: 'Limpiar Alumno' },
+            { id: 'cmd_copy', label: 'Copiar Texto' },
+            { id: 'cmd_today', label: 'Fecha Hoy' },
+            { id: 'cmd_reset_all', label: 'Restablecer Ejemplo' }
         ];
-
-        const DEFAULT_DOC_TEMPLATES = {
-            estudios: {
-                title: 'Constancia de Estudios',
-                body: `<div data-block="destinatario" style="text-align: left; font-size: 12pt; font-weight: bold; line-height: 1.35; margin-bottom: 16pt;">A QUIEN CORRESPONDA<br>P R E S E N T E</div>
-
-<div data-block="cuerpo" style="text-align: justify; text-indent: 42px; font-size: 12pt;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que {ARTICULO_ALUMNO}: <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b> y CURP: <b>{CURP}</b>, {INSCRITO_GENERO} en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}{FECHA_RVOE_TEXTO}, cursa el {GRADO}{PERIODO_TEXTO}, conservando su estatus como alumno regular y activo dentro de la comunidad universitaria.</div>
-
-<div data-block="nota" style="text-align: justify; font-size: 12pt;">{NOTA}</div>`
-            },
-            periodo_vacacional: {
-                title: 'Constancia de Periodo Vacacional',
-                body: `<div data-block="destinatario" style="text-align: left; font-size: 12pt; font-weight: bold; line-height: 1.35; margin-bottom: 16pt;">A QUIEN CORRESPONDA<br>P R E S E N T E</div>
-
-<div data-block="cuerpo" style="text-align: justify; text-indent: 42px; font-size: 12pt;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que {ARTICULO_ALUMNO}: <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b> y CURP: <b>{CURP}</b>, {INSCRITO_GENERO} en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}{FECHA_RVOE_TEXTO}, cursa el {GRADO}{PERIODO_TEXTO}. {PERIODO_VACACIONAL} Al concluir dicho receso académico, deberá reincorporarse puntualmente a sus actividades escolares conforme al calendario oficial vigente.</div>
-
-<div data-block="nota" style="text-align: justify; font-size: 12pt;">{NOTA}</div>`
-            },
-            calificaciones: {
-                title: 'Constancia de Calificaciones',
-                body: `<div data-block="destinatario" style="text-align: left; font-size: 12pt; font-weight: bold; line-height: 1.35; margin-bottom: 16pt;">A QUIEN CORRESPONDA<br>P R E S E N T E</div>
-
-<div data-block="cuerpo" style="text-align: justify; text-indent: 42px; font-size: 12pt;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que {ARTICULO_ALUMNO}: <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b> y CURP: <b>{CURP}</b>, {INSCRITO_GENERO} en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}{FECHA_RVOE_TEXTO}, obtuvo en el {GRADO}{PERIODO_TEXTO}, las siguientes calificaciones con un promedio aritmético de <b>{PROMEDIO_ARITMETICO}</b>:</div>
-<table class="grades-pdf-table" border="1" cellspacing="0" cellpadding="0" style="width:165mm;max-width:165mm;border-collapse:collapse;margin:2mm 0 4mm 0;font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;line-height:1.15;table-layout:fixed;border:0.25mm solid #000000;">
-  <thead>
-    <tr style="height:6.5mm;">
-      <th style="border:0.25mm solid #000000;width:20mm;text-align:center;">GRUPO</th>
-      <th style="border:0.25mm solid #000000;width:40mm;text-align:center;">CÓDIGO DE MATERIA</th>
-      <th style="border:0.25mm solid #000000;width:77mm;text-align:left;">MATERIA</th>
-      <th style="border:0.25mm solid #000000;width:28mm;text-align:center;">CALIFICACIÓN</th>
-    </tr>
-  </thead>
-  <tbody>
-    {FILAS_CALIFICACIONES}
-  </tbody>
-  <tfoot>
-    <tr style="height:6.5mm;">
-      <td colspan="3" style="border:0.25mm solid #000000;text-align:right;font-weight:bold;">PROMEDIO ARITMÉTICO:</td>
-      <td style="border:0.25mm solid #000000;text-align:center;font-weight:bold;">{PROMEDIO_ARITMETICO}</td>
-    </tr>
-  </tfoot>
-</table>
-<div data-block="nota" style="text-align: justify; font-size: 12pt;">{NOTA}</div>`
-            },
-            periodos_anteriores: {
-                title: 'Constancia de Periodos Anteriores',
-                body: `<div data-block="destinatario" style="text-align: left; font-size: 12pt; font-weight: bold; line-height: 1.35; margin-bottom: 16pt;">A QUIEN CORRESPONDA<br>P R E S E N T E</div>
-
-<div data-block="cuerpo" style="text-align: justify; text-indent: 42px; font-size: 12pt;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que {ARTICULO_ALUMNO}: <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b> y CURP: <b>{CURP}</b>, {INSCRITO_GENERO} en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}{FECHA_RVOE_TEXTO}, <b>{VERBO_CURSADO}</b> el {GRADO}{PERIODO_TEXTO}, conforme a los registros que obran en el archivo de Control Escolar.</div>
-
-<div data-block="nota" style="text-align: justify; font-size: 12pt;">{NOTA}</div>`
-            },
-            montos: {
-                title: 'Constancia de Montos y Cuotas',
-                body: `<div data-block="destinatario" style="text-align: left; font-size: 12pt; font-weight: bold; line-height: 1.35; margin-bottom: 16pt;">A QUIEN CORRESPONDA<br>P R E S E N T E</div>
-
-<div data-block="cuerpo" style="text-align: justify; text-indent: 42px; font-size: 12pt;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que {ARTICULO_ALUMNO}: <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b> y CURP: <b>{CURP}</b>, {INSCRITO_GENERO} en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}{FECHA_RVOE_TEXTO}, en el {GRADO}{PERIODO_TEXTO}, presenta el siguiente desglose de montos y cuotas vigentes:</div>
-<table border="1" cellspacing="0" cellpadding="4" style="width:100%;border-collapse:collapse;margin:6px 0;font-size:9.5pt;">
-  <thead>
-    <tr style="background:#f1f5f9;">
-      <th style="border:1px solid #000000;padding:5px 8px;text-align:left;">CONCEPTO</th>
-      <th style="border:1px solid #000000;padding:5px 8px;text-align:left;">PERIODO</th>
-      <th style="border:1px solid #000000;padding:5px 8px;text-align:right;width:120px;">IMPORTE</th>
-    </tr>
-  </thead>
-  <tbody>
-    {FILAS_MONTOS}
-  </tbody>
-  <tfoot>
-    <tr style="background:#f8fafc;">
-      <td colspan="2" style="border:1px solid #000000;padding:4px 8px;text-align:right;font-weight:bold;">TOTAL:</td>
-      <td style="border:1px solid #000000;padding:4px 8px;text-align:right;font-weight:bold;">{TOTAL_MONTOS}</td>
-    </tr>
-  </tfoot>
-</table>
-<div data-block="nota" style="text-align: justify; font-size: 12pt;">{NOTA}</div>`
-            },
-            kardex: {
-                title: 'Kardex Académico',
-                body: `<div data-block="cuerpo" style="text-align: justify; text-indent: 42px; font-size: 12pt;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que {ARTICULO_ALUMNO}: <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b> y CURP: <b>{CURP}</b>, {INSCRITO_GENERO} en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}{FECHA_RVOE_TEXTO}, cuenta con el siguiente historial académico (Kardex) hasta el {GRADO}{PERIODO_TEXTO}:</div>
-<table border="1" cellspacing="0" cellpadding="3" style="width:100%;border-collapse:collapse;margin:6px 0;font-size:9pt;">
-  <thead>
-    <tr style="background:#f1f5f9;">
-      <th style="border:1px solid #000000;padding:4px 6px;text-align:left;">CLAVE</th>
-      <th style="border:1px solid #000000;padding:4px 6px;text-align:left;">ASIGNATURA</th>
-      <th style="border:1px solid #000000;padding:4px 6px;text-align:center;">CICLO</th>
-      <th style="border:1px solid #000000;padding:4px 6px;text-align:center;">CRÉD.</th>
-      <th style="border:1px solid #000000;padding:4px 6px;text-align:center;">CALIF.</th>
-    </tr>
-  </thead>
-  <tbody>
-    {FILAS_KARDEX}
-  </tbody>
-  <tfoot>
-    <tr style="background:#f8fafc;">
-      <td colspan="3" style="border:1px solid #000000;padding:4px 6px;text-align:right;font-weight:bold;">TOTAL CRÉDITOS Y PROMEDIO ACUMULADO:</td>
-      <td style="border:1px solid #000000;padding:4px 6px;text-align:center;font-weight:bold;">{TOTAL_CREDITOS_KARDEX}</td>
-      <td style="border:1px solid #000000;padding:4px 6px;text-align:center;font-weight:bold;">{PROMEDIO_KARDEX}</td>
-    </tr>
-  </tfoot>
-</table>
-<div data-block="nota" style="text-align: justify; font-size: 12pt;">{NOTA}</div>`
-            },
-            resguardo: {
-                title: 'Constancia de Resguardo',
-                body: `<div data-block="cuerpo" style="text-align: justify; text-indent: 42px; font-size: 12pt;">La dirección de la UNIVERSIDAD AMERICANA DE PUEBLA, con clave de centro de trabajo: 21MSU1278W, hace CONSTAR que {ARTICULO_ALUMNO}: <b>{NOMBRE}</b>, con matrícula: <b>{MATRICULA}</b> y CURP: <b>{CURP}</b>, {INSCRITO_GENERO} en esta Institución, en la {LICENCIATURA}, con número de RVOE: {RVOE}{FECHA_RVOE_TEXTO}, correspondiente al {GRADO}{PERIODO_TEXTO}, mantiene bajo resguardo institucional lo siguiente:</div>
-<table border="1" cellspacing="0" cellpadding="4" style="width:100%;border-collapse:collapse;margin:6px 0;font-size:9.5pt;">
-  <thead>
-    <tr style="background:#f1f5f9;">
-      <th style="border:1px solid #000000;padding:5px 8px;text-align:center;width:65px;">CANT.</th>
-      <th style="border:1px solid #000000;padding:5px 8px;text-align:left;">DESCRIPCIÓN DEL BIEN / DOCUMENTO</th>
-      <th style="border:1px solid #000000;padding:5px 8px;text-align:left;">FOLIO / SERIE</th>
-      <th style="border:1px solid #000000;padding:5px 8px;text-align:left;">ESTADO</th>
-    </tr>
-  </thead>
-  <tbody>
-    {FILAS_RESGUARDO}
-  </tbody>
-</table>
-<div data-block="nota" style="text-align: justify; font-size: 12pt;">{NOTA}</div>`
-            }
-        };
-
-        function createDefaultDocAccessMatrix(defaultVal = true) {
-            return {
-                estudios: defaultVal,
-                periodo_vacacional: defaultVal,
-                calificaciones: defaultVal,
-                periodos_anteriores: defaultVal,
-                montos: defaultVal,
-                kardex: defaultVal,
-                resguardo: defaultVal
-            };
-        }
-
-        function createDefaultHeaderMatrix(defaultMode = 'edit') {
-            const obj = {};
-            HEADER_BUTTON_DEFINITIONS.forEach(b => { obj[b.id] = defaultMode; });
-            return obj;
-        }
-
-        function createDefaultFieldMatrix(defaultMode = 'edit') {
-            const obj = {};
-            DOC_FIELD_DEFINITIONS.forEach(f => { obj[f.id] = defaultMode; });
-            return obj;
-        }
 
         const DEFAULT_MAJORS = [
             { id: 'maj_1795544465106', plan: '', name: 'LICENCIATURA EN FISIOTERAPIA', rvoe: 'SEP-SES/21/174/01/1272/2015/ACT.1/2017', rvoeDate: '01 de Junio de 2017' },
@@ -1184,8 +1084,8 @@
             ],
             templates: JSON.parse(JSON.stringify(DEFAULT_DOC_TEMPLATES)),
             grades: [
-                { group: '7A', code: 'DER-701', subject: 'Derecho Constitucional', score: '9.5' },
-                { group: '7A', code: 'DER-702', subject: 'Teoría General del Proceso', score: '9.5' }
+                { group: '7A', code: 'DER-701', subject: 'Derecho Procesal Civil', score: '9.5' },
+                { group: '7A', code: 'DER-702', subject: 'Derecho Administrativo', score: '9.5' }
             ],
             montos: [
                 { concepto: 'Inscripción Semestral', periodo: 'Agosto 2026 - Enero 2027', importe: 2500 },
@@ -1208,40 +1108,470 @@
             extractedFormState: null
         };
 
-        let _toastTimer = null;
         function showToast(msg) {
             const toast = document.getElementById('toastNotification');
             if (!toast) return;
-            if (appState.activeSession && appState.activeSession.role !== 'admin') {
-                toast.classList.add('hidden');
-                return;
-            }
             toast.textContent = msg;
             toast.classList.remove('hidden');
-            clearTimeout(_toastTimer);
-            _toastTimer = setTimeout(() => toast.classList.add('hidden'), 3200);
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => toast.classList.add('hidden'), 3200);
         }
 
-        function updateRealtimeCornerStatus(msg, status = 'ok') {
+        function updateRealtimeCornerStatus(message, status = 'ok') {
             const msgEl = document.getElementById('realtimeCornerMessage');
-            const timeEl = document.getElementById('realtimeCornerTime');
             const verEl = document.getElementById('realtimeCornerVersion');
-            const dotEl = document.getElementById('realtimeCornerDot');
-            if (msgEl && msg) msgEl.textContent = msg;
-            if (timeEl) timeEl.textContent = `Actualizado: ${new Date().toLocaleTimeString('es-MX')}`;
+            const timeEl = document.getElementById('realtimeCornerTime');
+            if (msgEl) msgEl.textContent = message;
             if (verEl) verEl.textContent = `v${appState.version || 1}`;
-            if (dotEl) {
-                dotEl.className = status === 'error'
-                    ? 'w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0'
-                    : 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0';
+            if (timeEl) timeEl.textContent = `Actualizado: ${new Date().toLocaleTimeString('es-MX')}`;
+        }
+
+        function createDefaultDocAccessMatrix(val = true) {
+            const obj = {};
+            DOC_MODALITIES_LIST.forEach(d => { obj[d.id] = val; });
+            return obj;
+        }
+
+        function createDefaultHeaderMatrix(mode = 'edit') {
+            const obj = {};
+            HEADER_BUTTON_DEFINITIONS.forEach(b => { obj[b.id] = mode; });
+            return obj;
+        }
+
+        function createDefaultFieldMatrix(mode = 'edit') {
+            const obj = {};
+            DOC_FIELD_DEFINITIONS.forEach(f => { obj[f.id] = mode; });
+            return obj;
+        }
+
+        function switchMainWorkspaceTab(tabName) {
+            const views = {
+                generador: document.getElementById('workspaceViewGenerador'),
+                catalogos: document.getElementById('workspaceViewCatalogos'),
+                control_panel: document.getElementById('workspaceViewControlPanel')
+            };
+            Object.keys(views).forEach(k => {
+                if (views[k]) {
+                    const active = k === tabName;
+                    views[k].classList.toggle('hidden', !active);
+                    views[k].style.display = active ? 'block' : 'none';
+                }
+            });
+            const btns = {
+                generador: document.getElementById('tabBtnGenerador'),
+                catalogos: document.getElementById('tabBtnCatalogos'),
+                control_panel: document.getElementById('tabBtnControlPanel')
+            };
+            Object.keys(btns).forEach(k => {
+                if (btns[k]) {
+                    btns[k].className = k === tabName
+                        ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-700 text-white shadow-sm transition cursor-pointer'
+                        : 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-700 transition cursor-pointer';
+                }
+            });
+            if (tabName === 'catalogos') renderMajorsCatalogList();
+            if (tabName === 'control_panel') {
+                loadGithubConfigToInputs();
+                renderProfilesManager();
             }
         }
 
+        function lockProfileQuickAccess() {
+            appState.activeSession = null;
+            document.getElementById('mainAppWorkspace')?.classList.add('hidden');
+            document.getElementById('realtimeCornerMonitor')?.classList.add('hidden');
+            document.getElementById('frontLoginScreen')?.classList.remove('hidden');
+        }
+
+        function applySessionPermissions() {
+            const isAdmin = appState.activeSession?.role === 'admin';
+            const badge = document.getElementById('activeSessionBadge');
+            if (badge && appState.activeSession) {
+                badge.textContent = isAdmin ? `Admin: ${appState.activeSession.name}` : `Usuario: ${appState.activeSession.name}`;
+            }
+            document.querySelectorAll('[data-admin-only="true"]').forEach(el => {
+                el.classList.toggle('hidden', !isAdmin);
+            });
+            const paper = document.getElementById('constanciaPaper');
+            if (paper) {
+                paper.setAttribute('contenteditable', isAdmin ? 'true' : 'false');
+            }
+            if (!isAdmin && appState.activeSession?.profileId) {
+                const prof = appState.profiles.find(p => p.id === appState.activeSession.profileId);
+                if (prof) {
+                    document.querySelectorAll('.doc-type-btn').forEach(btn => {
+                        const key = btn.getAttribute('data-doc-btn');
+                        const allowed = prof.docAccess?.[key] !== false;
+                        btn.classList.toggle('hidden', !allowed);
+                    });
+                    document.querySelectorAll('[data-header-btn]').forEach(btn => {
+                        const key = btn.getAttribute('data-header-btn');
+                        const perm = prof.headerPerms?.[key] || 'edit';
+                        btn.classList.toggle('hidden', perm === 'hide');
+                    });
+                    document.querySelectorAll('[data-field-wrap]').forEach(wrap => {
+                        if (wrap.dataset.docHidden === 'true') return;
+                        const key = wrap.getAttribute('data-field-wrap');
+                        const perm = prof.fieldPerms?.[key] || 'edit';
+                        wrap.classList.toggle('hidden', perm === 'hide');
+                        wrap.querySelectorAll('input, textarea, select').forEach(inp => {
+                            inp.disabled = perm === 'select';
+                        });
+                    });
+                }
+            } else if (isAdmin) {
+                document.querySelectorAll('.doc-type-btn').forEach(btn => btn.classList.remove('hidden'));
+                document.querySelectorAll('[data-header-btn]').forEach(btn => btn.classList.remove('hidden'));
+                document.querySelectorAll('[data-field-wrap]').forEach(wrap => {
+                    if (wrap.dataset.docHidden === 'true') return;
+                    wrap.classList.remove('hidden');
+                    wrap.querySelectorAll('input, textarea, select').forEach(inp => {
+                        inp.disabled = false;
+                    });
+                });
+            }
+        }
+
+        function extractCurrentSystemFields() {
+            return {
+                folio: document.getElementById('inpFolio')?.value || '',
+                lugar: document.getElementById('inpLugarExpedicion')?.value || '',
+                fechaIso: document.getElementById('inpFechaExpedicion')?.value || '',
+                fechaTexto: document.getElementById('inpFechaExpedicionTexto')?.value || '',
+                nombre: document.getElementById('inpNombre')?.value || '',
+                genero: document.getElementById('selGeneroAlumno')?.value || 'M',
+                matricula: document.getElementById('inpMatricula')?.value || '',
+                curp: document.getElementById('inpCurp')?.value || '',
+                grado: document.getElementById('inpPeriodoGrado')?.value || '',
+                nota: document.getElementById('inpDestinoNota')?.value || ''
+            };
+        }
+
+        function applyExtractedFormFields(data) {
+            if (!data || typeof data !== 'object') return;
+            if (data.folio && document.getElementById('inpFolio')) document.getElementById('inpFolio').value = data.folio;
+            if (data.lugar && document.getElementById('inpLugarExpedicion')) document.getElementById('inpLugarExpedicion').value = data.lugar;
+            if (data.fechaIso && document.getElementById('inpFechaExpedicion')) document.getElementById('inpFechaExpedicion').value = data.fechaIso;
+            if (data.fechaTexto && document.getElementById('inpFechaExpedicionTexto')) document.getElementById('inpFechaExpedicionTexto').value = data.fechaTexto;
+            if (data.nombre && document.getElementById('inpNombre')) document.getElementById('inpNombre').value = data.nombre;
+            if (data.genero && document.getElementById('selGeneroAlumno')) document.getElementById('selGeneroAlumno').value = data.genero;
+            if (data.matricula && document.getElementById('inpMatricula')) document.getElementById('inpMatricula').value = data.matricula;
+            if (data.curp && document.getElementById('inpCurp')) document.getElementById('inpCurp').value = data.curp;
+            if (data.grado && document.getElementById('inpPeriodoGrado')) document.getElementById('inpPeriodoGrado').value = data.grado;
+            if (data.nota && document.getElementById('inpDestinoNota')) document.getElementById('inpDestinoNota').value = data.nota;
+        }
+
+        function calculateGradesArithmeticStats(gradesList) {
+            const validNums = (Array.isArray(gradesList) ? gradesList : [])
+                .map(g => parseFloat(String(g.score || '').replace(',', '.')))
+                .filter(n => !isNaN(n));
+            if (!validNums.length) return { count: 0, avg: '0.00' };
+            const sum = validNums.reduce((a, b) => a + b, 0);
+            return { count: validNums.length, avg: (sum / validNums.length).toFixed(2) };
+        }
+
+        function parseGradesBulkInput(rawText) {
+            const lines = String(rawText || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+            const parsed = [];
+            for (const line of lines) {
+                const parts = line.includes('\t') ? line.split('\t') : line.split('|');
+                if (parts.length >= 4) {
+                    parsed.push({
+                        group: parts[0].trim(),
+                        code: parts[1].trim(),
+                        subject: parts[2].trim(),
+                        score: parts[3].trim()
+                    });
+                } else if (parts.length === 3) {
+                    parsed.push({
+                        group: '',
+                        code: parts[0].trim(),
+                        subject: parts[1].trim(),
+                        score: parts[2].trim()
+                    });
+                }
+            }
+            return parsed;
+        }
+
+        function renderGradesEditor() {
+            const listEl = document.getElementById('gradesSavedRowsList');
+            const countBadge = document.getElementById('gradesCountBadge');
+            const avgBadge = document.getElementById('gradesLiveSummaryBadge');
+            appState.grades = (Array.isArray(appState.grades) ? appState.grades : []).slice(0, 20);
+            const stats = calculateGradesArithmeticStats(appState.grades);
+            if (countBadge) countBadge.textContent = `${appState.grades.length} / 20 filas`;
+            if (avgBadge) avgBadge.textContent = `Promedio Aritmético: ${stats.avg}`;
+            if (!listEl) return;
+            listEl.innerHTML = appState.grades.map((g, idx) => `
+                <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px]">
+                    <span class="font-mono font-bold text-blue-950">${g.group} · ${g.code}</span>
+                    <span class="flex-1 truncate text-slate-800">${g.subject}</span>
+                    <span class="font-black text-emerald-800">${g.score}</span>
+                    <button type="button" onclick="removeGradeRow(${idx})" class="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 font-bold">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function removeGradeRow(idx) {
+            appState.grades.splice(idx, 1);
+            renderGradesEditor();
+            updateDocument();
+            persistBaseState(true, true, true);
+        }
+
+        function clearGradesTableRows() {
+            appState.grades = [];
+            renderGradesEditor();
+            updateDocument();
+            persistBaseState(true, true, true);
+            showToast('Tabla de calificaciones vaciada.');
+        }
+
+        function syncGradesTableRowsToSkeleton() {
+            const bulkInp = document.getElementById('txtGradesBulkInput');
+            const newRows = parseGradesBulkInput(bulkInp?.value || '');
+            if (newRows.length) {
+                const spaceLeft = Math.max(0, 20 - appState.grades.length);
+                if (spaceLeft === 0) {
+                    showToast('Ya alcanzaste el límite máximo de 20 filas.');
+                    return;
+                }
+                appState.grades.push(...newRows.slice(0, spaceLeft));
+                if (bulkInp) bulkInp.value = '';
+            }
+            appState.grades = appState.grades.slice(0, 20);
+            const tpl = appState.templates.calificaciones || DEFAULT_DOC_TEMPLATES.calificaciones;
+            if (tpl && typeof tpl.body === 'string' && !tpl.body.includes('{FILAS_CALIFICACIONES}') && !tpl.body.includes('{TABLA_CALIFICACIONES}')) {
+                tpl.body = tpl.body.replace(/<tbody>[\s\S]*?<\/tbody>/i, `<tbody>{FILAS_CALIFICACIONES}</tbody>`);
+            }
+            renderGradesEditor();
+            updateDocument();
+            persistBaseState(true, true, true);
+            showToast(`Tabla de calificaciones actualizada (${appState.grades.length}/20 filas) y guardada.`);
+        }
+
+        function syncMontosTableRowsToSkeleton() {
+            const cInp = document.getElementById('inpNewMontoConcepto');
+            const pInp = document.getElementById('inpNewMontoPeriodo');
+            const iInp = document.getElementById('inpNewMontoImporte');
+            const concepto = (cInp?.value || '').trim();
+            const periodo = (pInp?.value || '').trim();
+            const importe = parseFloat(iInp?.value || '');
+            if (concepto || periodo || !isNaN(importe)) {
+                if (appState.montos.length >= 20) {
+                    showToast('Ya alcanzaste el límite máximo de 20 filas en Montos.');
+                    return;
+                }
+                appState.montos.push({
+                    concepto: concepto || 'Concepto Escolar',
+                    periodo: periodo || 'Periodo Actual',
+                    importe: isNaN(importe) ? 0 : importe
+                });
+                if (cInp) cInp.value = '';
+                if (pInp) pInp.value = '';
+                if (iInp) iInp.value = '';
+            }
+            appState.montos = appState.montos.slice(0, 20);
+            const tpl = appState.templates.montos || DEFAULT_DOC_TEMPLATES.montos;
+            if (tpl && typeof tpl.body === 'string' && !tpl.body.includes('{FILAS_MONTOS}') && !tpl.body.includes('{TABLA_MONTOS}')) {
+                tpl.body = tpl.body.replace(/<tbody>[\s\S]*?<\/tbody>/i, `<tbody>{FILAS_MONTOS}</tbody>`);
+            }
+            renderMontosEditor();
+            updateDocument();
+            persistBaseState(true, true, true);
+            showToast(`Tabla de montos actualizada (${appState.montos.length}/20 filas) y guardada.`);
+        }
+
+        function syncAsuntoInputToTemplate() {
+            const val = document.getElementById('inpAsuntoConstancia')?.value ?? '';
+            if (!appState.templates[appState.currentDocType]) {
+                appState.templates[appState.currentDocType] = { title: val, asunto: val, useBold: true, body: '' };
+            }
+            appState.templates[appState.currentDocType].asunto = val;
+            appState.templates[appState.currentDocType].title = val;
+        }
+
+        function syncInlineVacationToMain() {
+            const val = document.getElementById('inpPeriodoVacacionalInline')?.value ?? '';
+            const mainVac = document.getElementById('inpPeriodoVacacional');
+            if (mainVac) mainVac.value = val;
+            updateActiveAcademicPeriodFromInput();
+        }
+
+        function updateActiveAcademicPeriodFromInput() {
+            const sel = document.getElementById('selPeriodoEscolar');
+            const periodsList = ensureStructuredPeriodsList();
+            const found = periodsList.find(p => p.id === sel?.value) || periodsList[0];
+            if (!found) return;
+            if (document.getElementById('inpNombrePeriodoEditable')) found.name = document.getElementById('inpNombrePeriodoEditable').value;
+            if (document.getElementById('inpPeriodoEscolarEditable')) found.dates = document.getElementById('inpPeriodoEscolarEditable').value;
+            if (document.getElementById('inpPeriodoVacacional')) found.vacation = document.getElementById('inpPeriodoVacacional').value;
+            if (sel && sel.selectedIndex >= 0) {
+                const idx = sel.selectedIndex;
+                const opt = sel.options[idx];
+                if (opt) {
+                    opt.textContent = `${found.name || 'Periodo ' + (idx + 1)}${found.dates ? ' — ' + found.dates.slice(0, 48) + (found.dates.length > 48 ? '...' : '') : ''}`;
+                }
+            }
+        }
+
+        function updateSystemGithubToken() {
+            saveGithubIntegrationSettings();
+            showToast('Token guardado localmente en este navegador.');
+        }
+
+        function extractAndAutoLoadSystemData() {
+            appState.extractedFormState = extractCurrentSystemFields();
+            persistBaseState(true, true, true);
+            showToast('Datos actuales extraídos y respaldados en memoria.');
+        }
+
+        function syncUpdatesInRealTimeNow(manual = false) {
+            persistBaseState(true, true, true);
+            refreshAllUI();
+            if (manual) showToast('Sistema sincronizado y actualizado en tiempo real.');
+        }
+
+        function downloadSelfContainedPageWithData() {
+            persistBaseState(true, true, false);
+            const htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'index.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Archivo index.html exportado con todos los datos incrustados.');
+        }
+
+        async function deployUpdateToGithub(manual = false, silent = false, reloadAfter = false) {
+            saveGithubIntegrationSettings();
+            const cfg = appState.githubConfig || {};
+            if (!cfg.repo || !cfg.repo.includes('/') || !cfg.token) {
+                if (!silent) showToast('Configura Repositorio (usuario/repo) y Token en Panel de Control.');
+                return;
+            }
+            try {
+                persistBaseState(true, true, true);
+                const apiUrl = `https://api.github.com/repos/${cfg.repo}/contents/${cfg.filePath || 'index.html'}`;
+                const headers = {
+                    Authorization: `Bearer ${cfg.token}`,
+                    Accept: 'application/vnd.github+json',
+                    'Content-Type': 'application/json'
+                };
+                let sha = '';
+                const getRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(cfg.branch || 'main')}`, { headers });
+                if (getRes.ok) {
+                    const getData = await getRes.json();
+                    sha = getData.sha || '';
+                }
+                const fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+                const encoded = btoa(unescape(encodeURIComponent(fullHtml)));
+                const putRes = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers,
+                    body: JSON.stringify({
+                        message: `Actualización SISTEMA BUBU 1.0 v${appState.version}`,
+                        content: encoded,
+                        branch: cfg.branch || 'main',
+                        ...(sha ? { sha } : {})
+                    })
+                });
+                if (!putRes.ok) throw new Error('HTTP ' + putRes.status);
+                if (!silent) showToast(`Publicado en GitHub (v${appState.version}) correctamente.`);
+                if (reloadAfter) setTimeout(() => location.reload(), 900);
+            } catch (err) {
+                if (!silent) showToast('Error al publicar en GitHub. Verifica el repositorio y el token.');
+            }
+        }
+
+        function forceReloadLatestDeployment() {
+            purgeAllBrowserCaches().then(() => location.reload());
+        }
+
+        async function hashAccessCodeSecurely(plainCode) {
+            const normalized = String(plainCode || '').trim();
+            if (!normalized) return '';
+            if (normalized.startsWith('sha256:')) return normalized;
+            try {
+                if (window.crypto && window.crypto.subtle) {
+                    const data = new TextEncoder().encode(`${CODE_HASH_SALT}:${normalized.toLowerCase()}`);
+                    const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+                    const hashHex = Array.from(new Uint8Array(hashBuffer))
+                        .map(b => b.toString(16).padStart(2, '0'))
+                        .join('');
+                    return `sha256:${hashHex}`;
+                }
+            } catch (e) {}
+            let h = 2166136261;
+            const s = `${CODE_HASH_SALT}:${normalized.toLowerCase()}`;
+            for (let i = 0; i < s.length; i++) {
+                h ^= s.charCodeAt(i);
+                h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24);
+            }
+            return `sha256:${(h >>> 0).toString(16).padStart(16, '0')}`;
+        }
+
+        function maskAccessCodeForDisplay(storedCode) {
+            if (!storedCode) return 'Sin código';
+            return '•••••••• (Codificado)';
+        }
+
+        function saveToIndexedDbVault(payloadObj) {
+            try {
+                if (!window.indexedDB) return;
+                const req = indexedDB.open(IDB_DB_NAME, 1);
+                req.onupgradeneeded = (ev) => {
+                    const db = ev.target.result;
+                    if (!db.objectStoreNames.contains(IDB_STORE_NAME)) {
+                        db.createObjectStore(IDB_STORE_NAME);
+                    }
+                };
+                req.onsuccess = (ev) => {
+                    const db = ev.target.result;
+                    const tx = db.transaction(IDB_STORE_NAME, 'readwrite');
+                    tx.objectStore(IDB_STORE_NAME).put(payloadObj, 'latest_vault');
+                };
+            } catch (e) {}
+        }
+
+        function loadFromIndexedDbVault() {
+            return new Promise((resolve) => {
+                try {
+                    if (!window.indexedDB) return resolve(null);
+                    const req = indexedDB.open(IDB_DB_NAME, 1);
+                    req.onupgradeneeded = (ev) => {
+                        const db = ev.target.result;
+                        if (!db.objectStoreNames.contains(IDB_STORE_NAME)) {
+                            db.createObjectStore(IDB_STORE_NAME);
+                        }
+                    };
+                    req.onsuccess = (ev) => {
+                        const db = ev.target.result;
+                        const tx = db.transaction(IDB_STORE_NAME, 'readonly');
+                        const getReq = tx.objectStore(IDB_STORE_NAME).get('latest_vault');
+                        getReq.onsuccess = () => resolve(getReq.result || null);
+                        getReq.onerror = () => resolve(null);
+                    };
+                    req.onerror = () => resolve(null);
+                } catch (e) {
+                    resolve(null);
+                }
+            });
+        }
         async function purgeAllBrowserCaches() {
             try {
                 if ('caches' in window) {
                     const names = await caches.keys();
                     await Promise.all(names.map(name => caches.delete(name)));
+                }
+                if ('serviceWorker' in navigator) {
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(regs.map(r => r.unregister()));
                 }
             } catch (e) {}
         }
@@ -1251,6 +1581,7 @@
             if (!includeToken) delete ghCfg.token;
             return {
                 version: appState.version || 1,
+                updatedAt: Date.now(),
                 currentDocType: appState.currentDocType,
                 signer: appState.signer,
                 majors: appState.majors,
@@ -1273,58 +1604,107 @@
             if (bumpVersion) {
                 appState.version = (appState.version || 1) + 1;
             }
+            const fullPayload = buildSerializableVaultPayload(true);
+            const safePayload = buildSerializableVaultPayload(false);
             if (saveLocal) {
                 try {
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(buildSerializableVaultPayload(true)));
+                    const serializedFull = JSON.stringify(fullPayload);
+                    localStorage.setItem(STORAGE_KEY, serializedFull);
+                    localStorage.setItem(BACKUP_STORAGE_KEY, serializedFull);
+                    window.name = `BUBU_VAULT:${JSON.stringify(safePayload)}`;
                 } catch (e) {}
+                saveToIndexedDbVault(fullPayload);
             }
             if (updateEmbedded) {
                 const embedded = document.getElementById('embeddedInternalVaultData');
                 if (embedded) {
-                    embedded.textContent = JSON.stringify(buildSerializableVaultPayload(false));
+                    embedded.textContent = JSON.stringify(safePayload);
                 }
             }
-            updateRealtimeCornerStatus('Cambios guardados en tiempo real ✓', 'ok');
+            updateRealtimeCornerStatus('Guardado permanente activo ✓', 'ok');
         }
 
-        function loadPersistedState(silent = false) {
-            let parsed = null;
+        async function loadPersistedState(silent = false) {
+            const candidates = [];
             try {
                 const rawLocal = localStorage.getItem(STORAGE_KEY);
-                if (rawLocal) parsed = JSON.parse(rawLocal);
+                if (rawLocal) candidates.push(JSON.parse(rawLocal));
+            } catch (e) {}
+            try {
+                const rawBackup = localStorage.getItem(BACKUP_STORAGE_KEY);
+                if (rawBackup) candidates.push(JSON.parse(rawBackup));
+            } catch (e) {}
+            try {
+                if (window.name && window.name.startsWith('BUBU_VAULT:')) {
+                    candidates.push(JSON.parse(window.name.slice('BUBU_VAULT:'.length)));
+                }
+            } catch (e) {}
+            try {
+                const idbData = await loadFromIndexedDbVault();
+                if (idbData && typeof idbData === 'object') candidates.push(idbData);
+            } catch (e) {}
+            try {
+                const embedded = document.getElementById('embeddedInternalVaultData');
+                if (embedded && embedded.textContent.trim().length > 2) {
+                    candidates.push(JSON.parse(embedded.textContent));
+                }
             } catch (e) {}
 
-            if (!parsed) {
-                try {
-                    const embedded = document.getElementById('embeddedInternalVaultData');
-                    if (embedded && embedded.textContent.trim().length > 2) {
-                        parsed = JSON.parse(embedded.textContent);
+            let parsed = null;
+            candidates.forEach(item => {
+                if (!item || typeof item !== 'object') return;
+                if (!parsed) {
+                    parsed = item;
+                } else {
+                    const itemVer = Number(item.version || 0);
+                    const curVer = Number(parsed.version || 0);
+                    const itemTs = Number(item.updatedAt || 0);
+                    const curTs = Number(parsed.updatedAt || 0);
+                    if (itemVer > curVer || (itemVer === curVer && itemTs > curTs)) {
+                        parsed = item;
                     }
-                } catch (e) {}
-            }
+                }
+            });
 
             if (parsed && typeof parsed === 'object') {
                 if (parsed.version) appState.version = parsed.version;
+                if (Array.isArray(parsed.deletedIds)) {
+                    appState.deletedIds = Array.from(new Set(parsed.deletedIds));
+                }
+                const deletedSet = new Set(appState.deletedIds || []);
+
                 if (parsed.currentDocType && DEFAULT_DOC_TEMPLATES[parsed.currentDocType]) {
                     appState.currentDocType = parsed.currentDocType;
                 }
                 if (parsed.signer) appState.signer = { ...appState.signer, ...parsed.signer };
-                if (Array.isArray(parsed.majors) && parsed.majors.length) appState.majors = parsed.majors;
-                if (Array.isArray(parsed.periods) && parsed.periods.length) appState.periods = parsed.periods;
+                if (Array.isArray(parsed.majors)) {
+                    appState.majors = parsed.majors.filter(m => m && !deletedSet.has(m.id));
+                }
+                if (Array.isArray(parsed.periods)) {
+                    appState.periods = parsed.periods.filter(p => p && !deletedSet.has('period:' + p.id) && !deletedSet.has(p.id));
+                }
                 if (parsed.templates) appState.templates = { ...appState.templates, ...parsed.templates };
                 if (Array.isArray(parsed.grades)) appState.grades = parsed.grades.slice(0, 20);
                 if (Array.isArray(parsed.montos)) appState.montos = parsed.montos.slice(0, 20);
                 if (Array.isArray(parsed.kardex)) appState.kardex = parsed.kardex.slice(0, 20);
                 if (Array.isArray(parsed.resguardo)) appState.resguardo = parsed.resguardo.slice(0, 20);
-                if (Array.isArray(parsed.profiles)) appState.profiles = parsed.profiles;
+                if (Array.isArray(parsed.profiles)) {
+                    const cleanProfiles = parsed.profiles.filter(prof => prof && !deletedSet.has(prof.id));
+                    for (const prof of cleanProfiles) {
+                        if (prof && prof.code && !String(prof.code).startsWith('sha256:')) {
+                            prof.code = await hashAccessCodeSecurely(prof.code);
+                        }
+                    }
+                    appState.profiles = cleanProfiles;
+                }
                 if (Array.isArray(parsed.history)) appState.history = parsed.history;
                 if (Array.isArray(parsed.studentsVault)) appState.studentsVault = parsed.studentsVault;
-                if (Array.isArray(parsed.deletedIds)) appState.deletedIds = parsed.deletedIds;
                 if (parsed.githubConfig) appState.githubConfig = { ...appState.githubConfig, ...parsed.githubConfig };
                 if (parsed.extractedFormState) {
                     appState.extractedFormState = parsed.extractedFormState;
                     applyExtractedFormFields(parsed.extractedFormState);
                 }
+                persistBaseState(true, true, false);
             }
 
             if (document.getElementById('inpFirmanteNombre')) {
@@ -1335,644 +1715,6 @@
             }
             if (!silent) {
                 updateRealtimeCornerStatus('Sistema inicializado ✓', 'ok');
-            }
-        }
-
-        function extractCurrentSystemFields() {
-            return {
-                folio: document.getElementById('inpFolio')?.value || '',
-                lugar: document.getElementById('inpLugarExpedicion')?.value || '',
-                fechaIso: document.getElementById('inpFechaExpedicion')?.value || '',
-                fechaTexto: document.getElementById('inpFechaExpedicionTexto')?.value || '',
-                asunto: document.getElementById('inpAsuntoConstancia')?.value || '',
-                nombre: document.getElementById('inpNombre')?.value || '',
-                genero: document.getElementById('selGeneroAlumno')?.value || 'M',
-                matricula: document.getElementById('inpMatricula')?.value || '',
-                curp: document.getElementById('inpCurp')?.value || '',
-                grado: document.getElementById('inpPeriodoGrado')?.value || '',
-                nota: document.getElementById('inpDestinoNota')?.value || ''
-            };
-        }
-
-        function applyExtractedFormFields(data) {
-            if (!data || typeof data !== 'object') return;
-            if (data.folio && document.getElementById('inpFolio')) document.getElementById('inpFolio').value = data.folio;
-            if (data.lugar && document.getElementById('inpLugarExpedicion')) document.getElementById('inpLugarExpedicion').value = data.lugar;
-            if (data.fechaIso && document.getElementById('inpFechaExpedicion')) document.getElementById('inpFechaExpedicion').value = data.fechaIso;
-            if (data.fechaTexto && document.getElementById('inpFechaExpedicionTexto')) document.getElementById('inpFechaExpedicionTexto').value = data.fechaTexto;
-            if (data.asunto && document.getElementById('inpAsuntoConstancia')) document.getElementById('inpAsuntoConstancia').value = data.asunto;
-            if (data.nombre && document.getElementById('inpNombre')) document.getElementById('inpNombre').value = data.nombre;
-            if (data.genero && document.getElementById('selGeneroAlumno')) document.getElementById('selGeneroAlumno').value = data.genero;
-            if (data.matricula && document.getElementById('inpMatricula')) document.getElementById('inpMatricula').value = data.matricula;
-            if (data.curp && document.getElementById('inpCurp')) document.getElementById('inpCurp').value = data.curp;
-            if (data.grado && document.getElementById('inpPeriodoGrado')) document.getElementById('inpPeriodoGrado').value = data.grado;
-            if (data.nota && document.getElementById('inpDestinoNota')) document.getElementById('inpDestinoNota').value = data.nota;
-        }
-
-        function extractAndAutoLoadSystemData() {
-            appState.extractedFormState = extractCurrentSystemFields();
-            persistBaseState(true, true, true);
-            showToast('Datos extraídos y vinculados correctamente.');
-        }
-
-        function renderGradesEditor() {
-            const listEl = document.getElementById('gradesSavedRowsList');
-            appState.grades = (Array.isArray(appState.grades) ? appState.grades : []).slice(0, 20);
-            if (listEl) {
-                listEl.innerHTML = appState.grades.map((g, idx) => `
-                    <div class="flex items-center justify-between gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-[11px]">
-                        <span class="font-mono font-bold text-blue-900">${g.group} · ${g.code}</span>
-                        <span class="flex-1 truncate text-slate-800">${g.subject}</span>
-                        <span class="font-bold text-slate-900">${g.score}</span>
-                        <button type="button" onclick="removeGradeRow(${idx})" class="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 font-bold text-[10px]">✕</button>
-                    </div>
-                `).join('');
-            }
-            updateGradesSummaryBadge();
-        }
-
-        function removeGradeRow(idx) {
-            appState.grades.splice(idx, 1);
-            renderGradesEditor();
-            const rowsHtml = buildGradesRowsHtml();
-            injectRowsIntoTemplateSkeleton('calificaciones', '{FILAS_CALIFICACIONES}', rowsHtml);
-            updateDocument();
-            persistBaseState(true, true, true);
-        }
-
-        function clearGradesTableRows() {
-            appState.grades = [];
-            const txt = document.getElementById('txtGradesBulkInput');
-            if (txt) txt.value = '';
-            renderGradesEditor();
-            injectRowsIntoTemplateSkeleton('calificaciones', '{FILAS_CALIFICACIONES}', '');
-            updateDocument();
-            persistBaseState(true, true, true);
-            showToast('Tabla de calificaciones vaciada.');
-        }
-
-        function buildSelfContainedHtmlString() {
-            persistBaseState(true, true, false);
-            const clone = document.documentElement.cloneNode(true);
-            const embedded = clone.querySelector('#embeddedInternalVaultData');
-            if (embedded) {
-                embedded.textContent = JSON.stringify(buildSerializableVaultPayload(false));
-            }
-            return '<!DOCTYPE html>\n' + clone.outerHTML;
-        }
-
-        function downloadSelfContainedPageWithData() {
-            const htmlContent = buildSelfContainedHtmlString();
-            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'index.html';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showToast('Archivo index.html generado y descargado con tus datos.');
-        }
-
-        async function deployUpdateToGithub(showFeedback = true, silent = false, reloadAfter = false) {
-            const cfg = appState.githubConfig || {};
-            const repo = (cfg.repo || '').trim();
-            const token = (cfg.token || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '').trim();
-            const branch = (cfg.branch || 'main').trim() || 'main';
-            const filePath = 'index.html';
-            const statusBadge = document.getElementById('githubSyncStatusBadge');
-
-            if (!repo || !repo.includes('/') || !token) {
-                if (showFeedback && !silent) showToast('Configura Repositorio y Token en el Panel de Control.');
-                return false;
-            }
-
-            try {
-                if (statusBadge) statusBadge.textContent = 'Sincronizando con GitHub...';
-                const apiUrl = `https://api.github.com/repos/${repo}/contents/${filePath}`;
-                let sha = null;
-                const getRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(branch)}`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        Accept: 'application/vnd.github+json'
-                    }
-                });
-                if (getRes.ok) {
-                    const fileInfo = await getRes.json();
-                    sha = fileInfo.sha;
-                }
-
-                const htmlStr = buildSelfContainedHtmlString();
-                const bytes = new TextEncoder().encode(htmlStr);
-                let binStr = '';
-                bytes.forEach(b => { binStr += String.fromCharCode(b); });
-                const contentB64 = btoa(binStr);
-
-                const putBody = {
-                    message: `Actualización Sistema BUBU 1.0 (v${appState.version || 1})`,
-                    content: contentB64,
-                    branch
-                };
-                if (sha) putBody.sha = sha;
-
-                const putRes = await fetch(apiUrl, {
-                    method: 'PUT',
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        Accept: 'application/vnd.github+json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(putBody)
-                });
-
-                if (!putRes.ok) throw new Error('Error HTTP ' + putRes.status);
-                if (statusBadge) statusBadge.textContent = `Publicado v${appState.version || 1} ✓`;
-                if (showFeedback && !silent) showToast('Actualización publicada en GitHub correctamente.');
-                if (reloadAfter) {
-                    setTimeout(() => forceReloadLatestDeployment(), 900);
-                }
-                return true;
-            } catch (err) {
-                if (statusBadge) statusBadge.textContent = 'Error al publicar en GitHub';
-                if (showFeedback && !silent) showToast('No se pudo publicar en GitHub. Verifica el repositorio o token.');
-                return false;
-            }
-        }
-
-        async function checkRemoteDeploymentVersion(manual = false) {
-            const cfg = appState.githubConfig || {};
-            const publicUrl = (cfg.publicUrl || '').trim();
-            if (!publicUrl) {
-                if (manual) showToast('Ingresa primero el Enlace Público en el Paso 3.');
-                return;
-            }
-            try {
-                const res = await fetch(`${publicUrl}?t=${Date.now()}`, { cache: 'no-store' });
-                if (!res.ok) return;
-                const htmlText = await res.text();
-                const match = htmlText.match(/<script type="application\/json" id="embeddedInternalVaultData">([\s\S]*?)<\/script>/i);
-                if (match && match[1]) {
-                    const remoteVault = JSON.parse(match[1]);
-                    if (remoteVault && remoteVault.version && remoteVault.version > (appState.version || 1)) {
-                        document.getElementById('newDeploymentBanner')?.classList.remove('hidden');
-                        if (manual) showToast(`Nueva versión v${remoteVault.version} disponible.`);
-                    } else if (manual) {
-                        showToast('Ya tienes la versión más reciente.');
-                    }
-                }
-            } catch (e) {
-                if (manual) showToast('No se pudo consultar la versión remota.');
-            }
-        }
-
-        function calculateGradesArithmeticStats(gradesList) {
-            const list = Array.isArray(gradesList) ? gradesList : [];
-            const numericScores = list
-                .map(g => {
-                    const cleanVal = String(g.score || '').replace(/[^0-9.,-]/g, '').replace(',', '.');
-                    return parseFloat(cleanVal);
-                })
-                .filter(n => !isNaN(n) && isFinite(n));
-            const count = numericScores.length;
-            const sum = numericScores.reduce((acc, n) => acc + n, 0);
-            const avg = count > 0 ? (sum / count) : 0;
-            return {
-                count,
-                sum: sum.toFixed(2),
-                avg: avg.toFixed(2)
-            };
-        }
-
-        function updateGradesSummaryBadge() {
-            const badge = document.getElementById('gradesLiveSummaryBadge');
-            const countBadge = document.getElementById('gradesCountBadge');
-            const list = Array.isArray(appState.grades) ? appState.grades.slice(0, 20) : [];
-            if (countBadge) {
-                countBadge.textContent = `${list.length} / 20 filas`;
-            }
-            if (!badge) return;
-            const stats = calculateGradesArithmeticStats(list);
-            badge.textContent = `Promedio Aritmético: ${stats.avg}`;
-        }
-
-        function injectRowsIntoTemplateSkeleton(docKey, placeholderTag, generatedRowsHtml) {
-            const def = DEFAULT_DOC_TEMPLATES[docKey] || {};
-            if (!appState.templates[docKey]) {
-                appState.templates[docKey] = {
-                    title: def.title || '',
-                    asunto: def.title || '',
-                    useBold: true,
-                    body: def.body || ''
-                };
-            }
-            let currentCode = appState.templates[docKey].body || def.body || '';
-            const formattedRows = generatedRowsHtml
-                ? '\n' + generatedRowsHtml.trim().replace(/\n\s+/g, '\n    ') + '\n  '
-                : '\n    ' + placeholderTag + '\n  ';
-
-            if (currentCode.includes(placeholderTag)) {
-                currentCode = currentCode.split(placeholderTag).join(formattedRows);
-            } else if (/<tbody[^>]*>[\s\S]*?<\/tbody>/i.test(currentCode)) {
-                currentCode = currentCode.replace(/<tbody[^>]*>[\s\S]*?<\/tbody>/i, `<tbody>${formattedRows}</tbody>`);
-            } else if (docKey === 'calificaciones' && currentCode.includes('{TABLA_CALIFICACIONES}')) {
-                currentCode = currentCode.replace('{TABLA_CALIFICACIONES}', buildGradesTableHtml());
-            } else if (docKey === 'montos' && currentCode.includes('{TABLA_MONTOS}')) {
-                currentCode = currentCode.replace('{TABLA_MONTOS}', buildMontosTableHtml());
-            }
-
-            appState.templates[docKey].body = currentCode;
-            if (appState.currentDocType === docKey) {
-                const bodyTxt = document.getElementById('txtCustomFormatBody');
-                if (bodyTxt) bodyTxt.value = currentCode;
-            }
-        }
-
-        function syncGradesTableRowsToSkeleton() {
-            const raw = (document.getElementById('txtGradesBulkInput')?.value || '').trim();
-            if (raw) {
-                const newRows = parseGradesLines(raw);
-                const existing = Array.isArray(appState.grades) ? [...appState.grades] : [];
-                let limitReached = false;
-                newRows.forEach(rowObj => {
-                    if (existing.length >= 20) {
-                        limitReached = true;
-                        return;
-                    }
-                    existing.push(rowObj);
-                });
-                appState.grades = existing.slice(0, 20);
-                const txt = document.getElementById('txtGradesBulkInput');
-                if (txt) txt.value = '';
-                if (limitReached) {
-                    showToast('Se alcanzó el límite máximo de 20 filas en Calificaciones.');
-                }
-            }
-            renderGradesEditor();
-            const rowsHtml = buildGradesRowsHtml();
-            injectRowsIntoTemplateSkeleton('calificaciones', '{FILAS_CALIFICACIONES}', rowsHtml);
-            updateDocument();
-            persistBaseState(true, true, true);
-            showToast(`Filas anexadas y tabla de Calificaciones actualizada (${appState.grades.length}/20 filas).`);
-        }
-
-        function syncMontosTableRowsToSkeleton() {
-            const conceptoInp = document.getElementById('inpNewMontoConcepto');
-            const periodoInp = document.getElementById('inpNewMontoPeriodo');
-            const importeInp = document.getElementById('inpNewMontoImporte');
-            const concepto = (conceptoInp?.value || '').trim();
-            const periodo = (periodoInp?.value || '').trim();
-            const importeRaw = (importeInp?.value || '').trim();
-
-            if (concepto || periodo || importeRaw) {
-                if (appState.montos.length >= 20) {
-                    showToast('Se alcanzó el límite máximo de 20 filas en Montos y Cuotas.');
-                } else {
-                    appState.montos.push({
-                        concepto: concepto || 'Concepto',
-                        periodo: periodo || 'Periodo Actual',
-                        importe: parseFloat(importeRaw) || 0
-                    });
-                    if (conceptoInp) conceptoInp.value = '';
-                    if (periodoInp) periodoInp.value = '';
-                    if (importeInp) importeInp.value = '';
-                }
-            }
-
-            appState.montos = (Array.isArray(appState.montos) ? appState.montos : []).slice(0, 20);
-            const rowsHtml = buildMontosRowsHtml();
-            injectRowsIntoTemplateSkeleton('montos', '{FILAS_MONTOS}', rowsHtml);
-            renderMontosEditor();
-            updateDocument();
-            persistBaseState(true, true, true);
-            showToast(`Filas anexadas y tabla de Montos actualizada (${appState.montos.length}/20 filas).`);
-        }
-
-        function parseGradesLines(raw) {
-            const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-            const parsedRows = [];
-
-            lines.forEach(line => {
-                if (/^(grupo|group)\b/i.test(line) && /(materia|subject|calif)/i.test(line)) return;
-                if (/^promedio\s*(aritm[eé]tico|general)?/i.test(line)) return;
-                const parts = line.includes('\t')
-                    ? line.split('\t').map(p => p.trim()).filter(Boolean)
-                    : line.split(/\s{2,}|\|/).map(p => p.trim()).filter(Boolean);
-                let rowObj = null;
-                if (parts.length >= 4) {
-                    rowObj = {
-                        group: parts[0],
-                        code: parts[1],
-                        subject: parts.slice(2, parts.length - 1).join(' '),
-                        score: parts[parts.length - 1]
-                    };
-                } else {
-                    const tokens = line.split(/\s+/).filter(Boolean);
-                    if (tokens.length >= 4) {
-                        rowObj = {
-                            group: tokens[0],
-                            code: tokens[1],
-                            subject: tokens.slice(2, tokens.length - 1).join(' '),
-                            score: tokens[tokens.length - 1]
-                        };
-                    }
-                }
-                if (rowObj) parsedRows.push(rowObj);
-            });
-
-            return parsedRows;
-        }
-
-        function parseGradesBulkInput(silent = false) {
-            const raw = (document.getElementById('txtGradesBulkInput')?.value || '').trim();
-            if (!raw) {
-                appState.grades = [];
-                updateGradesSummaryBadge();
-                updateDocument();
-                if (!silent) showToast('Pega o escribe los renglones con Grupo, Código de Materia, Materia y Calificación.');
-                return;
-            }
-
-            const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-            const parsedRows = [];
-            const seenKeys = new Set();
-            let limitExceeded = false;
-
-            lines.forEach(line => {
-                if (/^(grupo|group)\b/i.test(line) && /(materia|subject|calif)/i.test(line)) return;
-                if (/^promedio\s*(aritm[eé]tico|general)?/i.test(line)) return;
-                if (parsedRows.length >= 20) {
-                    limitExceeded = true;
-                    return;
-                }
-                const parts = line.includes('\t')
-                    ? line.split('\t').map(p => p.trim()).filter(Boolean)
-                    : line.split(/\s{2,}|\|/).map(p => p.trim()).filter(Boolean);
-                let rowObj = null;
-                if (parts.length >= 4) {
-                    rowObj = {
-                        group: parts[0],
-                        code: parts[1],
-                        subject: parts.slice(2, parts.length - 1).join(' '),
-                        score: parts[parts.length - 1]
-                    };
-                } else {
-                    const tokens = line.split(/\s+/).filter(Boolean);
-                    if (tokens.length >= 4) {
-                        rowObj = {
-                            group: tokens[0],
-                            code: tokens[1],
-                            subject: tokens.slice(2, tokens.length - 1).join(' '),
-                            score: tokens[tokens.length - 1]
-                        };
-                    }
-                }
-                if (!rowObj) return;
-                const dedupKey = `${rowObj.group.toLowerCase()}|${rowObj.code.toLowerCase()}|${rowObj.subject.toLowerCase()}|${rowObj.score.toLowerCase()}`;
-                if (!seenKeys.has(dedupKey)) {
-                    seenKeys.add(dedupKey);
-                    parsedRows.push(rowObj);
-                }
-            });
-
-            appState.grades = parsedRows;
-            updateGradesSummaryBadge();
-            updateDocument();
-            if (limitExceeded) {
-                showToast('Máximo 20 filas permitidas en la tabla de calificaciones.');
-            } else if (!silent) {
-                showToast(`${parsedRows.length} materia(s) convertidas en tabla.`);
-            }
-        }
-
-        async function forceReloadLatestDeployment() {
-            await purgeAllBrowserCaches();
-            const baseUrl = window.location.href.split('#')[0].split('?')[0];
-            window.location.replace(`${baseUrl}?v=${Date.now()}`);
-        }
-
-        function updateSystemGithubToken() {
-            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
-                return showToast('Solo el Administrador puede actualizar el token.');
-            }
-            const tokenVal = (document.getElementById('inpGithubToken')?.value || '').trim();
-            if (!tokenVal) return showToast('Escribe el nuevo Personal Access Token.');
-            localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, tokenVal);
-            saveGithubIntegrationSettings();
-            showToast('Token guardado correctamente.');
-        }
-
-        async function syncUpdatesInRealTimeNow(manualClick = false) {
-            const isAdmin = appState.activeSession?.role === 'admin';
-            if (isAdmin) {
-                saveGithubIntegrationSettings();
-                appState.extractedFormState = extractCurrentSystemFields();
-                persistBaseState(true, true, false);
-                const { repo, token } = appState.githubConfig || {};
-                if (repo && repo.includes('/') && token) {
-                    const ok = await deployUpdateToGithub(manualClick, !manualClick, false);
-                    if (ok && manualClick) showToast('Actualización en tiempo real completada en el sistema y en GitHub.');
-                } else if (manualClick) {
-                    showToast('Cambios guardados en tiempo real localmente.');
-                }
-            } else {
-                await checkRemoteDeploymentVersion(manualClick);
-            }
-            refreshAllUI();
-        }
-
-        async function unlockProfileByFrontLogin(e) {
-            if (e) e.preventDefault();
-            await purgeAllBrowserCaches();
-            loadPersistedState(true);
-            await checkRemoteDeploymentVersion(false);
-            const input = document.getElementById('frontLoginCodeInput');
-            const errBox = document.getElementById('frontLoginError');
-            const entered = (input?.value || '').trim();
-
-            if (!entered) {
-                if (errBox) {
-                    errBox.textContent = 'Por favor ingresa tu código de acceso.';
-                    errBox.classList.remove('hidden');
-                }
-                return;
-            }
-
-            if (entered === ADMIN_MASTER_CODE) {
-                appState.activeSession = { role: 'admin', profileId: 'admin', name: 'Administrador General' };
-            } else {
-                const found = appState.profiles.find(p => (p.code || '').toLowerCase() === entered.toLowerCase());
-                if (!found) {
-                    if (errBox) {
-                        errBox.textContent = 'Código de acceso no válido o usuario eliminado.';
-                        errBox.classList.remove('hidden');
-                    }
-                    return;
-                }
-                appState.activeSession = { role: 'user', profileId: found.id, name: found.name };
-            }
-
-            if (errBox) errBox.classList.add('hidden');
-            if (input) input.value = '';
-            document.getElementById('frontLoginScreen').classList.add('hidden');
-            document.getElementById('mainAppWorkspace').classList.remove('hidden');
-            const cornerMonitor = document.getElementById('realtimeCornerMonitor');
-            if (cornerMonitor) {
-                cornerMonitor.classList.toggle('hidden', appState.activeSession.role !== 'admin');
-            }
-            switchMainWorkspaceTab('generador');
-            refreshAllUI();
-            if (appState.activeSession.role === 'admin') {
-                updateRealtimeCornerStatus(`Sesión activa (${appState.activeSession.name})`, 'ok');
-            }
-            showToast(`Bienvenido(a), ${appState.activeSession.name}`);
-        }
-
-        function lockProfileQuickAccess() {
-            appState.activeSession = null;
-            document.getElementById('mainAppWorkspace').classList.add('hidden');
-            document.getElementById('realtimeCornerMonitor')?.classList.add('hidden');
-            document.getElementById('frontLoginScreen').classList.remove('hidden');
-            showToast('Sesión cerrada correctamente.');
-        }
-
-        function getActiveUserProfile() {
-            if (!appState.activeSession || appState.activeSession.role === 'admin') return null;
-            return appState.profiles.find(p => p.id === appState.activeSession.profileId) || null;
-        }
-
-        function applySessionPermissions() {
-            const session = appState.activeSession;
-            const badge = document.getElementById('activeSessionBadge');
-            if (badge && session) {
-                badge.textContent = session.role === 'admin' ? `Admin: ${session.name}` : `Usuario: ${session.name}`;
-            }
-
-            const profile = getActiveUserProfile();
-            const isAdmin = !session || session.role === 'admin';
-
-            const paper = document.getElementById('constanciaPaper');
-            if (paper) {
-                paper.setAttribute('contenteditable', isAdmin ? 'true' : 'false');
-            }
-
-            document.querySelectorAll('[data-admin-only="true"]').forEach(el => {
-                el.classList.toggle('hidden', !isAdmin);
-            });
-
-            if (!isAdmin) {
-                document.getElementById('workspaceViewControlPanel')?.classList.add('hidden');
-                document.getElementById('toastNotification')?.classList.add('hidden');
-            }
-
-            document.querySelectorAll('[data-doc-btn]').forEach(btn => {
-                if (isAdmin) {
-                    btn.classList.remove('hidden');
-                    return;
-                }
-                const docKey = btn.getAttribute('data-doc-btn');
-                const allowed = profile?.docAccess?.[docKey] !== false;
-                btn.classList.toggle('hidden', !allowed);
-            });
-
-            document.querySelectorAll('[data-header-btn]').forEach(btn => {
-                if (btn.getAttribute('data-admin-only') === 'true') {
-                    btn.classList.toggle('hidden', !isAdmin);
-                    return;
-                }
-                const key = btn.getAttribute('data-header-btn');
-                if (isAdmin) {
-                    btn.classList.remove('hidden', 'opacity-60', 'pointer-events-none');
-                    return;
-                }
-                const perm = profile?.headerPerms?.[key] || 'edit';
-                if (perm === 'hide' || perm === 'deny') {
-                    btn.classList.add('hidden');
-                } else if (perm === 'select') {
-                    btn.classList.remove('hidden');
-                    btn.classList.add('opacity-60', 'pointer-events-none');
-                } else {
-                    btn.classList.remove('hidden', 'opacity-60', 'pointer-events-none');
-                }
-            });
-
-            document.querySelectorAll('[data-field-wrap]').forEach(wrap => {
-                const fieldKey = wrap.getAttribute('data-field-wrap');
-                const inputs = wrap.querySelectorAll('input, select, textarea, button');
-                if (isAdmin) {
-                    if (!wrap.dataset.docHidden) {
-                        wrap.classList.remove('hidden');
-                    }
-                    inputs.forEach(el => { el.disabled = false; });
-                    return;
-                }
-                if (wrap.getAttribute('data-admin-only') === 'true' || fieldKey === 'editor_formato') {
-                    wrap.classList.add('hidden');
-                    inputs.forEach(el => { el.disabled = true; });
-                    return;
-                }
-                if (wrap.dataset.docHidden === 'true') {
-                    wrap.classList.add('hidden');
-                    return;
-                }
-                const perm = profile?.fieldPerms?.[fieldKey] || 'edit';
-                if (perm === 'hide') {
-                    wrap.classList.add('hidden');
-                } else if (perm === 'select') {
-                    wrap.classList.remove('hidden');
-                    inputs.forEach(el => {
-                        if (el.tagName === 'SELECT') {
-                            el.disabled = false;
-                        } else if (el.tagName === 'BUTTON') {
-                            el.classList.add('hidden');
-                            el.disabled = true;
-                        } else {
-                            el.disabled = true;
-                        }
-                    });
-                } else {
-                    wrap.classList.remove('hidden');
-                    inputs.forEach(el => {
-                        el.classList.remove('hidden');
-                        el.disabled = false;
-                    });
-                }
-            });
-        }
-
-        function switchMainWorkspaceTab(tabName) {
-            const isAdmin = !appState.activeSession || appState.activeSession.role === 'admin';
-            if (!isAdmin && tabName === 'control_panel') {
-                tabName = 'generador';
-            }
-
-            const views = {
-                generador: document.getElementById('workspaceViewGenerador'),
-                catalogos: document.getElementById('workspaceViewCatalogos'),
-                control_panel: document.getElementById('workspaceViewControlPanel')
-            };
-            const btns = {
-                generador: document.getElementById('tabBtnGenerador'),
-                catalogos: document.getElementById('tabBtnCatalogos'),
-                control_panel: document.getElementById('tabBtnControlPanel')
-            };
-
-            Object.keys(views).forEach(k => {
-                if (views[k]) {
-                    views[k].classList.toggle('hidden', k !== tabName);
-                    views[k].style.display = k === tabName ? 'block' : 'none';
-                }
-                if (btns[k]) {
-                    btns[k].className = k === tabName
-                        ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-700 text-white shadow-sm transition cursor-pointer'
-                        : 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-700 transition cursor-pointer';
-                }
-            });
-
-            if (tabName === 'catalogos') renderMajorsCatalogList();
-            if (tabName === 'control_panel') {
-                loadGithubConfigToInputs();
-                renderProfilesManager();
             }
         }
 
@@ -2011,78 +1753,171 @@
             const bodyTxt = document.getElementById('txtCustomFormatBody');
             const boldChk = document.getElementById('chkFormatUseBold');
             const asuntoInp = document.getElementById('inpAsuntoConstancia');
-            let combinedCode = sanitizeTemplateBodyDuplicates(tpl?.body || '');
+            const combinedCode = sanitizeTemplateBodyDuplicates(tpl?.body || '');
             const currentAsunto = (tpl?.asunto !== undefined ? tpl.asunto : (tpl?.title || def?.title || 'Constancia de Estudios')).trim();
-            if (asuntoInp) {
-                asuntoInp.value = currentAsunto;
-            }
-            if (appState.currentDocType === 'calificaciones' && combinedCode.includes('{TABLA_CALIFICACIONES}')) {
-                combinedCode = combinedCode.replace('{TABLA_CALIFICACIONES}', `<table class="grades-pdf-table" border="1" cellspacing="0" cellpadding="0" style="width:165mm;max-width:165mm;border-collapse:collapse;margin:2mm 0 4mm 0;font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;line-height:1.15;table-layout:fixed;border:0.25mm solid #000000;">\n  <thead>\n    <tr style="height:6.5mm;">\n      <th style="border:0.25mm solid #000000;width:20mm;text-align:center;">GRUPO</th>\n      <th style="border:0.25mm solid #000000;width:40mm;text-align:center;">CÓDIGO DE MATERIA</th>\n      <th style="border:0.25mm solid #000000;width:77mm;text-align:left;">MATERIA</th>\n      <th style="border:0.25mm solid #000000;width:28mm;text-align:center;">CALIFICACIÓN</th>\n    </tr>\n  </thead>\n  <tbody>\n    {FILAS_CALIFICACIONES}\n  </tbody>\n  <tfoot>\n    <tr style="height:6.5mm;">\n      <td colspan="3" style="border:0.25mm solid #000000;text-align:right;font-weight:bold;">PROMEDIO ARITMÉTICO:</td>\n      <td style="border:0.25mm solid #000000;text-align:center;font-weight:bold;">{PROMEDIO_ARITMETICO}</td>\n    </tr>\n  </tfoot>\n</table>`);
-            }
-            if (appState.currentDocType === 'montos' && combinedCode.includes('{TABLA_MONTOS}')) {
-                combinedCode = combinedCode.replace('{TABLA_MONTOS}', `<table border="1" cellspacing="0" cellpadding="4" style="width:100%;border-collapse:collapse;margin:6px 0;font-size:9.5pt;">\n  <thead>\n    <tr style="background:#f1f5f9;">\n      <th style="border:1px solid #000000;padding:5px 8px;text-align:left;">CONCEPTO</th>\n      <th style="border:1px solid #000000;padding:5px 8px;text-align:left;">PERIODO</th>\n      <th style="border:1px solid #000000;padding:5px 8px;text-align:right;width:120px;">IMPORTE</th>\n    </tr>\n  </thead>\n  <tbody>\n    {FILAS_MONTOS}\n  </tbody>\n  <tfoot>\n    <tr style="background:#f8fafc;">\n      <td colspan="2" style="border:1px solid #000000;padding:4px 8px;text-align:right;font-weight:bold;">TOTAL:</td>\n      <td style="border:1px solid #000000;padding:4px 8px;text-align:right;font-weight:bold;">{TOTAL_MONTOS}</td>\n    </tr>\n  </tfoot>\n</table>`);
-            }
-            if (appState.currentDocType === 'kardex' && combinedCode.includes('{TABLA_KARDEX}')) {
-                combinedCode = combinedCode.replace('{TABLA_KARDEX}', `<table border="1" cellspacing="0" cellpadding="3" style="width:100%;border-collapse:collapse;margin:6px 0;font-size:9pt;">\n  <thead>\n    <tr style="background:#f1f5f9;">\n      <th style="border:1px solid #000000;padding:4px 6px;text-align:left;">CLAVE</th>\n      <th style="border:1px solid #000000;padding:4px 6px;text-align:left;">ASIGNATURA</th>\n      <th style="border:1px solid #000000;padding:4px 6px;text-align:center;">CICLO</th>\n      <th style="border:1px solid #000000;padding:4px 6px;text-align:center;">CRÉD.</th>\n      <th style="border:1px solid #000000;padding:4px 6px;text-align:center;">CALIF.</th>\n    </tr>\n  </thead>\n  <tbody>\n    {FILAS_KARDEX}\n  </tbody>\n  <tfoot>\n    <tr style="background:#f8fafc;">\n      <td colspan="3" style="border:1px solid #000000;padding:4px 6px;text-align:right;font-weight:bold;">TOTAL CRÉDITOS Y PROMEDIO ACUMULADO:</td>\n      <td style="border:1px solid #000000;padding:4px 6px;text-align:center;font-weight:bold;">{TOTAL_CREDITOS_KARDEX}</td>\n      <td style="border:1px solid #000000;padding:4px 6px;text-align:center;font-weight:bold;">{PROMEDIO_KARDEX}</td>\n    </tr>\n  </tfoot>\n</table>`);
-            }
-            if (appState.currentDocType === 'resguardo' && combinedCode.includes('{TABLA_RESGUARDO}')) {
-                combinedCode = combinedCode.replace('{TABLA_RESGUARDO}', `<table border="1" cellspacing="0" cellpadding="4" style="width:100%;border-collapse:collapse;margin:6px 0;font-size:9.5pt;">\n  <thead>\n    <tr style="background:#f1f5f9;">\n      <th style="border:1px solid #000000;padding:5px 8px;text-align:center;width:65px;">CANT.</th>\n      <th style="border:1px solid #000000;padding:5px 8px;text-align:left;">DESCRIPCIÓN DEL BIEN / DOCUMENTO</th>\n      <th style="border:1px solid #000000;padding:5px 8px;text-align:left;">FOLIO / SERIE</th>\n      <th style="border:1px solid #000000;padding:5px 8px;text-align:left;">ESTADO</th>\n    </tr>\n  </thead>\n  <tbody>\n    {FILAS_RESGUARDO}\n  </tbody>\n</table>`);
-            }
-            if (!appState.templates[appState.currentDocType]) {
-                appState.templates[appState.currentDocType] = { title: currentAsunto, asunto: currentAsunto, useBold: true, body: combinedCode };
-            } else {
-                appState.templates[appState.currentDocType].body = combinedCode;
-                appState.templates[appState.currentDocType].asunto = currentAsunto;
-            }
             if (bodyTxt) bodyTxt.value = combinedCode;
             if (boldChk) boldChk.checked = tpl?.useBold !== undefined ? Boolean(tpl.useBold) : true;
+            if (asuntoInp) asuntoInp.value = currentAsunto;
         }
 
-        function syncAsuntoInputToTemplate() {
-            const asuntoVal = document.getElementById('inpAsuntoConstancia')?.value ?? '';
-            if (!appState.templates[appState.currentDocType]) {
-                const def = DEFAULT_DOC_TEMPLATES[appState.currentDocType] || {};
-                appState.templates[appState.currentDocType] = { title: asuntoVal || def.title || '', asunto: asuntoVal, useBold: true, body: def.body || '' };
+        async function checkRemoteDeploymentVersion(manual = false) {
+            const cfg = appState.githubConfig || {};
+            const publicUrl = (cfg.publicUrl || '').trim();
+            if (!publicUrl) {
+                if (manual) showToast('Ingresa primero el Enlace Público en el Paso 3.');
+                return;
             }
-            appState.templates[appState.currentDocType].asunto = asuntoVal;
-            appState.templates[appState.currentDocType].title = asuntoVal;
-            const bodyTxt = document.getElementById('txtCustomFormatBody');
-            if (bodyTxt && !bodyTxt.value.includes('{ASUNTO}')) {
-                bodyTxt.value = bodyTxt.value.replace(/(Asunto:\s*)([^<\n]+)/i, `$1${asuntoVal}`);
-                appState.templates[appState.currentDocType].body = bodyTxt.value;
-            }
-        }
+            try {
+                const sep = publicUrl.includes('?') ? '&' : '?';
+                const res = await fetch(`${publicUrl}${sep}nocache=${Date.now()}`, {
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                if (!res.ok) return;
+                const htmlText = await res.text();
+                const match = htmlText.match(/<script type="application\/json" id="embeddedInternalVaultData">([\s\S]*?)<\/script>/i);
+                if (match && match[1]) {
+                    const remoteVault = JSON.parse(match[1]);
+                    if (remoteVault && remoteVault.version && remoteVault.version > (appState.version || 1)) {
+                        const mergedDeleted = Array.from(new Set([...(appState.deletedIds || []), ...(remoteVault.deletedIds || [])]));
+                        appState.deletedIds = mergedDeleted;
+                        const deletedSet = new Set(mergedDeleted);
 
-        function syncInlineVacationToMain() {
-            const inlineVal = document.getElementById('inpPeriodoVacacionalInline')?.value ?? '';
-            const mainVac = document.getElementById('inpPeriodoVacacional');
-            if (mainVac) mainVac.value = inlineVal;
-            updateActiveAcademicPeriodFromInput();
-        }
-
-        function updateActiveAcademicPeriodFromInput() {
-            const sel = document.getElementById('selPeriodoEscolar');
-            const inpName = document.getElementById('inpNombrePeriodoEditable');
-            const inpDates = document.getElementById('inpPeriodoEscolarEditable');
-            const inpVacInline = document.getElementById('inpPeriodoVacacionalInline');
-            const inpVacMain = document.getElementById('inpPeriodoVacacional');
-            if (!sel) return;
-            const periodsList = ensureStructuredPeriodsList();
-            const idx = periodsList.findIndex(p => p.id === sel.value);
-            if (idx >= 0) {
-                if (inpName) periodsList[idx].name = inpName.value;
-                if (inpDates) periodsList[idx].dates = inpDates.value;
-                if (inpVacInline) {
-                    periodsList[idx].vacation = inpVacInline.value;
-                } else if (inpVacMain) {
-                    periodsList[idx].vacation = inpVacMain.value;
+                        if (remoteVault.signer) appState.signer = { ...appState.signer, ...remoteVault.signer };
+                        if (Array.isArray(remoteVault.majors)) {
+                            appState.majors = remoteVault.majors.filter(m => m && !deletedSet.has(m.id));
+                        }
+                        if (Array.isArray(remoteVault.periods)) {
+                            appState.periods = remoteVault.periods.filter(p => p && !deletedSet.has('period:' + p.id) && !deletedSet.has(p.id));
+                        }
+                        if (remoteVault.templates) appState.templates = { ...appState.templates, ...remoteVault.templates };
+                        if (Array.isArray(remoteVault.grades)) appState.grades = remoteVault.grades.slice(0, 20);
+                        if (Array.isArray(remoteVault.montos)) appState.montos = remoteVault.montos.slice(0, 20);
+                        if (Array.isArray(remoteVault.kardex)) appState.kardex = remoteVault.kardex.slice(0, 20);
+                        if (Array.isArray(remoteVault.resguardo)) appState.resguardo = remoteVault.resguardo.slice(0, 20);
+                        if (Array.isArray(remoteVault.profiles)) {
+                            appState.profiles = remoteVault.profiles.filter(prof => prof && !deletedSet.has(prof.id));
+                        }
+                        appState.version = remoteVault.version;
+                        persistBaseState(true, true, false);
+                        refreshAllUI();
+                        if (manual) showToast(`Versión más reciente v${remoteVault.version} aplicada.`);
+                    } else if (manual) {
+                        showToast('Ya tienes la versión más reciente.');
+                    }
                 }
-                const opt = sel.options[idx];
-                if (opt) {
-                    const p = periodsList[idx];
-                    opt.textContent = `${p.name || 'Periodo ' + (idx + 1)}${p.dates ? ' — ' + p.dates.slice(0, 48) + (p.dates.length > 48 ? '...' : '') : ''}`;
-                }
+            } catch (e) {
+                if (manual) showToast('No se pudo consultar la versión remota.');
             }
+        }
+        async function unlockProfileByFrontLogin(e) {
+            if (e) e.preventDefault();
+            await purgeAllBrowserCaches();
+            await loadPersistedState(true);
+            await checkRemoteDeploymentVersion(false);
+            const input = document.getElementById('frontLoginCodeInput');
+            const errBox = document.getElementById('frontLoginError');
+            const entered = (input?.value || '').trim();
+            if (input) input.value = '';
+
+            if (!entered) {
+                if (errBox) {
+                    errBox.textContent = 'Por favor ingresa tu código de acceso.';
+                    errBox.classList.remove('hidden');
+                }
+                return;
+            }
+
+            const enteredHash = await hashAccessCodeSecurely(entered);
+            const adminHash = await hashAccessCodeSecurely(ADMIN_MASTER_CODE);
+
+            if (entered === ADMIN_MASTER_CODE || enteredHash === adminHash) {
+                appState.activeSession = { role: 'admin', profileId: 'admin', name: 'Administrador General' };
+            } else {
+                let found = null;
+                for (const p of appState.profiles) {
+                    const storedHash = await hashAccessCodeSecurely(p.code || '');
+                    if (storedHash && storedHash === enteredHash) {
+                        found = p;
+                        break;
+                    }
+                }
+                if (!found) {
+                    if (errBox) {
+                        errBox.textContent = 'Código de acceso no válido o usuario eliminado.';
+                        errBox.classList.remove('hidden');
+                    }
+                    return;
+                }
+                appState.activeSession = { role: 'user', profileId: found.id, name: found.name };
+            }
+
+            if (errBox) errBox.classList.add('hidden');
+            document.getElementById('frontLoginScreen').classList.add('hidden');
+            document.getElementById('mainAppWorkspace').classList.remove('hidden');
+            const cornerMonitor = document.getElementById('realtimeCornerMonitor');
+            if (cornerMonitor) {
+                cornerMonitor.classList.toggle('hidden', appState.activeSession.role !== 'admin');
+            }
+            switchMainWorkspaceTab('generador');
+            refreshAllUI();
+            if (appState.activeSession.role === 'admin') {
+                updateRealtimeCornerStatus(`Sesión activa (${appState.activeSession.name})`, 'ok');
+            }
+            showToast(`Bienvenido(a), ${appState.activeSession.name}`);
+        }
+        async function createNewUserProfile() {
+            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
+                return showToast('Solo el Administrador puede crear usuarios.');
+            }
+            const newId = 'usr_' + Date.now();
+            const rawCode = String(Math.floor(1000 + Math.random() * 9000));
+            const hashedCode = await hashAccessCodeSecurely(rawCode);
+            appState.profiles.push({
+                id: newId,
+                name: 'Nuevo Usuario',
+                roleLabel: 'Control Escolar',
+                code: hashedCode,
+                pendingPlainCode: '',
+                docAccess: createDefaultDocAccessMatrix(true),
+                headerPerms: createDefaultHeaderMatrix('edit'),
+                fieldPerms: createDefaultFieldMatrix('edit')
+            });
+            persistBaseState(true, true, true);
+            renderProfilesManager();
+            showToast(`Nuevo usuario creado con código inicial: ${rawCode} (codificado automáticamente).`);
+        }
+
+        function deleteUserProfile(id) {
+            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
+                return showToast('Solo el Administrador puede eliminar usuarios.');
+            }
+            appState.deletedIds.push(id);
+            appState.profiles = appState.profiles.filter(p => p.id !== id);
+            persistBaseState(true, true, true);
+            renderProfilesManager();
+            showToast('Usuario eliminado permanentemente.');
+        }
+
+        async function saveSingleUserProfile(idx) {
+            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
+                return showToast('Solo el Administrador puede guardar cambios de usuario.');
+            }
+            const p = appState.profiles[idx];
+            if (!p) return;
+            const newPlain = (p.pendingPlainCode || '').trim();
+            if (newPlain) {
+                p.code = await hashAccessCodeSecurely(newPlain);
+                delete p.pendingPlainCode;
+            } else if (p.code && !String(p.code).startsWith('sha256:')) {
+                p.code = await hashAccessCodeSecurely(p.code);
+            }
+            persistBaseState(true, true, true);
+            renderProfilesManager();
+            showToast(`Cambios y código codificado del usuario "${p.name || 'Usuario'}" guardados permanentemente.`);
         }
 
         function syncPlanInputFromSelectedMajor() {
@@ -2787,15 +2622,8 @@
         }
 
         function ensureStructuredPeriodsList() {
-            if (!Array.isArray(appState.periods) || appState.periods.length === 0) {
-                appState.periods = [
-                    {
-                        id: 'per_1',
-                        name: 'Ciclo Escolar 2025/2026 · Otoño',
-                        dates: 'a partir del 11 de Agosto de 2025 al 21 de Enero del 2026, correspondiente al ciclo escolar 2025/2026',
-                        vacation: 'Con un periodo vacacional del 22 de enero de 2026 al 08 de febrero de 2026.'
-                    }
-                ];
+            if (!Array.isArray(appState.periods)) {
+                appState.periods = [];
             }
             return appState.periods;
         }
@@ -3732,7 +3560,7 @@ window.onload = function() {
         function saveAllDataAndAutoUploadIndex() {
             saveGithubIntegrationSettings();
             appState.extractedFormState = extractCurrentSystemFields();
-            persistBaseState(true, true, false);
+            persistBaseState(true, true, true);
             const { repo, token } = appState.githubConfig || {};
             if (repo && repo.includes('/') && token) {
                 deployUpdateToGithub(true, false, false);
@@ -3744,7 +3572,7 @@ window.onload = function() {
         async function realtimeSaveAndRefreshSystem() {
             saveGithubIntegrationSettings();
             appState.extractedFormState = extractCurrentSystemFields();
-            persistBaseState(true, true, false);
+            persistBaseState(true, true, true);
             const { repo, token } = appState.githubConfig || {};
             if (repo && repo.includes('/') && token) {
                 await deployUpdateToGithub(true, false, true);
@@ -3752,47 +3580,6 @@ window.onload = function() {
                 showToast('Cambios guardados en tiempo real. Configura Repo y Token en Panel de Control para sincronizar con GitHub.');
                 refreshAllUI();
             }
-        }
-
-        function createNewUserProfile() {
-            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
-                return showToast('Solo el Administrador puede crear usuarios.');
-            }
-            const newId = 'usr_' + Date.now();
-            appState.profiles.push({
-                id: newId,
-                name: 'Nuevo Usuario',
-                roleLabel: 'Control Escolar',
-                code: String(Math.floor(1000 + Math.random() * 9000)),
-                docAccess: createDefaultDocAccessMatrix(true),
-                headerPerms: createDefaultHeaderMatrix('edit'),
-                fieldPerms: createDefaultFieldMatrix('edit')
-            });
-            persistBaseState(true, true, true);
-            renderProfilesManager();
-            showToast('Nuevo usuario agregado. Configura su nombre, código y permisos.');
-        }
-
-        function deleteUserProfile(id) {
-            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
-                return showToast('Solo el Administrador puede eliminar usuarios.');
-            }
-            appState.deletedIds.push(id);
-            appState.profiles = appState.profiles.filter(p => p.id !== id);
-            persistBaseState(true, true, true);
-            renderProfilesManager();
-            showToast('Usuario eliminado permanentemente.');
-        }
-
-        function saveSingleUserProfile(idx) {
-            if (!appState.activeSession || appState.activeSession.role !== 'admin') {
-                return showToast('Solo el Administrador puede guardar cambios de usuario.');
-            }
-            const p = appState.profiles[idx];
-            if (!p) return;
-            persistBaseState(true, true, true);
-            renderProfilesManager();
-            showToast(`Cambios del usuario "${p.name || 'Usuario'}" guardados correctamente.`);
         }
 
         function toggleUserProfileAccordion(idx) {
@@ -3827,8 +3614,8 @@ window.onload = function() {
                         <button type="button" onclick="toggleUserProfileAccordion(${idx})" class="flex items-center gap-2.5 text-left flex-1 min-w-[200px] cursor-pointer">
                             <span id="profileAccordionArrow_${idx}" class="w-6 h-6 rounded-lg bg-blue-900 text-white text-[10px] font-black flex items-center justify-center">▼</span>
                             <div>
-                                <div class="text-xs font-black text-slate-900">${p.name || 'Usuario sin nombre'} <span class="text-[11px] font-mono font-bold text-blue-800 ml-1">[Código: ${p.code || 'Sin código'}]</span></div>
-                                <div class="text-[10px] text-slate-500">${p.roleLabel || 'Control Escolar'} · Haz clic para desplegar lista de permisos por constancia</div>
+                                <div class="text-xs font-black text-slate-900">${p.name || 'Usuario sin nombre'} <span class="text-[11px] font-mono font-bold text-emerald-800 ml-1">[Código: ${maskAccessCodeForDisplay(p.code)}]</span></div>
+                                <div class="text-[10px] text-slate-500">${p.roleLabel || 'Control Escolar'} · Código protegido con cifrado SHA-256</div>
                             </div>
                         </button>
                         <div class="flex items-center gap-2">
@@ -3848,8 +3635,8 @@ window.onload = function() {
                                 <input type="text" value="${p.roleLabel}" oninput="appState.profiles[${idx}].roleLabel=this.value;" placeholder="Puesto / Rol" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs">
                             </div>
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Código de Acceso</label>
-                                <input type="text" value="${p.code}" oninput="appState.profiles[${idx}].code=this.value;" placeholder="Código de acceso" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-mono font-bold text-blue-900">
+                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Nuevo Código de Acceso (Se codifica al guardar)</label>
+                                <input type="password" autocomplete="new-password" value="${p.pendingPlainCode || ''}" oninput="appState.profiles[${idx}].pendingPlainCode=this.value;" placeholder="•••••••• (Escribir solo para cambiar)" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-mono font-bold text-blue-900">
                             </div>
                         </div>
 
@@ -4017,9 +3804,9 @@ window.onload = function() {
             applySessionPermissions();
         }
 
-        window.addEventListener('storage', (e) => {
-            if (e.key === STORAGE_KEY) {
-                loadPersistedState(true);
+        window.addEventListener('storage', async (e) => {
+            if (e.key === STORAGE_KEY || e.key === BACKUP_STORAGE_KEY) {
+                await loadPersistedState(true);
                 refreshAllUI();
                 updateRealtimeCornerStatus('Sincronizado con otra pestaña ✓', 'ok');
             }
@@ -4032,7 +3819,7 @@ window.onload = function() {
             document.getElementById('frontLoginScreen')?.classList.remove('hidden');
 
             await purgeAllBrowserCaches();
-            loadPersistedState(false);
+            await loadPersistedState(false);
             await checkRemoteDeploymentVersion(false);
             const picker = document.getElementById('inpFechaExpedicion');
             const textInp = document.getElementById('inpFechaExpedicionTexto');
