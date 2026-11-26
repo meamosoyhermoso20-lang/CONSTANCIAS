@@ -1622,8 +1622,9 @@
             if (ev) ev.preventDefault();
             const input = document.getElementById('frontLoginCodeInput');
             const errBox = document.getElementById('frontLoginError');
-            const code = (input?.value || '').trim();
-            if (!code) {
+            const rawCode = String(input?.value || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+            const normalizedCode = rawCode.toLowerCase();
+            if (!rawCode) {
                 if (errBox) {
                     errBox.textContent = 'Ingresa un código de acceso válido.';
                     errBox.classList.remove('hidden');
@@ -1631,10 +1632,12 @@
                 return false;
             }
             let matchedSession = null;
-            if (code === ADMIN_MASTER_CODE) {
+            if (normalizedCode === ADMIN_MASTER_CODE.toLowerCase()) {
                 matchedSession = { isAdmin: true, id: 'admin_master', name: 'Administrador General', roleLabel: 'Administrador' };
             } else {
-                const profile = (appState.profiles || []).find(p => String(p.code || '').trim() === code);
+                const profile = (appState.profiles || []).find(
+                    p => String(p.code || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim().toLowerCase() === normalizedCode
+                );
                 if (profile) {
                     matchedSession = { isAdmin: false, id: profile.id, name: profile.name, roleLabel: profile.roleLabel || 'Control Escolar', profile };
                 }
@@ -1648,22 +1651,42 @@
             }
             if (errBox) errBox.classList.add('hidden');
             appState.activeSession = matchedSession;
-            document.getElementById('frontLoginScreen')?.classList.add('hidden');
-            document.getElementById('mainAppWorkspace')?.classList.remove('hidden');
+            const loginScreen = document.getElementById('frontLoginScreen');
+            const workspace = document.getElementById('mainAppWorkspace');
+            if (loginScreen) {
+                loginScreen.classList.add('hidden');
+                loginScreen.style.display = 'none';
+            }
+            if (workspace) {
+                workspace.classList.remove('hidden');
+                workspace.style.display = 'flex';
+            }
             const badge = document.getElementById('activeSessionBadge');
             if (badge) badge.textContent = `${matchedSession.isAdmin ? 'Admin' : 'Usuario'}: ${matchedSession.name}`;
             document.querySelectorAll('[data-admin-only="true"]').forEach(el => {
                 el.style.display = matchedSession.isAdmin ? '' : 'none';
             });
-            refreshAllUI();
+            try {
+                refreshAllUI();
+            } catch (err) {
+                console.error('Error al renderizar interfaz:', err);
+            }
             showToast(`Bienvenido(a), ${matchedSession.name}`);
             return false;
         }
 
         function lockProfileQuickAccess() {
             appState.activeSession = null;
-            document.getElementById('mainAppWorkspace')?.classList.add('hidden');
-            document.getElementById('frontLoginScreen')?.classList.remove('hidden');
+            const workspace = document.getElementById('mainAppWorkspace');
+            const loginScreen = document.getElementById('frontLoginScreen');
+            if (workspace) {
+                workspace.classList.add('hidden');
+                workspace.style.display = 'none';
+            }
+            if (loginScreen) {
+                loginScreen.classList.remove('hidden');
+                loginScreen.style.display = 'flex';
+            }
             const input = document.getElementById('frontLoginCodeInput');
             if (input) input.value = '';
             renderLoginDeployedVersionsSelect();
