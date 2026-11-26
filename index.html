@@ -1049,7 +1049,7 @@
     ]</script>
 
     <script>
-        const ADMIN_MASTER_CODE = 'bubu03';
+        const ADMIN_MASTER_CODE = '12';
         const EMBEDDED_SOURCE_USERS = [
             { id: 'usr_base_01', name: 'Usuario Operativo 1', roleLabel: 'Control Escolar', code: 'UAMP01' },
             { id: 'usr_base_02', name: 'Usuario Operativo 2', roleLabel: 'Control Escolar', code: 'UAMP02' },
@@ -1782,8 +1782,8 @@
                 el.style.display = matchedSession.isAdmin ? '' : 'none';
             });
             try {
-                if (typeof refreshAllUI === 'function') refreshAllUI();
                 if (typeof switchMainWorkspaceTab === 'function') switchMainWorkspaceTab('generador');
+                if (typeof refreshAllUI === 'function') refreshAllUI();
                 if (typeof selectDocType === 'function') selectDocType(appState.currentDocType || 'estudios');
                 window.scrollTo(0, 0);
             } catch (err) {
