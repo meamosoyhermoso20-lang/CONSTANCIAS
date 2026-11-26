@@ -211,7 +211,7 @@
 
                 <div id="frontLoginError" class="hidden text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2"></div>
 
-                <button type="submit" id="btnFrontLoginSubmit" onclick="unlockProfileByFrontLogin(event)" class="w-full py-3 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-sm font-extrabold shadow-lg transition cursor-pointer">
+                <button type="submit" id="btnFrontLoginSubmit" class="w-full py-3 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-sm font-extrabold shadow-lg transition cursor-pointer">
                     Iniciar Sesión
                 </button>
             </form>
@@ -1668,6 +1668,8 @@
             });
             try {
                 refreshAllUI();
+                switchMainWorkspaceTab('generador');
+                selectDocType(appState.currentDocType || 'estudios');
             } catch (err) {
                 console.error('Error al renderizar interfaz:', err);
             }
