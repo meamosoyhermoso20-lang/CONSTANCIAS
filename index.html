@@ -1263,20 +1263,13 @@
             return copy;
         }
 
-        function registerDeployedVersionSnapshot(payload, label = 'Despliegue Guardado por Admin') {
-            if (!payload) return;
-            const ver = Number(payload.version || appState.version || 1);
-            const cleanPayload = JSON.parse(JSON.stringify(payload));
-            delete cleanPayload.activeSession;
-            const idx = deployedVersionsRegistry.findIndex(v => Number(v.version) === ver);
-            const entry = { version: ver, label, updatedAt: cleanPayload.updatedAt || Date.now(), payload: cleanPayload };
-            if (idx >= 0) deployedVersionsRegistry[idx] = entry;
-            else deployedVersionsRegistry.push(entry);
-            deployedVersionsRegistry.sort((a, b) => Number(b.version) - Number(a.version));
-            if (deployedVersionsRegistry.length > 15) deployedVersionsRegistry = deployedVersionsRegistry.slice(0, 15);
-            try {
-                localStorage.setItem(DEPLOYED_HISTORY_STORAGE_KEY, JSON.stringify(deployedVersionsRegistry));
-            } catch (e) {}
+        function getAllRealtimeChannels() {
+            return [
+                GLOBAL_RT_CHANNEL,
+                GLOBAL_RT_FALLBACK_CHANNEL,
+                GLOBAL_RT_LEGACY_CHANNEL,
+                GLOBAL_RT_MASTER_CHANNEL
+            ];
         }
 
         function loadDeployedVersionsHistoryFromStorage() {
@@ -1285,28 +1278,90 @@
                 if (raw) {
                     const parsed = JSON.parse(raw);
                     if (Array.isArray(parsed)) {
-                        parsed.forEach(item => {
-                            if (item && item.payload) registerDeployedVersionSnapshot(item.payload, item.label || 'Despliegue Guardado');
-                        });
+                        const currentVer = Number(appState.version || 1);
+                        deployedVersionsRegistry = parsed
+                            .filter(item => item && item.payload && Number(item.version || 0) >= currentVer)
+                            .sort((a, b) => Number(b.version) - Number(a.version));
                     }
                 }
-            } catch (e) {}
-        }
-
-        function applySelectedDeployedVersionOnLogin(selectedVerStr) {
-            const targetVer = Number(selectedVerStr);
-            const found = deployedVersionsRegistry.find(v => Number(v.version) === targetVer);
-            if (found && found.payload) {
-                const activeSess = appState.activeSession;
-                appState = { ...appState, ...JSON.parse(JSON.stringify(found.payload)), activeSession: activeSess };
-                renderLoginDeployedVersionsSelect();
-                const errBox = document.getElementById('frontLoginError');
-                if (errBox) errBox.classList.add('hidden');
+            } catch (e) {
+                deployedVersionsRegistry = [];
             }
         }
 
+        function applySelectedDeployedVersionOnLogin(selectedVer) {
+            const verNum = Number(selectedVer);
+            if (!verNum) return;
+            const found = deployedVersionsRegistry.find(item => Number(item.version) === verNum);
+            if (found && found.payload) {
+                const activeSess = appState.activeSession;
+                appState = { ...appState, ...JSON.parse(JSON.stringify(found.payload)), activeSession: activeSess };
+                enforceLatestAdminSession();
+            }
+        }
+
+        async function refreshLoginDeployedVersionsDropdown(forceSync = false) {
+            if (forceSync) {
+                await loadPersistedState(true);
+            }
+            enforceLatestAdminSession();
+            renderLoginDeployedVersionsSelect();
+        }
+
+        function registerDeployedVersionSnapshot(payload, label = 'Despliegue Guardado por Admin') {
+            if (!payload) return;
+            const ver = Number(payload.version || appState.version || 1);
+            const cleanPayload = JSON.parse(JSON.stringify(payload));
+            delete cleanPayload.activeSession;
+            // Descartar automáticamente versiones obsoletas (< ver) para evitar estancamientos en versiones viejas (ej. v33)
+            deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= ver);
+            const idx = deployedVersionsRegistry.findIndex(v => Number(v.version) === ver);
+            const entry = { version: ver, label, updatedAt: cleanPayload.updatedAt || Date.now(), payload: cleanPayload };
+            if (idx >= 0) deployedVersionsRegistry[idx] = entry;
+            else deployedVersionsRegistry.push(entry);
+            deployedVersionsRegistry.sort((a, b) => Number(b.version) - Number(a.version));
+            if (deployedVersionsRegistry.length > 5) deployedVersionsRegistry = deployedVersionsRegistry.slice(0, 5);
+            try {
+                localStorage.setItem(DEPLOYED_HISTORY_STORAGE_KEY, JSON.stringify(deployedVersionsRegistry));
+            } catch (e) {}
+        }
+
+        function enforceLatestAdminSession() {
+            const currentVer = Number(appState.version || 1);
+            let highestVer = currentVer;
+            let newestPayload = null;
+
+            deployedVersionsRegistry.forEach(item => {
+                const itemVer = Number(item?.version || 0);
+                if (itemVer > highestVer && item.payload) {
+                    highestVer = itemVer;
+                    newestPayload = item.payload;
+                }
+            });
+
+            if (newestPayload && highestVer > currentVer) {
+                const activeSess = appState.activeSession;
+                appState = { ...appState, ...JSON.parse(JSON.stringify(newestPayload)), activeSession: activeSess };
+            }
+
+            // Purgar cualquier versión anterior a la más reciente en el registro y almacenamiento local
+            const finalVer = Number(appState.version || 1);
+            deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= finalVer);
+            if (!deployedVersionsRegistry.some(v => Number(v.version) === finalVer)) {
+                registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), 'Última Versión Desplegada por Admin');
+            }
+            try {
+                const serialized = JSON.stringify(buildSerializableVaultPayload(false));
+                localStorage.setItem(STORAGE_KEY, serialized);
+                localStorage.setItem(BACKUP_STORAGE_KEY, serialized);
+                localStorage.setItem(DEPLOYED_HISTORY_STORAGE_KEY, JSON.stringify(deployedVersionsRegistry));
+            } catch (e) {}
+            renderLoginDeployedVersionsSelect();
+        }
         function renderLoginDeployedVersionsSelect() {
             const ver = Number(appState.version || 1);
+            // Eliminar versiones viejas del selector antes de renderizar
+            deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= ver);
             const usersCount = (appState.profiles || []).length;
             const updatedDate = appState.updatedAt
                 ? new Date(appState.updatedAt).toLocaleString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
@@ -1324,36 +1379,21 @@
             if (badgeEl) badgeEl.textContent = `Despliegue Actual v${ver} ✓`;
             if (selectEl) {
                 if (!deployedVersionsRegistry.some(v => Number(v.version) === ver)) {
-                    registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), 'Despliegue Activo');
+                    registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), 'Última Versión Desplegada');
                 }
                 selectEl.innerHTML = deployedVersionsRegistry.map((item, idx) => {
                     const uCount = (item.payload?.profiles || []).length;
-                    const tag = idx === 0 ? ' · ÚLTIMA GUARDADA' : '';
+                    const tag = idx === 0 ? ' · ÚLTIMA VERSIÓN ADMIN' : '';
                     return `<option value="${item.version}" ${Number(item.version) === ver ? 'selected' : ''}>Versión Desplegada v${item.version} (${uCount} usuarios)${tag}</option>`;
                 }).join('');
+                selectEl.value = String(ver);
             }
-            if (hintEl) hintEl.textContent = `Versión desplegada v${ver} (${updatedDate}) · ${usersCount} usuarios habilitados`;
-            if (lastSyncEl) lastSyncEl.textContent = `Guardado: ${updatedDate}`;
+            if (hintEl) hintEl.textContent = `Última versión desplegada v${ver} (${updatedDate}) · ${usersCount} usuarios habilitados`;
+            if (lastSyncEl) lastSyncEl.textContent = `Sincronizado: v${ver} · ${updatedDate}`;
             if (bannerTag) bannerTag.textContent = `v${ver}`;
             if (cornerVer) cornerVer.textContent = `v${ver}`;
             if (deployBadge) deployBadge.textContent = `v${ver} → v${ver + 1}`;
         }
-
-        function getAllRealtimeChannels() {
-            const repoSlug = (appState.githubConfig?.repo || '').replace(/[^a-zA-Z0-9]/g, '_');
-            const hostSlug = (window.location.hostname || '').replace(/[^a-zA-Z0-9]/g, '_');
-            const list = [GLOBAL_RT_MASTER_CHANNEL, GLOBAL_RT_CHANNEL, GLOBAL_RT_FALLBACK_CHANNEL, GLOBAL_RT_LEGACY_CHANNEL];
-            if (repoSlug) list.unshift(`UAMP_BUBU_REPO_${repoSlug}`);
-            if (hostSlug) list.unshift(`UAMP_BUBU_HOST_${hostSlug}`);
-            return Array.from(new Set(list));
-        }
-
-        async function refreshLoginDeployedVersionsDropdown(forceApply = false) {
-            await loadPersistedState(forceApply);
-            registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), 'Despliegue Activo');
-            renderLoginDeployedVersionsSelect();
-        }
-
         function persistBaseState(saveLocal = true, saveDom = true, pushCloud = false) {
             try {
                 appState.updatedAt = Date.now();
@@ -1378,8 +1418,8 @@
                         refreshSourceCodePreviewBox();
                     }
                 }
-                registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), 'Despliegue Activo');
-                renderLoginDeployedVersionsSelect();
+                registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), 'Última Versión Desplegada');
+                enforceLatestAdminSession();
                 if (pushCloud) {
                     const cloudCompact = JSON.stringify({
                         version: Number(appState.version || 1),
@@ -1395,6 +1435,7 @@
                     getAllRealtimeChannels().forEach(ch => {
                         fetch(`https://ntfy.sh/${ch}`, {
                             method: 'POST',
+                            cache: 'no-store',
                             body: cloudCompact
                         }).catch(() => {});
                     });
@@ -1571,143 +1612,6 @@
                 if (badge) badge.textContent = 'Error de red GitHub';
                 return false;
             }
-        }
-
-        async function loadPersistedState(forceApply = false) {
-            const candidates = [];
-            try {
-                const rawLocal = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(BACKUP_STORAGE_KEY);
-                if (rawLocal) candidates.push(JSON.parse(rawLocal));
-            } catch (e) {}
-            try {
-                if (window.name && window.name.trim().startsWith('{')) {
-                    candidates.push(JSON.parse(window.name));
-                }
-            } catch (e) {}
-            try {
-                const domRaw = document.getElementById('embeddedInternalVaultData')?.textContent?.trim();
-                if (domRaw && domRaw !== '{}') candidates.push(JSON.parse(domRaw));
-            } catch (e) {}
-
-            candidates.sort((a, b) => (Number(b.version || 1) - Number(a.version || 1)) || (Number(b.updatedAt || 0) - Number(a.updatedAt || 0)));
-            const best = candidates[0];
-            if (best && (forceApply || Number(best.version || 1) >= Number(appState.version || 1))) {
-                const activeSess = appState.activeSession;
-                appState = { ...appState, ...best, activeSession: activeSess };
-            }
-        }
-
-        function hydrateUserFromSharedUrlParam() {
-            try {
-                const params = new URLSearchParams(window.location.search);
-                const verParam = params.get('v');
-                if (verParam && Number(verParam) > Number(appState.version || 1)) {
-                    appState.version = Number(verParam);
-                }
-            } catch (e) {}
-        }
-
-        function initGlobalRealtimeCloudSync() {
-            renderLoginDeployedVersionsSelect();
-        }
-
-        async function unlockProfileByFrontLogin(event) {
-            if (event) event.preventDefault();
-            const input = document.getElementById('frontLoginCodeInput');
-            const errBox = document.getElementById('frontLoginError');
-            const rawCode = (input?.value || '').trim();
-            if (!rawCode) {
-                if (errBox) {
-                    errBox.textContent = 'Por favor escribe tu código de acceso.';
-                    errBox.classList.remove('hidden');
-                }
-                return;
-            }
-
-            await loadPersistedState(false);
-
-            if (rawCode === ADMIN_MASTER_CODE) {
-                appState.activeSession = { role: 'admin', name: 'Administrador General', profileId: 'admin' };
-                enterWorkspaceAfterLogin();
-                return;
-            }
-
-            const matched = (appState.profiles || []).find(
-                p => String(p.code || '').trim().toLowerCase() === rawCode.toLowerCase()
-            );
-
-            if (!matched) {
-                if (errBox) {
-                    errBox.textContent = `Código "${rawCode}" no encontrado en la versión desplegada v${appState.version || 1}.`;
-                    errBox.classList.remove('hidden');
-                }
-                return;
-            }
-
-            appState.activeSession = { role: 'user', name: matched.name, profileId: matched.id };
-            enterWorkspaceAfterLogin();
-        }
-
-        function enterWorkspaceAfterLogin() {
-            const errBox = document.getElementById('frontLoginError');
-            if (errBox) errBox.classList.add('hidden');
-            const loginScreen = document.getElementById('frontLoginScreen');
-            const mainWorkspace = document.getElementById('mainAppWorkspace');
-            if (loginScreen) {
-                loginScreen.classList.add('hidden');
-                loginScreen.style.display = 'none';
-            }
-            if (mainWorkspace) {
-                mainWorkspace.classList.remove('hidden');
-                mainWorkspace.style.display = 'flex';
-            }
-
-            const isAdmin = !appState.activeSession || appState.activeSession.role === 'admin';
-            const badge = document.getElementById('activeSessionBadge');
-            if (badge) {
-                badge.textContent = isAdmin
-                    ? 'Admin: Administrador General'
-                    : `Usuario: ${appState.activeSession.name}`;
-            }
-
-            document.querySelectorAll('[data-admin-only="true"]').forEach(el => {
-                if (isAdmin) el.classList.remove('hidden');
-                else el.classList.add('hidden');
-            });
-
-            const prof = !isAdmin ? (appState.profiles || []).find(p => p.id === appState.activeSession.profileId) : null;
-            document.querySelectorAll('[data-header-btn]').forEach(btn => {
-                const key = btn.getAttribute('data-header-btn');
-                if (!isAdmin && prof?.headerButtons && Object.prototype.hasOwnProperty.call(prof.headerButtons, key)) {
-                    if (prof.headerButtons[key]) btn.classList.remove('hidden');
-                    else btn.classList.add('hidden');
-                } else if (!btn.hasAttribute('data-admin-only')) {
-                    btn.classList.remove('hidden');
-                }
-            });
-
-            switchMainWorkspaceTab('generador');
-            refreshAllUI();
-            selectDocType(appState.currentDocType || 'estudios');
-            window.scrollTo({ top: 0, behavior: 'instant' });
-            showToast(`Bienvenido(a), ${appState.activeSession.name}`);
-        }
-
-        function lockProfileQuickAccess() {
-            appState.activeSession = null;
-            const inp = document.getElementById('frontLoginCodeInput');
-            if (inp) inp.value = '';
-            const loginScreen = document.getElementById('frontLoginScreen');
-            const mainWorkspace = document.getElementById('mainAppWorkspace');
-            if (mainWorkspace) {
-                mainWorkspace.classList.add('hidden');
-                mainWorkspace.style.display = 'none';
-            }
-            if (loginScreen) {
-                loginScreen.classList.remove('hidden');
-                loginScreen.style.display = 'flex';
-            }
-            renderLoginDeployedVersionsSelect();
         }
 
         function switchMainWorkspaceTab(tabName) {
@@ -2365,14 +2269,16 @@
             }
             try {
                 appState.version = Number(appState.version || 1) + 1;
+                // Limpiar versiones anteriores para que la nueva versión sea la única activa
+                deployedVersionsRegistry = [];
                 persistBaseState(true, true, true);
-                renderLoginDeployedVersionsSelect();
+                enforceLatestAdminSession();
                 refreshSourceCodePreviewBox();
                 const uploaded = await pushUpdatedSourceCodeToGithubRepo(false);
                 if (uploaded) {
-                    showToast(`Despliegue v${appState.version} guardado y actualizado en GitHub y en el sistema.`);
+                    showToast(`Despliegue v${appState.version} guardado y publicado en GitHub y en todos los dispositivos.`);
                 } else {
-                    showToast(`Despliegue v${appState.version} guardado y actualizado en el código fuente y en Inicio de Sesión.`);
+                    showToast(`Despliegue v${appState.version} guardado y publicado en tiempo real.`);
                 }
             } finally {
                 if (btnEl) {
@@ -2422,7 +2328,6 @@
 
             const fetchTasks = [];
 
-            // 1. Consulta en paralelo a todos los canales globales en tiempo real desde cualquier dispositivo
             getAllRealtimeChannels().forEach(ch => {
                 fetchTasks.push((async () => {
                     try {
@@ -2447,7 +2352,6 @@
                 })());
             });
 
-            // 2. Consulta directa sin caché al index.html del servidor actual
             if (window.location.protocol.startsWith('http')) {
                 fetchTasks.push((async () => {
                     try {
@@ -2458,7 +2362,6 @@
                 })());
             }
 
-            // 3. Consulta directa a GitHub Raw (evita demora de CDN de GitHub Pages en teléfonos/PC nuevos)
             if (detectedRepo) {
                 ['main', 'master', detectedBranch].filter((v, i, a) => v && a.indexOf(v) === i).forEach(br => {
                     fetchTasks.push((async () => {
@@ -2488,15 +2391,14 @@
             const currentTime = Number(appState.updatedAt || 0);
             if (incomingVer > currentVer || (incomingVer === currentVer && incomingTime > currentTime)) {
                 const activeSess = appState.activeSession;
+                // Descartar automáticamente versiones anteriores (< incomingVer)
+                deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= incomingVer);
                 appState = { ...appState, ...parsed, activeSession: activeSess };
-                try {
-                    const serialized = JSON.stringify(buildSerializableVaultPayload(false));
-                    localStorage.setItem(STORAGE_KEY, serialized);
-                    localStorage.setItem(BACKUP_STORAGE_KEY, serialized);
-                } catch (e) {}
-                renderLoginDeployedVersionsSelect();
+                registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), `Despliegue Admin v${incomingVer}`);
+                enforceLatestAdminSession();
                 if (!document.getElementById('mainAppWorkspace')?.classList.contains('hidden')) {
                     refreshAllUI();
+                    selectDocType(appState.currentDocType || 'estudios');
                     updateDocument();
                 }
                 const lastSyncEl = document.getElementById('loginLiveLastSync');
@@ -2507,7 +2409,6 @@
         }
 
         function initGlobalRealtimeCloudSync() {
-            // 1. Escucha en tiempo real instantánea (SSE) en todos los canales activos
             try {
                 if (Array.isArray(window._globalRtEventSources)) {
                     window._globalRtEventSources.forEach(s => { try { s.close(); } catch (e) {} });
@@ -2530,7 +2431,6 @@
                 });
             } catch (e) {}
 
-            // 2. Re-sincronización automática al volver a abrir o enfocar la página en teléfono o PC
             const syncOnWake = async () => {
                 if (document.visibilityState === 'visible') {
                     await loadPersistedState(true);
@@ -2544,7 +2444,6 @@
             document.addEventListener('visibilitychange', syncOnWake);
             window.addEventListener('focus', syncOnWake);
 
-            // 3. Verificación periódica automática en segundo plano cada 4 segundos
             setInterval(async () => {
                 await loadPersistedState(true);
                 renderLoginDeployedVersionsSelect();
@@ -2574,12 +2473,11 @@
             const best = candidates[0];
             if (best && (forceApply || Number(best.version || 1) >= Number(appState.version || 1))) {
                 const activeSess = appState.activeSession;
+                const bestVer = Number(best.version || 1);
+                deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= bestVer);
                 appState = { ...appState, ...best, activeSession: activeSess };
-                try {
-                    const serialized = JSON.stringify(buildSerializableVaultPayload(false));
-                    localStorage.setItem(STORAGE_KEY, serialized);
-                    localStorage.setItem(BACKUP_STORAGE_KEY, serialized);
-                } catch (e) {}
+                registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), `Despliegue v${bestVer}`);
+                enforceLatestAdminSession();
             }
         }
 
@@ -2651,16 +2549,15 @@
 
             if (submitBtn) {
                 submitBtn.disabled = true;
-                submitBtn.textContent = 'Abriendo Generador de Constancias...';
+                submitBtn.textContent = 'Sincronizando última versión...';
             }
 
             try {
-                // Sincronización rápida con límite de espera para nunca bloquear el acceso
                 await Promise.race([
                     loadPersistedState(true),
-                    new Promise(resolve => setTimeout(resolve, 1200))
+                    new Promise(resolve => setTimeout(resolve, 1500))
                 ]);
-                renderLoginDeployedVersionsSelect();
+                enforceLatestAdminSession();
 
                 if (rawCode.toLowerCase() === ADMIN_MASTER_CODE.toLowerCase()) {
                     appState.activeSession = { role: 'admin', name: 'Administrador General', profileId: 'admin' };
@@ -2668,7 +2565,6 @@
                     return false;
                 }
 
-                // Buscar el código en la versión desplegada seleccionada y en todo el historial de versiones guardadas por el Administrador
                 let matched = (appState.profiles || []).find(
                     p => String(p.code || '').trim().toLowerCase() === rawCode.toLowerCase()
                 );
@@ -2680,6 +2576,7 @@
                         );
                         if (foundInSnap) {
                             appState = { ...appState, ...JSON.parse(JSON.stringify(snap.payload)), activeSession: null };
+                            enforceLatestAdminSession();
                             matched = foundInSnap;
                             break;
                         }
@@ -2703,7 +2600,7 @@
 
                 if (!matched) {
                     if (errBox) {
-                        errBox.textContent = `Código "${rawCode}" no encontrado en la versión desplegada v${appState.version || 1}.`;
+                        errBox.textContent = `Código "${rawCode}" no encontrado en la última versión desplegada v${appState.version || 1}.`;
                         errBox.classList.remove('hidden');
                     }
                     return false;
@@ -3175,8 +3072,8 @@
             if (document.getElementById('inpGithubRepo')) document.getElementById('inpGithubRepo').value = savedRepo;
             if (document.getElementById('inpGithubBranch')) document.getElementById('inpGithubBranch').value = savedBranch;
             if (document.getElementById('inpGithubToken') && savedToken) document.getElementById('inpGithubToken').value = savedToken;
-            registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), 'Despliegue Activo');
-            renderLoginDeployedVersionsSelect();
+            registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), 'Última Versión Desplegada');
+            enforceLatestAdminSession();
             initGlobalRealtimeCloudSync();
             selectDocType(appState.currentDocType || 'estudios');
             refreshAllUI();
