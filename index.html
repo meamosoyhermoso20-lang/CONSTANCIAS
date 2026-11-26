@@ -193,14 +193,14 @@
                     <div class="pt-1.5 mt-1 border-t border-slate-800 space-y-1">
                         <div class="flex items-center justify-between gap-1.5">
                             <span class="text-[10px] font-bold text-sky-300">Despliegue Guardado por Admin:</span>
-                            <span id="loginDeploymentSyncBadge" class="px-2 py-0.5 rounded bg-emerald-950 text-[9px] font-bold text-emerald-300 border border-emerald-700/70">
-                                Despliegue Actual v1 ✓
-                            </span>
+                            <button type="button" onclick="forceRemoteCloudSyncOnLogin(this)" class="px-2 py-0.5 rounded bg-emerald-950 hover:bg-emerald-900 text-[9px] font-bold text-emerald-300 border border-emerald-700/70 cursor-pointer">
+                                <span id="loginDeploymentSyncBadge">Sincronizado Auto v1 ✓</span> ↻
+                            </button>
                         </div>
                         <div id="loginDeployedVersionReadonly" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono font-bold text-amber-300 select-none">
-                            Vinculando con la última versión guardada por el Administrador...
+                            Actualizando enlace automáticamente con la última versión...
                         </div>
-                        <div id="loginVersionUsersHint" class="text-[9px] text-slate-400 truncate">Detectando última versión guardada...</div>
+                        <div id="loginVersionUsersHint" class="text-[9px] text-slate-400 truncate">Sincronización automática activa en todos los dispositivos</div>
                     </div>
                 </div>
             </div>
@@ -441,46 +441,6 @@
                             <div data-field-wrap="curp" id="curpFieldWrap">
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1">CURP ({CURP})</label>
                                 <input type="text" id="inpCurp" value="GOAE010412HPLRND09" placeholder="18 caracteres" oninput="updateDocument();" onchange="persistBaseState(true,true,false);" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="fechaAsuntoRow">
-                            <div data-field-wrap="fecha_expedicion">
-                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Fecha de Expedición ({FECHA})</label>
-                                <div class="space-y-1">
-                                    <input type="date" id="inpFechaExpedicion" oninput="syncExpeditionDateTextFromPicker();updateDocument();queueSelectiveAutoSave('form');" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
-                                    <input type="text" id="inpFechaExpedicionTexto" value="24 de Noviembre de 2026" placeholder="Ej. 24 de Noviembre de 2026" oninput="updateDocument();queueSelectiveAutoSave('form');" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50/30 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
-                                </div>
-                            </div>
-                            <div data-field-wrap="asunto_constancia">
-                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Asunto ({ASUNTO}) · Por Modalidad</label>
-                                <input type="text" id="inpAsuntoConstancia" value="Constancia de Estudios" placeholder="Ej. Constancia de Estudios" oninput="syncAsuntoInputToTemplate();updateDocument();queueSelectiveAutoSave('templates');" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-blue-300 bg-blue-50/30 text-xs font-bold text-blue-950 focus:ring-2 focus:ring-blue-800 outline-none">
-                                <p class="text-[10px] text-slate-400 mt-1">Se vincula en tiempo real con <code>{ASUNTO}</code> según la constancia elegida.</p>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div data-field-wrap="nombre_alumno" class="sm:col-span-2">
-                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Nombre Completo del Alumno ({NOMBRE})</label>
-                                <input type="text" id="inpNombre" value="GOMEZ AMORES ENRIQUE" placeholder="Nombre(s) y Apellidos (respeta mayúsculas/minúsculas)" oninput="updateDocument();queueSelectiveAutoSave('form');" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-800 outline-none">
-                            </div>
-                            <div data-field-wrap="genero_alumno">
-                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Género</label>
-                                <select id="selGeneroAlumno" onchange="updateDocument();queueSelectiveAutoSave('form');persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-800 bg-white focus:ring-2 focus:ring-blue-800 outline-none">
-                                    <option value="M">Niño (el alumno / inscrito)</option>
-                                    <option value="F">Niña (la alumna / inscrita)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div data-field-wrap="matricula">
-                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Matrícula ({MATRICULA})</label>
-                                <input type="text" id="inpMatricula" value="2211899" placeholder="Ej. 2211899" oninput="updateDocument();queueSelectiveAutoSave('form');" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono font-bold text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
-                            </div>
-                            <div data-field-wrap="curp" id="curpFieldWrap">
-                                <label class="block text-[11px] font-bold text-slate-600 mb-1">CURP ({CURP})</label>
-                                <input type="text" id="inpCurp" value="GOAE010412HPLRND09" placeholder="18 caracteres" oninput="updateDocument();queueSelectiveAutoSave('form');" onchange="persistBaseState(true,true,true);" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono text-slate-800 focus:ring-2 focus:ring-blue-800 outline-none">
                             </div>
                         </div>
 
@@ -947,6 +907,9 @@
                             <button type="button" onclick="saveVinculacionCredentialsExplicitly()" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow-lg transition">
                                 Guardar Datos de Vinculación
                             </button>
+                            <button type="button" onclick="copyDirectSharedLinkWithState()" class="px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-black shadow-lg transition">
+                                Copiar Enlace Directo Vinculado
+                            </button>
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
                             <button type="button" id="btnGithubSectionRefreshDeployment" onclick="visitorSyncLatestDeploymentNow(this)" class="px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold transition">
@@ -1110,7 +1073,8 @@
         const IDB_DB_NAME = 'SISTEMA_BUBU_1_0_PERMANENT_DB';
         const IDB_STORE_NAME = 'vault_store';
         const ADMIN_TOKEN_STORAGE_KEY = 'SISTEMA_BUBU_1_0_ADMIN_GH_TOKEN';
-        const GLOBAL_RT_CHANNEL = 'UAMP_BUBU_1_0_GLOBAL_REALTIME_SYNC_V1';
+        const GLOBAL_RT_CHANNEL = 'UAMP_BUBU_1_0_GLOBAL_REALTIME_SYNC_V2';
+        const GLOBAL_RT_FALLBACK_CHANNEL = 'UAMP_BUBU_1_0_GLOBAL_REALTIME_SYNC_V1';
 
         const DEFAULT_DOC_TEMPLATES = {
             estudios: {
@@ -1318,9 +1282,9 @@
             const deployBadge = document.getElementById('deployReplaceVersionBadge');
 
             if (liveVerEl) liveVerEl.textContent = `v${ver}`;
-            if (badgeEl) badgeEl.textContent = `Despliegue Actual v${ver} ✓`;
-            if (readonlyEl) readonlyEl.textContent = `Versión Desplegada Activa: v${ver} (${usersCount} usuarios habilitados)`;
-            if (hintEl) hintEl.textContent = `Sincronizado con última versión guardada (v${ver}) · Código fuente actualizado`;
+            if (badgeEl) badgeEl.textContent = `Sincronizado Auto v${ver} ✓`;
+            if (readonlyEl) readonlyEl.textContent = `Enlace Actualizado Automáticamente: v${ver} (${usersCount} usuarios activos)`;
+            if (hintEl) hintEl.textContent = `Conectado en tiempo real · Última versión v${ver} cargada automáticamente`;
             if (bannerTag) bannerTag.textContent = `v${ver}`;
             if (cornerVer) cornerVer.textContent = `v${ver}`;
             if (deployBadge) deployBadge.textContent = `v${ver} → v${ver + 1}`;
@@ -1359,10 +1323,23 @@
                 registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), 'Despliegue Activo');
                 renderLoginDeployedVersionsSelect();
                 if (pushCloud) {
-                    fetch(`https://ntfy.sh/${GLOBAL_RT_CHANNEL}`, {
-                        method: 'POST',
-                        body: serialized
-                    }).catch(() => {});
+                    const cloudCompact = JSON.stringify({
+                        version: Number(appState.version || 1),
+                        updatedAt: appState.updatedAt,
+                        signer: appState.signer,
+                        majors: appState.majors,
+                        periods: appState.periods,
+                        templates: appState.templates,
+                        profiles: appState.profiles,
+                        deletedIds: appState.deletedIds || [],
+                        githubConfig: appState.githubConfig
+                    });
+                    [GLOBAL_RT_CHANNEL, GLOBAL_RT_FALLBACK_CHANNEL].forEach(ch => {
+                        fetch(`https://ntfy.sh/${ch}`, {
+                            method: 'POST',
+                            body: cloudCompact
+                        }).catch(() => {});
+                    });
                     if (appState.githubConfig?.repo && localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)) {
                         pushUpdatedSourceCodeToGithubRepo(false).catch(() => {});
                     }
@@ -1373,13 +1350,15 @@
         }
 
         function buildUpdatedFullSourceCodeHtml() {
-            const serializedVault = JSON.stringify(buildSerializableVaultPayload(false));
+            const cleanPayload = buildSerializableVaultPayload(false);
+            const serializedVault = JSON.stringify(cleanPayload);
             const usersLiteral = JSON.stringify((appState.profiles || []).map(p => ({
                 id: p.id,
                 name: p.name,
                 roleLabel: p.roleLabel || 'Control Escolar',
                 code: p.code
             })), null, 4);
+            const fullProfilesLiteral = JSON.stringify(appState.profiles || [], null, 4);
             const majorsLiteral = JSON.stringify(appState.majors || [], null, 4);
             const periodsLiteral = JSON.stringify(appState.periods || [], null, 4);
             const templatesLiteral = JSON.stringify(appState.templates || DEFAULT_DOC_TEMPLATES, null, 4);
@@ -1391,10 +1370,13 @@
 
             let fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
             fullHtml = fullHtml
+                .replace(/<script type="application\/json" id="embeddedInternalVaultData">[\s\S]*?<\/script>/, `<script type="application/json" id="embeddedInternalVaultData">${serializedVault}<\/script>`)
+                .replace(/<script type="application\/json" id="embeddedUserAccessCodes">[\s\S]*?<\/script>/, `<script type="application/json" id="embeddedUserAccessCodes">${usersLiteral}<\/script>`)
                 .replace(/const EMBEDDED_SOURCE_USERS = \[[\s\S]*?\];/, `const EMBEDDED_SOURCE_USERS = ${usersLiteral};`)
                 .replace(/const DEFAULT_MAJORS = \[[\s\S]*?\];/, `const DEFAULT_MAJORS = ${majorsLiteral};`)
                 .replace(/const DEFAULT_PERIODS = \[[\s\S]*?\];/, `const DEFAULT_PERIODS = ${periodsLiteral};`)
                 .replace(/const DEFAULT_DOC_TEMPLATES = \{[\s\S]*?\n        \};/, `const DEFAULT_DOC_TEMPLATES = ${templatesLiteral};`)
+                .replace(/profiles:\s*buildDefaultProfilesList\(\),/, `profiles: ${fullProfilesLiteral},`)
                 .replace(/version:\s*\d+,/, `version: ${Number(appState.version || 1)},`);
             return fullHtml;
         }
@@ -1727,36 +1709,36 @@
             const badge = document.getElementById('currentDocTypeBadge');
             if (badge) badge.textContent = docType.toUpperCase();
 
-                    const isAdmin = !appState.activeSession || appState.activeSession.role === 'admin';
-                    const prof = !isAdmin ? (appState.profiles || []).find(p => p.id === appState.activeSession.profileId) : null;
-                    const docRules = prof?.docAccess?.[docType];
+            const isAdmin = !appState.activeSession || appState.activeSession.role === 'admin';
+            const prof = !isAdmin ? (appState.profiles || []).find(p => p.id === appState.activeSession.profileId) : null;
+            const docRules = prof?.docAccess?.[docType];
 
-                    document.querySelectorAll('[data-field-wrap]').forEach(wrap => {
-                        const fKey = wrap.getAttribute('data-field-wrap');
-                        if (!isAdmin && docRules && docRules.fields && Object.prototype.hasOwnProperty.call(docRules.fields, fKey)) {
-                            if (docRules.fields[fKey]) wrap.classList.remove('hidden');
-                            else wrap.classList.add('hidden');
-                        } else {
-                            wrap.classList.remove('hidden');
-                        }
-                    });
-
-                    const vacBox = document.getElementById('periodoVacacionalControls');
-                    const antBox = document.getElementById('periodosAnterioresControls');
-                    const calBox = document.getElementById('calificacionesControls');
-                    const monBox = document.getElementById('montosControls');
-                    const karBox = document.getElementById('kardexControls');
-                    const resBox = document.getElementById('resguardoControls');
-
-                    if (vacBox) vacBox.style.display = (docType === 'estudios' || docType === 'periodo_vacacional') ? 'block' : 'none';
-                    if (antBox) antBox.style.display = (docType === 'periodos_anteriores') ? 'block' : 'none';
-                    if (calBox) calBox.style.display = (docType === 'calificaciones') ? 'block' : 'none';
-                    if (monBox) monBox.style.display = (docType === 'montos') ? 'block' : 'none';
-                    if (karBox) karBox.style.display = (docType === 'kardex') ? 'block' : 'none';
-                    if (resBox) resBox.style.display = (docType === 'resguardo') ? 'block' : 'none';
-
-                    updateDocument();
+            document.querySelectorAll('[data-field-wrap]').forEach(wrap => {
+                const fKey = wrap.getAttribute('data-field-wrap');
+                if (!isAdmin && docRules && docRules.fields && Object.prototype.hasOwnProperty.call(docRules.fields, fKey)) {
+                    if (docRules.fields[fKey]) wrap.classList.remove('hidden');
+                    else wrap.classList.add('hidden');
+                } else {
+                    wrap.classList.remove('hidden');
                 }
+            });
+
+            const vacBox = document.getElementById('periodoVacacionalControls');
+            const antBox = document.getElementById('periodosAnterioresControls');
+            const calBox = document.getElementById('calificacionesControls');
+            const monBox = document.getElementById('montosControls');
+            const karBox = document.getElementById('kardexControls');
+            const resBox = document.getElementById('resguardoControls');
+
+            if (vacBox) vacBox.style.display = (docType === 'estudios' || docType === 'periodo_vacacional') ? 'block' : 'none';
+            if (antBox) antBox.style.display = (docType === 'periodos_anteriores') ? 'block' : 'none';
+            if (calBox) calBox.style.display = (docType === 'calificaciones') ? 'block' : 'none';
+            if (monBox) monBox.style.display = (docType === 'montos') ? 'block' : 'none';
+            if (karBox) karBox.style.display = (docType === 'kardex') ? 'block' : 'none';
+            if (resBox) resBox.style.display = (docType === 'resguardo') ? 'block' : 'none';
+
+            updateDocument();
+        }
 
         function updateDocument() {
             const docType = appState.currentDocType || 'estudios';
@@ -2325,6 +2307,311 @@
             }
         }
 
+        async function fetchRemoteLatestState() {
+            const remoteCandidates = [];
+            const extractFromHtmlText = (htmlText) => {
+                if (!htmlText) return;
+                try {
+                    const vaultMatch = htmlText.match(/<script type="application\/json" id="embeddedInternalVaultData">([\s\S]*?)<\/script>/);
+                    if (vaultMatch && vaultMatch[1] && vaultMatch[1].trim() !== '{}') {
+                        const parsedVault = JSON.parse(vaultMatch[1]);
+                        if (parsedVault && Array.isArray(parsedVault.profiles)) {
+                            remoteCandidates.push(parsedVault);
+                        }
+                    }
+                    const usersMatch = htmlText.match(/const EMBEDDED_SOURCE_USERS = (\[[\s\S]*?\]);/);
+                    const verMatch = htmlText.match(/version:\s*(\d+),/);
+                    if (usersMatch && usersMatch[1]) {
+                        const parsedUsers = JSON.parse(usersMatch[1]);
+                        const verNum = verMatch ? Number(verMatch[1]) : 1;
+                        remoteCandidates.push({
+                            version: verNum,
+                            updatedAt: verNum * 1000,
+                            profiles: parsedUsers.map(u => ({
+                                ...u,
+                                docAccess: createDefaultDocAccessMatrix(true),
+                                headerButtons: createDefaultHeaderMatrix(true)
+                            }))
+                        });
+                    }
+                } catch (e) {}
+            };
+
+            const host = window.location.hostname || '';
+            const pathParts = (window.location.pathname || '').split('/').filter(Boolean);
+            let detectedRepo = (appState.githubConfig?.repo || '').trim();
+            const detectedBranch = (appState.githubConfig?.branch || 'main').trim();
+            if (!detectedRepo && host.endsWith('.github.io') && pathParts.length > 0) {
+                detectedRepo = `${host.replace('.github.io', '')}/${pathParts[0]}`;
+            }
+
+            const fetchTasks = [];
+
+            // 1. Consulta en paralelo al canal global en tiempo real (ntfy.sh) desde cualquier dispositivo
+            [GLOBAL_RT_CHANNEL, GLOBAL_RT_FALLBACK_CHANNEL].forEach(ch => {
+                fetchTasks.push((async () => {
+                    try {
+                        const res = await fetch(`https://ntfy.sh/${ch}/json?poll=1&since=all&_t=${Date.now()}`, { cache: 'no-store' });
+                        if (res.ok) {
+                            const text = await res.text();
+                            const lines = text.trim().split('\n').filter(Boolean);
+                            for (let i = lines.length - 1; i >= 0; i--) {
+                                try {
+                                    const evt = JSON.parse(lines[i]);
+                                    if (evt && evt.message && evt.message.trim().startsWith('{')) {
+                                        const parsed = JSON.parse(evt.message);
+                                        if (parsed && Array.isArray(parsed.profiles)) {
+                                            remoteCandidates.push(parsed);
+                                            break;
+                                        }
+                                    }
+                                } catch (e) {}
+                            }
+                        }
+                    } catch (e) {}
+                })());
+            });
+
+            // 2. Consulta directa sin caché al index.html del servidor actual
+            if (window.location.protocol.startsWith('http')) {
+                fetchTasks.push((async () => {
+                    try {
+                        const freshUrl = `${window.location.pathname}?nocache=${Date.now()}`;
+                        const htmlRes = await fetch(freshUrl, { cache: 'no-store' });
+                        if (htmlRes.ok) extractFromHtmlText(await htmlRes.text());
+                    } catch (e) {}
+                })());
+            }
+
+            // 3. Consulta directa a GitHub Raw (evita demora de CDN de GitHub Pages en teléfonos/PC nuevos)
+            if (detectedRepo) {
+                fetchTasks.push((async () => {
+                    try {
+                        const rawGhUrl = `https://raw.githubusercontent.com/${detectedRepo}/${detectedBranch}/index.html?t=${Date.now()}`;
+                        const rawRes = await fetch(rawGhUrl, { cache: 'no-store' });
+                        if (rawRes.ok) extractFromHtmlText(await rawRes.text());
+                    } catch (e) {}
+                })());
+            }
+
+            await Promise.allSettled(fetchTasks);
+            remoteCandidates.sort((a, b) => (Number(b.version || 1) - Number(a.version || 1)) || (Number(b.updatedAt || 0) - Number(a.updatedAt || 0)));
+            return remoteCandidates[0] || null;
+        }
+        function applyRemoteSnapshotImmediately(parsed) {
+            if (!parsed || !Array.isArray(parsed.profiles)) return false;
+            const currentVer = Number(appState.version || 1);
+            const incomingVer = Number(parsed.version || 1);
+            const incomingTime = Number(parsed.updatedAt || 0);
+            const currentTime = Number(appState.updatedAt || 0);
+            if (incomingVer > currentVer || (incomingVer === currentVer && incomingTime > currentTime)) {
+                const activeSess = appState.activeSession;
+                appState = { ...appState, ...parsed, activeSession: activeSess };
+                try {
+                    const serialized = JSON.stringify(buildSerializableVaultPayload(false));
+                    localStorage.setItem(STORAGE_KEY, serialized);
+                    localStorage.setItem(BACKUP_STORAGE_KEY, serialized);
+                } catch (e) {}
+                renderLoginDeployedVersionsSelect();
+                if (!document.getElementById('mainAppWorkspace')?.classList.contains('hidden')) {
+                    refreshAllUI();
+                    updateDocument();
+                }
+                const lastSyncEl = document.getElementById('loginLiveLastSync');
+                if (lastSyncEl) lastSyncEl.textContent = `Actualizado v${incomingVer} (${new Date().toLocaleTimeString('es-MX', { hour12: false })})`;
+                return true;
+            }
+            return false;
+        }
+
+        function initGlobalRealtimeCloudSync() {
+            renderLoginDeployedVersionsSelect();
+
+            // 1. Escucha en tiempo real instantánea (SSE) para actualización inmediata sin recargar
+            try {
+                if (window._globalRtEventSource) window._globalRtEventSource.close();
+                const es = new EventSource(`https://ntfy.sh/${GLOBAL_RT_CHANNEL}/sse`);
+                es.onmessage = (event) => {
+                    try {
+                        const evt = JSON.parse(event.data);
+                        if (evt && evt.message && evt.message.trim().startsWith('{')) {
+                            const parsed = JSON.parse(evt.message);
+                            const updated = applyRemoteSnapshotImmediately(parsed);
+                            if (updated && appState.activeSession?.role === 'admin') {
+                                showToast(`Enlace actualizado automáticamente a v${appState.version}`);
+                            }
+                        }
+                    } catch (e) {}
+                };
+                window._globalRtEventSource = es;
+            } catch (e) {}
+
+            // 2. Re-sincronización automática al volver a abrir o enfocar la página en teléfono o PC
+            const syncOnWake = async () => {
+                if (document.visibilityState === 'visible') {
+                    await loadPersistedState(true);
+                    renderLoginDeployedVersionsSelect();
+                    if (!document.getElementById('mainAppWorkspace')?.classList.contains('hidden')) {
+                        refreshAllUI();
+                        updateDocument();
+                    }
+                }
+            };
+            document.addEventListener('visibilitychange', syncOnWake);
+            window.addEventListener('focus', syncOnWake);
+
+            // 3. Verificación periódica automática en segundo plano cada 6 segundos
+            setInterval(async () => {
+                await loadPersistedState(true);
+                renderLoginDeployedVersionsSelect();
+            }, 6000);
+        }
+
+        async function loadPersistedState(forceApply = false) {
+            const candidates = [];
+            try {
+                const rawLocal = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(BACKUP_STORAGE_KEY);
+                if (rawLocal) candidates.push(JSON.parse(rawLocal));
+            } catch (e) {}
+            try {
+                if (window.name && window.name.trim().startsWith('{')) {
+                    candidates.push(JSON.parse(window.name));
+                }
+            } catch (e) {}
+            try {
+                const domRaw = document.getElementById('embeddedInternalVaultData')?.textContent?.trim();
+                if (domRaw && domRaw !== '{}') candidates.push(JSON.parse(domRaw));
+            } catch (e) {}
+
+            const remoteBest = await fetchRemoteLatestState();
+            if (remoteBest) candidates.push(remoteBest);
+
+            candidates.sort((a, b) => (Number(b.version || 1) - Number(a.version || 1)) || (Number(b.updatedAt || 0) - Number(a.updatedAt || 0)));
+            const best = candidates[0];
+            if (best && (forceApply || Number(best.version || 1) >= Number(appState.version || 1))) {
+                const activeSess = appState.activeSession;
+                appState = { ...appState, ...best, activeSession: activeSess };
+                try {
+                    const serialized = JSON.stringify(buildSerializableVaultPayload(false));
+                    localStorage.setItem(STORAGE_KEY, serialized);
+                    localStorage.setItem(BACKUP_STORAGE_KEY, serialized);
+                } catch (e) {}
+            }
+        }
+
+        function hydrateUserFromSharedUrlParam() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const verParam = params.get('v');
+                if (verParam && Number(verParam) > Number(appState.version || 1)) {
+                    appState.version = Number(verParam);
+                }
+                const payloadParam = params.get('u');
+                if (payloadParam) {
+                    const decoded = JSON.parse(decodeURIComponent(escape(atob(payloadParam))));
+                    if (decoded && Array.isArray(decoded.profiles)) {
+                        appState.profiles = decoded.profiles;
+                        if (decoded.version) appState.version = Number(decoded.version);
+                        persistBaseState(true, true, false);
+                    }
+                }
+            } catch (e) {}
+        }
+
+        function copyDirectSharedLinkWithState() {
+            const compact = {
+                version: Number(appState.version || 1),
+                profiles: (appState.profiles || []).map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    roleLabel: p.roleLabel || 'Control Escolar',
+                    code: p.code,
+                    docAccess: p.docAccess || createDefaultDocAccessMatrix(true),
+                    headerButtons: p.headerButtons || createDefaultHeaderMatrix(true)
+                }))
+            };
+            const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(compact))));
+            const baseUrl = `${window.location.origin}${window.location.pathname}`;
+            const fullUrl = `${baseUrl}?v=${appState.version}&u=${encodeURIComponent(encoded)}`;
+            const ta = document.createElement('textarea');
+            ta.value = fullUrl;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast(`Enlace directo v${appState.version} con todos los usuarios copiado al portapapeles.`);
+        }
+
+        async function forceRemoteCloudSyncOnLogin(btnEl) {
+            const hintEl = document.getElementById('loginVersionUsersHint');
+            if (hintEl) hintEl.textContent = 'Sincronizando con última versión publicada por el Admin...';
+            await loadPersistedState(true);
+            renderLoginDeployedVersionsSelect();
+            const lastSyncEl = document.getElementById('loginLiveLastSync');
+            if (lastSyncEl) lastSyncEl.textContent = `Sync ${new Date().toLocaleTimeString('es-MX', { hour12: false })}`;
+        }
+
+        function initGlobalRealtimeCloudSync() {
+            renderLoginDeployedVersionsSelect();
+            setInterval(async () => {
+                if (!document.getElementById('frontLoginScreen')?.classList.contains('hidden')) {
+                    await loadPersistedState(true);
+                    renderLoginDeployedVersionsSelect();
+                }
+            }, 8000);
+        }
+
+        async function unlockProfileByFrontLogin(event) {
+            if (event) event.preventDefault();
+            const input = document.getElementById('frontLoginCodeInput');
+            const errBox = document.getElementById('frontLoginError');
+            const submitBtn = document.getElementById('btnFrontLoginSubmit');
+            const rawCode = (input?.value || '').trim();
+            if (!rawCode) {
+                if (errBox) {
+                    errBox.textContent = 'Por favor escribe tu código de acceso.';
+                    errBox.classList.remove('hidden');
+                }
+                return;
+            }
+
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Verificando con última versión...';
+            }
+
+            try {
+                await loadPersistedState(true);
+                renderLoginDeployedVersionsSelect();
+
+                if (rawCode === ADMIN_MASTER_CODE) {
+                    appState.activeSession = { role: 'admin', name: 'Administrador General', profileId: 'admin' };
+                    enterWorkspaceAfterLogin();
+                    return;
+                }
+
+                const matched = (appState.profiles || []).find(
+                    p => String(p.code || '').trim().toLowerCase() === rawCode.toLowerCase()
+                );
+
+                if (!matched) {
+                    if (errBox) {
+                        errBox.textContent = `Código "${rawCode}" no encontrado en la versión desplegada v${appState.version || 1}.`;
+                        errBox.classList.remove('hidden');
+                    }
+                    return;
+                }
+
+                appState.activeSession = { role: 'user', name: matched.name, profileId: matched.id };
+                enterWorkspaceAfterLogin();
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Iniciar Sesión';
+                }
+            }
+        }
+
         function syncGradesTableRowsToSkeleton() {
             const bulk = document.getElementById('txtGradesBulkInput')?.value.trim();
             if (bulk) {
@@ -2563,28 +2850,6 @@
             a.download = 'index.html';
             a.click();
             showToast(`Código fuente index.html (v${appState.version}) generado con todos tus cambios.`);
-        }
-
-        async function visitorSyncLatestDeploymentNow() {
-            await refreshLoginDeployedVersionsDropdown(true);
-            refreshAllUI();
-            updateDocument();
-            showToast(`Sincronizado con versión v${appState.version}.`);
-        }
-
-        async function replacePreviousDeploymentWithCurrent() {
-            realtimeSaveAndRefreshSystem();
-            const uploaded = await pushUpdatedSourceCodeToGithubRepo(true);
-            if (!uploaded) {
-                downloadSelfContainedPageWithData();
-            }
-        }
-
-        async function visitorSyncLatestDeploymentNow() {
-            await refreshLoginDeployedVersionsDropdown(true);
-            refreshAllUI();
-            updateDocument();
-            showToast(`Sincronizado con versión v${appState.version}.`);
         }
 
         function saveVinculacionCredentialsExplicitly() {
