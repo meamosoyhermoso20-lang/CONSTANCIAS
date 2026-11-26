@@ -187,21 +187,21 @@
                         <span id="loginLiveClock" class="font-mono font-bold text-emerald-300">--:--:--</span>
                     </div>
                     <div class="flex items-center justify-between text-[10px] text-slate-300">
-                        <span>Versión desplegada: <b id="loginLiveVersion" class="text-white font-mono">v1</b></span>
-                        <span id="loginLiveLastSync" class="font-mono text-slate-400">Modo Manual Admin</span>
+                        <span>Versión desplegada: <b id="loginLiveVersion" class="text-amber-300 font-mono">Buscando...</b></span>
+                        <span id="loginLiveLastSync" class="font-mono text-emerald-300">Buscando última versión...</span>
                     </div>
                     <div class="pt-1.5 mt-1 border-t border-slate-800 space-y-1.5">
                         <div class="flex items-center justify-between gap-1.5">
-                            <span class="text-[10px] font-bold text-sky-300">Versión Actual a la que Vas a Entrar:</span>
+                            <span class="text-[10px] font-bold text-sky-300">Versión Desplegada Guardada:</span>
                             <button type="button" onclick="forceRemoteCloudSyncOnLogin(this)" class="px-2 py-0.5 rounded bg-emerald-950 hover:bg-emerald-900 text-[9px] font-bold text-emerald-300 border border-emerald-700/70 cursor-pointer transition">
-                                <span id="loginDeploymentSyncBadge">Sincronizando...</span> ↻
+                                <span id="loginDeploymentSyncBadge">Buscando última versión...</span> ↻
                             </button>
                         </div>
-                        <div id="loginDeployedVersionReadonly" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-emerald-500/40 text-xs font-mono font-black text-amber-300 flex items-center justify-between select-none">
-                            <span>Buscando última versión...</span>
-                            <span class="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse">SYNC</span>
-                        </div>
-                        <div id="loginVersionUsersHint" class="text-[10px] text-slate-300 font-medium">Conectando con la última publicación del Administrador...</div>
+                        <select id="selLoginDeployedVersion" onchange="applySelectedDeployedVersionOnLogin(this.value)" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-emerald-500/50 text-xs font-mono font-black text-amber-300 outline-none cursor-pointer">
+                            <option value="current">Buscando última versión desplegada...</option>
+                        </select>
+                        <div id="loginDeployedVersionReadonly" class="hidden"></div>
+                        <div id="loginVersionUsersHint" class="text-[10px] text-amber-300 font-semibold">Buscando última versión publicada por el Administrador...</div>
                     </div>
                 </div>
             </div>
@@ -1074,10 +1074,11 @@
         const IDB_DB_NAME = 'SISTEMA_BUBU_1_0_PERMANENT_DB';
         const IDB_STORE_NAME = 'vault_store';
         const ADMIN_TOKEN_STORAGE_KEY = 'SISTEMA_BUBU_1_0_ADMIN_GH_TOKEN';
+        const DEPLOYED_HISTORY_STORAGE_KEY = 'SISTEMA_BUBU_1_0_DEPLOYED_VERSIONS_HISTORY';
         const GLOBAL_RT_CHANNEL = 'UAMP_BUBU_1_0_GLOBAL_REALTIME_SYNC_V3';
         const GLOBAL_RT_FALLBACK_CHANNEL = 'UAMP_BUBU_1_0_GLOBAL_REALTIME_SYNC_V2';
         const GLOBAL_RT_LEGACY_CHANNEL = 'UAMP_BUBU_1_0_GLOBAL_REALTIME_SYNC_V1';
-
+        const GLOBAL_RT_MASTER_CHANNEL = 'UAMP_BUBU_1_0_MASTER_LIVE_STREAM';
         const DEFAULT_DOC_TEMPLATES = {
             estudios: {
                 title: 'Constancia de Estudios',
@@ -1262,14 +1263,46 @@
             return copy;
         }
 
-        function registerDeployedVersionSnapshot(payload, label = 'Despliegue Activo') {
+        function registerDeployedVersionSnapshot(payload, label = 'Despliegue Guardado por Admin') {
             if (!payload) return;
             const ver = Number(payload.version || appState.version || 1);
+            const cleanPayload = JSON.parse(JSON.stringify(payload));
+            delete cleanPayload.activeSession;
             const idx = deployedVersionsRegistry.findIndex(v => Number(v.version) === ver);
-            const entry = { version: ver, label, updatedAt: payload.updatedAt || Date.now(), payload };
+            const entry = { version: ver, label, updatedAt: cleanPayload.updatedAt || Date.now(), payload: cleanPayload };
             if (idx >= 0) deployedVersionsRegistry[idx] = entry;
             else deployedVersionsRegistry.push(entry);
             deployedVersionsRegistry.sort((a, b) => Number(b.version) - Number(a.version));
+            if (deployedVersionsRegistry.length > 15) deployedVersionsRegistry = deployedVersionsRegistry.slice(0, 15);
+            try {
+                localStorage.setItem(DEPLOYED_HISTORY_STORAGE_KEY, JSON.stringify(deployedVersionsRegistry));
+            } catch (e) {}
+        }
+
+        function loadDeployedVersionsHistoryFromStorage() {
+            try {
+                const raw = localStorage.getItem(DEPLOYED_HISTORY_STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) {
+                        parsed.forEach(item => {
+                            if (item && item.payload) registerDeployedVersionSnapshot(item.payload, item.label || 'Despliegue Guardado');
+                        });
+                    }
+                }
+            } catch (e) {}
+        }
+
+        function applySelectedDeployedVersionOnLogin(selectedVerStr) {
+            const targetVer = Number(selectedVerStr);
+            const found = deployedVersionsRegistry.find(v => Number(v.version) === targetVer);
+            if (found && found.payload) {
+                const activeSess = appState.activeSession;
+                appState = { ...appState, ...JSON.parse(JSON.stringify(found.payload)), activeSession: activeSess };
+                renderLoginDeployedVersionsSelect();
+                const errBox = document.getElementById('frontLoginError');
+                if (errBox) errBox.classList.add('hidden');
+            }
         }
 
         function renderLoginDeployedVersionsSelect() {
@@ -1280,7 +1313,7 @@
                 : 'En línea';
             const liveVerEl = document.getElementById('loginLiveVersion');
             const badgeEl = document.getElementById('loginDeploymentSyncBadge');
-            const readonlyEl = document.getElementById('loginDeployedVersionReadonly');
+            const selectEl = document.getElementById('selLoginDeployedVersion');
             const hintEl = document.getElementById('loginVersionUsersHint');
             const lastSyncEl = document.getElementById('loginLiveLastSync');
             const bannerTag = document.getElementById('bannerActiveVersionTag');
@@ -1288,12 +1321,19 @@
             const deployBadge = document.getElementById('deployReplaceVersionBadge');
 
             if (liveVerEl) liveVerEl.textContent = `v${ver}`;
-            if (badgeEl) badgeEl.textContent = `Enlace al Día v${ver} ✓`;
-            if (readonlyEl) {
-                readonlyEl.innerHTML = `<span>Ingresarás a: <b class="text-white">Versión v${ver}</b></span><span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">TIEMPO REAL ✓</span>`;
+            if (badgeEl) badgeEl.textContent = `Despliegue Actual v${ver} ✓`;
+            if (selectEl) {
+                if (!deployedVersionsRegistry.some(v => Number(v.version) === ver)) {
+                    registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), 'Despliegue Activo');
+                }
+                selectEl.innerHTML = deployedVersionsRegistry.map((item, idx) => {
+                    const uCount = (item.payload?.profiles || []).length;
+                    const tag = idx === 0 ? ' · ÚLTIMA GUARDADA' : '';
+                    return `<option value="${item.version}" ${Number(item.version) === ver ? 'selected' : ''}>Versión Desplegada v${item.version} (${uCount} usuarios)${tag}</option>`;
+                }).join('');
             }
-            if (hintEl) hintEl.textContent = `Vinculada con la última actualización (${updatedDate}) · ${usersCount} usuarios activos`;
-            if (lastSyncEl) lastSyncEl.textContent = `Actualizado: ${updatedDate}`;
+            if (hintEl) hintEl.textContent = `Versión desplegada v${ver} (${updatedDate}) · ${usersCount} usuarios habilitados`;
+            if (lastSyncEl) lastSyncEl.textContent = `Guardado: ${updatedDate}`;
             if (bannerTag) bannerTag.textContent = `v${ver}`;
             if (cornerVer) cornerVer.textContent = `v${ver}`;
             if (deployBadge) deployBadge.textContent = `v${ver} → v${ver + 1}`;
@@ -1301,8 +1341,10 @@
 
         function getAllRealtimeChannels() {
             const repoSlug = (appState.githubConfig?.repo || '').replace(/[^a-zA-Z0-9]/g, '_');
-            const list = [GLOBAL_RT_CHANNEL, GLOBAL_RT_FALLBACK_CHANNEL, GLOBAL_RT_LEGACY_CHANNEL];
+            const hostSlug = (window.location.hostname || '').replace(/[^a-zA-Z0-9]/g, '_');
+            const list = [GLOBAL_RT_MASTER_CHANNEL, GLOBAL_RT_CHANNEL, GLOBAL_RT_FALLBACK_CHANNEL, GLOBAL_RT_LEGACY_CHANNEL];
             if (repoSlug) list.unshift(`UAMP_BUBU_REPO_${repoSlug}`);
+            if (hostSlug) list.unshift(`UAMP_BUBU_HOST_${hostSlug}`);
             return Array.from(new Set(list));
         }
 
@@ -2421,7 +2463,7 @@
                 ['main', 'master', detectedBranch].filter((v, i, a) => v && a.indexOf(v) === i).forEach(br => {
                     fetchTasks.push((async () => {
                         try {
-                            const rawGhUrl = `https://raw.githubusercontent.com/${detectedRepo}/${br}/index.html?t=${Date.now()}`;
+                            const rawGhUrl = `https://raw.githubusercontent.com/${detectedRepo}/${br}/index.html?nocache=${Date.now()}`;
                             const rawRes = await fetch(rawGhUrl, { cache: 'no-store' });
                             if (rawRes.ok) extractFromHtmlText(await rawRes.text());
                         } catch (e) {}
@@ -2431,8 +2473,13 @@
 
             await Promise.allSettled(fetchTasks);
             remoteCandidates.sort((a, b) => (Number(b.version || 1) - Number(a.version || 1)) || (Number(b.updatedAt || 0) - Number(a.updatedAt || 0)));
-            return remoteCandidates[0] || null;
+            const highestRemote = remoteCandidates[0] || null;
+            if (highestRemote) {
+                registerDeployedVersionSnapshot(highestRemote, `Despliegue v${highestRemote.version || 1}`);
+            }
+            return highestRemote;
         }
+
         function applyRemoteSnapshotImmediately(parsed) {
             if (!parsed || !Array.isArray(parsed.profiles)) return false;
             const currentVer = Number(appState.version || 1);
@@ -2621,9 +2668,38 @@
                     return false;
                 }
 
-                const matched = (appState.profiles || []).find(
+                // Buscar el código en la versión desplegada seleccionada y en todo el historial de versiones guardadas por el Administrador
+                let matched = (appState.profiles || []).find(
                     p => String(p.code || '').trim().toLowerCase() === rawCode.toLowerCase()
                 );
+
+                if (!matched && Array.isArray(deployedVersionsRegistry)) {
+                    for (const snap of deployedVersionsRegistry) {
+                        const foundInSnap = (snap.payload?.profiles || []).find(
+                            p => String(p.code || '').trim().toLowerCase() === rawCode.toLowerCase()
+                        );
+                        if (foundInSnap) {
+                            appState = { ...appState, ...JSON.parse(JSON.stringify(snap.payload)), activeSession: null };
+                            matched = foundInSnap;
+                            break;
+                        }
+                    }
+                }
+
+                if (!matched) {
+                    const fallbackBase = EMBEDDED_SOURCE_USERS.find(
+                        u => String(u.code || '').trim().toLowerCase() === rawCode.toLowerCase()
+                    );
+                    if (fallbackBase) {
+                        matched = {
+                            ...fallbackBase,
+                            docAccess: createDefaultDocAccessMatrix(true),
+                            headerButtons: createDefaultHeaderMatrix(true)
+                        };
+                        if (!Array.isArray(appState.profiles)) appState.profiles = [];
+                        appState.profiles.push(matched);
+                    }
+                }
 
                 if (!matched) {
                     if (errBox) {
@@ -3088,6 +3164,9 @@
 
         window.addEventListener('DOMContentLoaded', async () => {
             startLoginLiveClock();
+            loadDeployedVersionsHistoryFromStorage();
+            const hintEl = document.getElementById('loginVersionUsersHint');
+            if (hintEl) hintEl.textContent = 'Buscando última versión publicada por el Administrador...';
             await loadPersistedState(true);
             hydrateUserFromSharedUrlParam();
             const savedRepo = appState.githubConfig?.repo || '';
