@@ -1076,6 +1076,7 @@
         const GLOBAL_RT_FALLBACK_CHANNEL = 'UAMP_BUBU_1_0_GLOBAL_REALTIME_SYNC_V2';
         const GLOBAL_RT_LEGACY_CHANNEL = 'UAMP_BUBU_1_0_GLOBAL_REALTIME_SYNC_V1';
         const GLOBAL_RT_MASTER_CHANNEL = 'UAMP_BUBU_1_0_MASTER_LIVE_STREAM';
+        const GLOBAL_RT_LATEST_OVERRIDE_CHANNEL = 'UAMP_BUBU_1_0_ADMIN_LATEST_DEPLOYMENT_V4';
         const MIN_VALID_DEPLOY_VERSION = 34;
         const DEFAULT_DOC_TEMPLATES = {
             estudios: {
@@ -1263,11 +1264,43 @@
 
         function getAllRealtimeChannels() {
             return [
+                GLOBAL_RT_LATEST_OVERRIDE_CHANNEL,
                 GLOBAL_RT_CHANNEL,
                 GLOBAL_RT_FALLBACK_CHANNEL,
                 GLOBAL_RT_LEGACY_CHANNEL,
                 GLOBAL_RT_MASTER_CHANNEL
             ];
+        }
+
+        function getCandidateFreshnessScore(obj) {
+            if (!obj || typeof obj !== 'object') return { ver: 0, ts: 0, adminFlag: 0 };
+            const ver = Number(obj.version || 1);
+            const ts = Number(obj.adminPublishedAt || obj.updatedAt || 0);
+            const adminFlag = obj.isAdminDeployment ? 1 : 0;
+            return { ver, ts, adminFlag };
+        }
+
+        function isCandidateNewerThan(candidate, current) {
+            if (!candidate) return false;
+            const c = getCandidateFreshnessScore(candidate);
+            if (c.ver < MIN_VALID_DEPLOY_VERSION) return false;
+            if (!current) return true;
+            const cur = getCandidateFreshnessScore(current);
+            if (c.ver !== cur.ver) return c.ver > cur.ver;
+            if (c.ts !== cur.ts) return c.ts > cur.ts;
+            return c.adminFlag > cur.adminFlag;
+        }
+
+        function purgeOutdatedSnapshotsBelow(minVer, minTs = 0) {
+            const targetVer = Math.max(Number(minVer || 1), MIN_VALID_DEPLOY_VERSION);
+            deployedVersionsRegistry = (deployedVersionsRegistry || []).filter(item => {
+                if (!item || !item.payload) return false;
+                const v = Number(item.version || item.payload.version || 0);
+                const t = Number(item.updatedAt || item.payload.updatedAt || 0);
+                if (v < targetVer) return false;
+                if (v === targetVer && minTs > 0 && t < minTs) return false;
+                return true;
+            });
         }
 
         function loadDeployedVersionsHistoryFromStorage() {
@@ -1280,6 +1313,10 @@
                         deployedVersionsRegistry = parsed
                             .filter(item => item && item.payload && Number(item.version || 0) >= currentVer)
                             .sort((a, b) => (Number(b.version) - Number(a.version)) || (Number(b.updatedAt || 0) - Number(a.updatedAt || 0)));
+                        if (deployedVersionsRegistry.length > 0) {
+                            const top = deployedVersionsRegistry[0];
+                            purgeOutdatedSnapshotsBelow(top.version, top.updatedAt);
+                        }
                     }
                 }
             } catch (e) {
@@ -1311,14 +1348,31 @@
             const ver = Math.max(Number(payload.version || appState.version || 1), MIN_VALID_DEPLOY_VERSION);
             const cleanPayload = JSON.parse(JSON.stringify(payload));
             cleanPayload.version = ver;
+            cleanPayload.isAdminDeployment = true;
+            if (!cleanPayload.updatedAt) cleanPayload.updatedAt = Date.now();
             delete cleanPayload.activeSession;
-            deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= ver);
+
+            // Descarta cualquier versión rezagada inferior o más antigua que el registro actual
+            purgeOutdatedSnapshotsBelow(ver, cleanPayload.updatedAt);
+
             const idx = deployedVersionsRegistry.findIndex(v => Number(v.version) === ver);
-            const entry = { version: ver, label, updatedAt: cleanPayload.updatedAt || Date.now(), payload: cleanPayload };
-            if (idx >= 0) deployedVersionsRegistry[idx] = entry;
-            else deployedVersionsRegistry.push(entry);
+            const entry = {
+                version: ver,
+                label,
+                updatedAt: cleanPayload.updatedAt,
+                isAdminDeployment: true,
+                payload: cleanPayload
+            };
+            if (idx >= 0) {
+                if (Number(cleanPayload.updatedAt) >= Number(deployedVersionsRegistry[idx].updatedAt || 0)) {
+                    deployedVersionsRegistry[idx] = entry;
+                }
+            } else {
+                deployedVersionsRegistry.push(entry);
+            }
             deployedVersionsRegistry.sort((a, b) => (Number(b.version) - Number(a.version)) || (Number(b.updatedAt || 0) - Number(a.updatedAt || 0)));
-            if (deployedVersionsRegistry.length > 5) deployedVersionsRegistry = deployedVersionsRegistry.slice(0, 5);
+            // Conserva únicamente el despliegue más reciente publicado por el Administrador
+            deployedVersionsRegistry = deployedVersionsRegistry.slice(0, 1);
             try {
                 localStorage.setItem(DEPLOYED_HISTORY_STORAGE_KEY, JSON.stringify(deployedVersionsRegistry));
             } catch (e) {}
@@ -1327,12 +1381,12 @@
         function enforceLatestAdminSession() {
             const rawCurrentVer = Number(appState.version || 1);
             let highestVer = Math.max(rawCurrentVer, MIN_VALID_DEPLOY_VERSION);
-            let highestTime = Number(appState.updatedAt || 0);
+            let highestTime = Number(appState.adminPublishedAt || appState.updatedAt || 0);
             let newestPayload = null;
 
             deployedVersionsRegistry.forEach(item => {
                 const itemVer = Number(item?.version || 0);
-                const itemTime = Number(item?.updatedAt || item?.payload?.updatedAt || 0);
+                const itemTime = Number(item?.updatedAt || item?.payload?.adminPublishedAt || item?.payload?.updatedAt || 0);
                 if (item && item.payload && (itemVer > highestVer || (itemVer === highestVer && itemTime > highestTime))) {
                     highestVer = itemVer;
                     highestTime = itemTime;
@@ -1345,9 +1399,12 @@
                 appState = { ...appState, ...JSON.parse(JSON.stringify(newestPayload)), activeSession: activeSess };
             }
             appState.version = Math.max(Number(appState.version || 1), highestVer, MIN_VALID_DEPLOY_VERSION);
+            if (!appState.updatedAt || highestTime > Number(appState.updatedAt)) {
+                appState.updatedAt = highestTime || Date.now();
+            }
 
             const finalVer = Number(appState.version);
-            deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= finalVer);
+            purgeOutdatedSnapshotsBelow(finalVer, Number(appState.updatedAt || 0));
             if (!deployedVersionsRegistry.some(v => Number(v.version) === finalVer)) {
                 registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), 'Última Versión Desplegada por Admin');
             }
@@ -1362,7 +1419,7 @@
         function renderLoginDeployedVersionsSelect() {
             const ver = Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION);
             appState.version = ver;
-            deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= ver);
+            purgeOutdatedSnapshotsBelow(ver, Number(appState.updatedAt || 0));
             const usersCount = (appState.profiles || []).length;
             const updatedDate = appState.updatedAt
                 ? new Date(appState.updatedAt).toLocaleString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
@@ -1382,10 +1439,10 @@
                 if (!deployedVersionsRegistry.some(v => Number(v.version) === ver)) {
                     registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), 'Última Versión Desplegada');
                 }
-                selectEl.innerHTML = deployedVersionsRegistry.map((item, idx) => {
+                const latestOnly = deployedVersionsRegistry.slice(0, 1);
+                selectEl.innerHTML = latestOnly.map(item => {
                     const uCount = (item.payload?.profiles || []).length;
-                    const tag = idx === 0 ? ' · ÚLTIMA VERSIÓN ADMIN' : '';
-                    return `<option value="${item.version}" ${Number(item.version) === ver ? 'selected' : ''}>Versión Desplegada v${item.version} (${uCount} usuarios)${tag}</option>`;
+                    return `<option value="${item.version}" selected>Versión Desplegada Actual v${item.version} (${uCount} usuarios) · PUBLICADA POR ADMIN</option>`;
                 }).join('');
                 selectEl.value = String(ver);
             }
@@ -1397,8 +1454,14 @@
         }
         function persistBaseState(saveLocal = true, saveDom = true, pushCloud = false) {
             try {
+                const nowTs = Date.now();
                 appState.version = Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION);
-                appState.updatedAt = Date.now();
+                appState.updatedAt = nowTs;
+                if (pushCloud) {
+                    appState.adminPublishedAt = nowTs;
+                    appState.isAdminDeployment = true;
+                }
+                purgeOutdatedSnapshotsBelow(appState.version, nowTs);
                 const serialized = JSON.stringify(buildSerializableVaultPayload(false));
                 if (saveLocal) {
                     try { localStorage.setItem(STORAGE_KEY, serialized); } catch (e) {}
@@ -1426,6 +1489,9 @@
                     const cloudCompact = JSON.stringify({
                         version: Number(appState.version || 1),
                         updatedAt: appState.updatedAt,
+                        adminPublishedAt: appState.adminPublishedAt || appState.updatedAt,
+                        isAdminDeployment: true,
+                        replacePrevious: true,
                         signer: appState.signer,
                         majors: appState.majors,
                         periods: appState.periods,
@@ -1439,8 +1505,9 @@
                             method: 'POST',
                             cache: 'no-store',
                             headers: {
-                                'Title': `UAMP_DEPLOY_V${appState.version}`,
-                                'Priority': 'high'
+                                'Title': `UAMP_ADMIN_REPLACE_V${appState.version}_${appState.updatedAt}`,
+                                'Priority': 'urgent',
+                                'Tags': 'rotating_light,rocket'
                             },
                             body: cloudCompact
                         }).catch(() => {});
@@ -1513,7 +1580,11 @@
                 if (!rawObj || !Array.isArray(rawObj.profiles)) return null;
                 const v = Number(rawObj.version || 1);
                 if (v < MIN_VALID_DEPLOY_VERSION) return null;
-                return { ...rawObj, version: v };
+                return {
+                    ...rawObj,
+                    version: v,
+                    updatedAt: Number(rawObj.adminPublishedAt || rawObj.updatedAt || 0)
+                };
             };
             const extractFromHtmlText = (htmlText) => {
                 if (!htmlText) return;
@@ -1568,7 +1639,8 @@
                                     if (evt && evt.message && evt.message.trim().startsWith('{')) {
                                         const parsed = normalizeCandidate(JSON.parse(evt.message));
                                         if (parsed) {
-                                            if (!parsed.updatedAt && evt.time) parsed.updatedAt = Number(evt.time) * 1000;
+                                            const evtTimeMs = evt.time ? Number(evt.time) * 1000 : 0;
+                                            if (evtTimeMs > parsed.updatedAt) parsed.updatedAt = evtTimeMs;
                                             remoteCandidates.push(parsed);
                                         }
                                     }
@@ -1602,10 +1674,17 @@
             }
 
             await Promise.allSettled(fetchTasks);
-            remoteCandidates.sort((a, b) => (Number(b.version || 1) - Number(a.version || 1)) || (Number(b.updatedAt || 0) - Number(a.updatedAt || 0)));
+            remoteCandidates.sort((a, b) => {
+                const verDiff = Number(b.version || 1) - Number(a.version || 1);
+                if (verDiff !== 0) return verDiff;
+                const tsDiff = Number(b.adminPublishedAt || b.updatedAt || 0) - Number(a.adminPublishedAt || a.updatedAt || 0);
+                if (tsDiff !== 0) return tsDiff;
+                return (b.isAdminDeployment ? 1 : 0) - (a.isAdminDeployment ? 1 : 0);
+            });
             const highestRemote = remoteCandidates[0] || null;
             if (highestRemote) {
-                registerDeployedVersionSnapshot(highestRemote, `Despliegue v${highestRemote.version || MIN_VALID_DEPLOY_VERSION}`);
+                purgeOutdatedSnapshotsBelow(highestRemote.version, highestRemote.updatedAt);
+                registerDeployedVersionSnapshot(highestRemote, `Despliegue Admin v${highestRemote.version}`);
             }
             return highestRemote;
         }
@@ -1615,12 +1694,22 @@
             const currentVer = Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION);
             const incomingVer = Number(parsed.version || 1);
             if (incomingVer < MIN_VALID_DEPLOY_VERSION) return false;
-            const incomingTime = Number(parsed.updatedAt || 0);
-            const currentTime = Number(appState.updatedAt || 0);
-            if (incomingVer > currentVer || (incomingVer === currentVer && incomingTime >= currentTime)) {
+            const incomingTime = Number(parsed.adminPublishedAt || parsed.updatedAt || 0);
+            const currentTime = Number(appState.adminPublishedAt || appState.updatedAt || 0);
+            const shouldReplace =
+                incomingVer > currentVer ||
+                (incomingVer === currentVer && (incomingTime > currentTime || parsed.replacePrevious === true));
+
+            if (shouldReplace) {
                 const activeSess = appState.activeSession;
-                deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= incomingVer);
-                appState = { ...appState, ...parsed, version: incomingVer, activeSession: activeSess };
+                deployedVersionsRegistry = [];
+                appState = {
+                    ...appState,
+                    ...parsed,
+                    version: incomingVer,
+                    updatedAt: incomingTime || Date.now(),
+                    activeSession: activeSess
+                };
                 registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), `Despliegue Admin v${incomingVer}`);
                 enforceLatestAdminSession();
                 if (!document.getElementById('mainAppWorkspace')?.classList.contains('hidden')) {
@@ -1637,37 +1726,49 @@
 
         async function loadPersistedState(forceApply = false) {
             const candidates = [];
-            const pushValidCandidate = (obj) => {
+            const pushValidCandidate = (obj, sourcePriority = 0) => {
                 if (!obj || typeof obj !== 'object') return;
                 const v = Number(obj.version || 1);
                 if (v < MIN_VALID_DEPLOY_VERSION) return;
-                candidates.push({ ...obj, version: v });
+                candidates.push({
+                    ...obj,
+                    version: v,
+                    updatedAt: Number(obj.adminPublishedAt || obj.updatedAt || 0),
+                    _sourcePriority: sourcePriority
+                });
             };
             try {
                 const rawLocal = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(BACKUP_STORAGE_KEY);
-                if (rawLocal) pushValidCandidate(JSON.parse(rawLocal));
+                if (rawLocal) pushValidCandidate(JSON.parse(rawLocal), 1);
             } catch (e) {}
             try {
                 if (window.name && window.name.trim().startsWith('{')) {
-                    pushValidCandidate(JSON.parse(window.name));
+                    pushValidCandidate(JSON.parse(window.name), 1);
                 }
             } catch (e) {}
             try {
                 const domRaw = document.getElementById('embeddedInternalVaultData')?.textContent?.trim();
-                if (domRaw && domRaw !== '{}') pushValidCandidate(JSON.parse(domRaw));
+                if (domRaw && domRaw !== '{}') pushValidCandidate(JSON.parse(domRaw), 2);
             } catch (e) {}
 
             const remoteBest = await fetchRemoteLatestState();
-            if (remoteBest) pushValidCandidate(remoteBest);
+            if (remoteBest) pushValidCandidate(remoteBest, 3);
 
-            candidates.sort((a, b) => (Number(b.version || 1) - Number(a.version || 1)) || (Number(b.updatedAt || 0) - Number(a.updatedAt || 0)));
+            candidates.sort((a, b) => {
+                const verDiff = Number(b.version || 1) - Number(a.version || 1);
+                if (verDiff !== 0) return verDiff;
+                const tsDiff = Number(b.updatedAt || 0) - Number(a.updatedAt || 0);
+                if (tsDiff !== 0) return tsDiff;
+                return (b._sourcePriority || 0) - (a._sourcePriority || 0);
+            });
             const best = candidates[0];
-            if (best && (forceApply || Number(best.version || 1) >= Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION))) {
+            if (best && (forceApply || isCandidateNewerThan(best, appState))) {
                 const activeSess = appState.activeSession;
                 const bestVer = Math.max(Number(best.version || 1), MIN_VALID_DEPLOY_VERSION);
-                deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= bestVer);
+                delete best._sourcePriority;
+                deployedVersionsRegistry = [];
                 appState = { ...appState, ...best, version: bestVer, activeSession: activeSess };
-                registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), `Despliegue v${bestVer}`);
+                registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), `Despliegue Admin v${bestVer}`);
                 enforceLatestAdminSession();
             } else {
                 enforceLatestAdminSession();
@@ -1728,24 +1829,29 @@
 
         function hydrateInstantLocalAndEmbeddedState() {
             const candidates = [];
-            const pushCandidate = (obj) => {
+            const pushCandidate = (obj, sourcePriority = 0) => {
                 if (!obj || typeof obj !== 'object') return;
                 const v = Number(obj.version || 1);
                 if (v < MIN_VALID_DEPLOY_VERSION) return;
-                candidates.push({ ...obj, version: v });
+                candidates.push({
+                    ...obj,
+                    version: v,
+                    updatedAt: Number(obj.adminPublishedAt || obj.updatedAt || 0),
+                    _sourcePriority: sourcePriority
+                });
             };
             try {
                 const rawLocal = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(BACKUP_STORAGE_KEY);
-                if (rawLocal) pushCandidate(JSON.parse(rawLocal));
+                if (rawLocal) pushCandidate(JSON.parse(rawLocal), 1);
             } catch (e) {}
             try {
                 if (window.name && window.name.trim().startsWith('{')) {
-                    pushCandidate(JSON.parse(window.name));
+                    pushCandidate(JSON.parse(window.name), 1);
                 }
             } catch (e) {}
             try {
                 const domRaw = document.getElementById('embeddedInternalVaultData')?.textContent?.trim();
-                if (domRaw && domRaw !== '{}') pushCandidate(JSON.parse(domRaw));
+                if (domRaw && domRaw !== '{}') pushCandidate(JSON.parse(domRaw), 2);
             } catch (e) {}
             try {
                 const histRaw = localStorage.getItem(DEPLOYED_HISTORY_STORAGE_KEY);
@@ -1753,7 +1859,7 @@
                     const parsedHist = JSON.parse(histRaw);
                     if (Array.isArray(parsedHist)) {
                         parsedHist.forEach(item => {
-                            if (item && item.payload) pushCandidate(item.payload);
+                            if (item && item.payload) pushCandidate(item.payload, 1);
                         });
                     }
                 }
@@ -1766,17 +1872,24 @@
                 }
             } catch (e) {}
 
-            candidates.sort((a, b) => (Number(b.version || 1) - Number(a.version || 1)) || (Number(b.updatedAt || 0) - Number(a.updatedAt || 0)));
+            candidates.sort((a, b) => {
+                const verDiff = Number(b.version || 1) - Number(a.version || 1);
+                if (verDiff !== 0) return verDiff;
+                const tsDiff = Number(b.updatedAt || 0) - Number(a.updatedAt || 0);
+                if (tsDiff !== 0) return tsDiff;
+                return (b._sourcePriority || 0) - (a._sourcePriority || 0);
+            });
             const highest = candidates[0];
             if (highest) {
                 const activeSess = appState.activeSession;
                 const highestVer = Math.max(Number(highest.version || 1), MIN_VALID_DEPLOY_VERSION);
-                deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= highestVer);
+                delete highest._sourcePriority;
+                deployedVersionsRegistry = [];
                 appState = { ...appState, ...highest, version: highestVer, activeSession: activeSess };
             }
             const activeVer = Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION);
             appState.version = activeVer;
-            deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= activeVer);
+            purgeOutdatedSnapshotsBelow(activeVer, Number(appState.updatedAt || 0));
             registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), `Última Versión Desplegada v${activeVer}`);
             enforceLatestAdminSession();
             renderLoginDeployedVersionsSelect();
