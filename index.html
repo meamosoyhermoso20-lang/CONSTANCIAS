@@ -195,10 +195,10 @@
                             </button>
                         </div>
                         <select id="selLoginDeployedVersion" onchange="applySelectedDeployedVersionOnLogin(this.value)" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-emerald-500/50 text-xs font-mono font-black text-amber-300 outline-none cursor-pointer">
-                            <option value="current">Buscando última versión desplegada...</option>
+                            <option value="current">Sincronizando última versión...</option>
                         </select>
                         <div id="loginDeployedVersionReadonly" class="hidden"></div>
-                        <div id="loginVersionUsersHint" class="text-[10px] text-amber-300 font-semibold">Buscando última versión publicada por el Administrador...</div>
+                        <div id="loginVersionUsersHint" class="text-[10px] text-amber-300 font-semibold">Vinculando con la última versión publicada por el Administrador...</div>
                     </div>
                 </div>
             </div>
@@ -1076,6 +1076,7 @@
         const GLOBAL_RT_FALLBACK_CHANNEL = 'UAMP_BUBU_1_0_GLOBAL_REALTIME_SYNC_V2';
         const GLOBAL_RT_LEGACY_CHANNEL = 'UAMP_BUBU_1_0_GLOBAL_REALTIME_SYNC_V1';
         const GLOBAL_RT_MASTER_CHANNEL = 'UAMP_BUBU_1_0_MASTER_LIVE_STREAM';
+        const MIN_VALID_DEPLOY_VERSION = 34;
         const DEFAULT_DOC_TEMPLATES = {
             estudios: {
                 title: 'Constancia de Estudios',
@@ -1275,10 +1276,10 @@
                 if (raw) {
                     const parsed = JSON.parse(raw);
                     if (Array.isArray(parsed)) {
-                        const currentVer = Number(appState.version || 1);
+                        const currentVer = Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION);
                         deployedVersionsRegistry = parsed
                             .filter(item => item && item.payload && Number(item.version || 0) >= currentVer)
-                            .sort((a, b) => Number(b.version) - Number(a.version));
+                            .sort((a, b) => (Number(b.version) - Number(a.version)) || (Number(b.updatedAt || 0) - Number(a.updatedAt || 0)));
                     }
                 }
             } catch (e) {
@@ -1307,15 +1308,16 @@
 
         function registerDeployedVersionSnapshot(payload, label = 'Despliegue Guardado por Admin') {
             if (!payload) return;
-            const ver = Number(payload.version || appState.version || 1);
+            const ver = Math.max(Number(payload.version || appState.version || 1), MIN_VALID_DEPLOY_VERSION);
             const cleanPayload = JSON.parse(JSON.stringify(payload));
+            cleanPayload.version = ver;
             delete cleanPayload.activeSession;
             deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= ver);
             const idx = deployedVersionsRegistry.findIndex(v => Number(v.version) === ver);
             const entry = { version: ver, label, updatedAt: cleanPayload.updatedAt || Date.now(), payload: cleanPayload };
             if (idx >= 0) deployedVersionsRegistry[idx] = entry;
             else deployedVersionsRegistry.push(entry);
-            deployedVersionsRegistry.sort((a, b) => Number(b.version) - Number(a.version));
+            deployedVersionsRegistry.sort((a, b) => (Number(b.version) - Number(a.version)) || (Number(b.updatedAt || 0) - Number(a.updatedAt || 0)));
             if (deployedVersionsRegistry.length > 5) deployedVersionsRegistry = deployedVersionsRegistry.slice(0, 5);
             try {
                 localStorage.setItem(DEPLOYED_HISTORY_STORAGE_KEY, JSON.stringify(deployedVersionsRegistry));
@@ -1323,24 +1325,28 @@
         }
 
         function enforceLatestAdminSession() {
-            const currentVer = Number(appState.version || 1);
-            let highestVer = currentVer;
+            const rawCurrentVer = Number(appState.version || 1);
+            let highestVer = Math.max(rawCurrentVer, MIN_VALID_DEPLOY_VERSION);
+            let highestTime = Number(appState.updatedAt || 0);
             let newestPayload = null;
 
             deployedVersionsRegistry.forEach(item => {
                 const itemVer = Number(item?.version || 0);
-                if (itemVer > highestVer && item.payload) {
+                const itemTime = Number(item?.updatedAt || item?.payload?.updatedAt || 0);
+                if (item && item.payload && (itemVer > highestVer || (itemVer === highestVer && itemTime > highestTime))) {
                     highestVer = itemVer;
+                    highestTime = itemTime;
                     newestPayload = item.payload;
                 }
             });
 
-            if (newestPayload && highestVer > currentVer) {
+            if (newestPayload) {
                 const activeSess = appState.activeSession;
                 appState = { ...appState, ...JSON.parse(JSON.stringify(newestPayload)), activeSession: activeSess };
             }
+            appState.version = Math.max(Number(appState.version || 1), highestVer, MIN_VALID_DEPLOY_VERSION);
 
-            const finalVer = Number(appState.version || 1);
+            const finalVer = Number(appState.version);
             deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= finalVer);
             if (!deployedVersionsRegistry.some(v => Number(v.version) === finalVer)) {
                 registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), 'Última Versión Desplegada por Admin');
@@ -1354,7 +1360,8 @@
             renderLoginDeployedVersionsSelect();
         }
         function renderLoginDeployedVersionsSelect() {
-            const ver = Number(appState.version || 1);
+            const ver = Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION);
+            appState.version = ver;
             deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= ver);
             const usersCount = (appState.profiles || []).length;
             const updatedDate = appState.updatedAt
@@ -1390,6 +1397,7 @@
         }
         function persistBaseState(saveLocal = true, saveDom = true, pushCloud = false) {
             try {
+                appState.version = Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION);
                 appState.updatedAt = Date.now();
                 const serialized = JSON.stringify(buildSerializableVaultPayload(false));
                 if (saveLocal) {
@@ -1430,6 +1438,10 @@
                         fetch(`https://ntfy.sh/${ch}`, {
                             method: 'POST',
                             cache: 'no-store',
+                            headers: {
+                                'Title': `UAMP_DEPLOY_V${appState.version}`,
+                                'Priority': 'high'
+                            },
                             body: cloudCompact
                         }).catch(() => {});
                     });
@@ -1476,793 +1488,7 @@
 
         async function saveStateAndSourceToCacheApi(serializedVault) {
             try {
-                if (!('caches' in window)) return;
-                const cache = await caches.open(CACHE_STORAGE_NAME);
-                await cache.put(CACHE_VAULT_URL, new Response(serializedVault, { headers: { 'Content-Type': 'application/json' } }));
-            } catch (e) {}
-        }
-
-        function refreshSourceCodePreviewBox() {
-            const box = document.getElementById('txtLiveGeneratedSourceCode');
-            if (!box) return;
-            box.value = buildUpdatedFullSourceCodeHtml();
-        }
-
-        function copyUpdatedSourceCodeToClipboard() {
-            const fullSource = buildUpdatedFullSourceCodeHtml();
-            const box = document.getElementById('txtLiveGeneratedSourceCode');
-            if (box) box.value = fullSource;
-            const ta = document.createElement('textarea');
-            ta.value = fullSource;
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
-            showToast(`Código fuente completo (v${appState.version}) copiado al portapapeles.`);
-        }
-
-        function saveGithubIntegrationSettings() {
-            if (!appState.githubConfig) appState.githubConfig = { repo: '', branch: 'main', filePath: 'index.html' };
-            const repo = document.getElementById('inpGithubRepo')?.value.trim();
-            const branch = document.getElementById('inpGithubBranch')?.value.trim();
-            const token = document.getElementById('inpGithubToken')?.value.trim();
-            if (repo !== undefined) appState.githubConfig.repo = repo;
-            if (branch) appState.githubConfig.branch = branch;
-            if (token) {
-                try { localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token); } catch (e) {}
-            }
-            updateGithubSummaryUI();
-        }
-
-        function autoDetectGithubRepoFromHost(notify = true) {
-            const host = window.location.hostname || '';
-            const pathParts = (window.location.pathname || '').split('/').filter(Boolean);
-            if (host.endsWith('.github.io') && pathParts.length > 0) {
-                const owner = host.replace('.github.io', '');
-                const repo = `${owner}/${pathParts[0]}`;
-                const inp = document.getElementById('inpGithubRepo');
-                if (inp) inp.value = repo;
-                saveGithubIntegrationSettings();
-                if (notify) showToast(`Repositorio detectado: ${repo}`);
-            } else if (notify) {
-                showToast('Ingresa manualmente usuario/repositorio en el campo.');
-            }
-        }
-
-        function toggleGithubTokenVisibility() {
-            const inp = document.getElementById('inpGithubToken');
-            if (inp) inp.type = inp.type === 'password' ? 'text' : 'password';
-        }
-
-        function openOfficialGithubTokenGenerator() {
-            window.open('https://github.com/settings/tokens/new?scopes=repo&description=SISTEMA_BUBU_1_0_UAMP', '_blank', 'noopener');
-        }
-
-        async function linkGithubTokenWithRepository() {
-            saveGithubIntegrationSettings();
-            const ok = await pushUpdatedSourceCodeToGithubRepo(true);
-            if (ok) showToast('Token vinculado y código fuente sincronizado en GitHub.');
-        }
-
-        function extractAndAutoLoadSystemData() {
-            autoDetectGithubRepoFromHost(false);
-            updateGithubSummaryUI();
-            refreshSourceCodePreviewBox();
-            showToast('Datos del sistema extraídos y listos en el código fuente.');
-        }
-
-        function utf8ToBase64(str) {
-            const bytes = new TextEncoder().encode(str);
-            let bin = '';
-            for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-            return btoa(bin);
-        }
-
-        async function pushUpdatedSourceCodeToGithubRepo(notify = true) {
-            const repo = (appState.githubConfig?.repo || document.getElementById('inpGithubRepo')?.value || '').trim();
-            const branch = (appState.githubConfig?.branch || document.getElementById('inpGithubBranch')?.value || 'main').trim();
-            const filePath = (appState.githubConfig?.filePath || 'index.html').trim();
-            const token = (document.getElementById('inpGithubToken')?.value || localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '').trim();
-            if (!repo || !token) {
-                if (notify) showToast('Configura el Repositorio y el Token PAT de GitHub para subir el código fuente.');
-                return false;
-            }
-            const badge = document.getElementById('githubSyncStatusBadge');
-            if (badge) badge.textContent = 'Subiendo index.html a GitHub...';
-            try {
-                const apiUrl = `https://api.github.com/repos/${repo}/contents/${filePath}`;
-                let sha = undefined;
-                const getRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(branch)}`, {
-                    headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
-                });
-                if (getRes.ok) {
-                    const meta = await getRes.json();
-                    sha = meta.sha;
-                }
-                const fullSource = buildUpdatedFullSourceCodeHtml();
-                const putRes = await fetch(apiUrl, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Accept': 'application/vnd.github.v3+json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        message: `Actualización automática SISTEMA BUBU 1.0 (v${appState.version})`,
-                        content: utf8ToBase64(fullSource),
-                        branch,
-                        ...(sha ? { sha } : {})
-                    })
-                });
-                if (!putRes.ok) {
-                    if (badge) badge.textContent = 'Error al subir a GitHub';
-                    if (notify) showToast('No se pudo subir a GitHub. Verifica el permiso "repo" del token.');
-                    return false;
-                }
-                if (badge) badge.textContent = `Publicado en GitHub (v${appState.version}) ✓`;
-                if (notify) showToast(`Código fuente index.html (v${appState.version}) guardado en GitHub.`);
-                return true;
-            } catch (e) {
-                if (badge) badge.textContent = 'Error de red GitHub';
-                return false;
-            }
-        }
-
-        function switchMainWorkspaceTab(tabName) {
-            const views = {
-                generador: document.getElementById('workspaceViewGenerador'),
-                catalogos: document.getElementById('workspaceViewCatalogos'),
-                control_panel: document.getElementById('workspaceViewControlPanel')
-            };
-            Object.entries(views).forEach(([key, el]) => {
-                if (!el) return;
-                if (key === tabName) {
-                    el.classList.remove('hidden');
-                    el.style.display = 'block';
-                } else {
-                    el.classList.add('hidden');
-                    el.style.display = 'none';
-                }
-            });
-            document.querySelectorAll('nav button[data-header-btn]').forEach(btn => {
-                const isActive =
-                    (tabName === 'generador' && btn.id === 'tabBtnGenerador') ||
-                    (tabName === 'catalogos' && btn.id === 'tabBtnCatalogos') ||
-                    (tabName === 'control_panel' && btn.id === 'tabBtnControlPanel');
-                btn.className = isActive
-                    ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-700 text-white shadow-sm transition cursor-pointer'
-                    : 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-700 transition cursor-pointer';
-            });
-            if (tabName === 'control_panel') {
-                renderProfilesManager();
-                refreshSourceCodePreviewBox();
-            }
-            if (tabName === 'catalogos') renderMajorsSelectAndCatalog();
-        }
-
-        function toggleUserProfileAccordion(profileId) {
-            const body = document.getElementById(`profileBody_${profileId}`);
-            if (body) body.classList.toggle('hidden');
-        }
-
-        function toggleSelectiveAutoSaveSetting(key, val) {
-            if (!appState.autoSaveSettings) appState.autoSaveSettings = {};
-            appState.autoSaveSettings[key] = Boolean(val);
-            persistBaseState(true, true, false);
-        }
-
-        function selectAllAutoSaveModules(flag) {
-            ['chkMasterAutoSaveRealtime', 'chkAutoSaveForm', 'chkAutoSaveCatalogs', 'chkAutoSaveTemplates', 'chkAutoSaveTables', 'chkAutoSaveUsers', 'chkAutoPublishGithub'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.checked = flag;
-            });
-            persistBaseState(true, true, false);
-        }
-
-        function executeSelectiveAutoSaveNow(notify = false) {
-            persistBaseState(true, true, true);
-            if (notify) showToast('Selección guardada en el código fuente.');
-        }
-
-        function selectDocType(docType) {
-            appState.currentDocType = docType;
-            document.querySelectorAll('.doc-type-btn').forEach(btn => {
-                const active = btn.getAttribute('data-doc-btn') === docType;
-                btn.className = active
-                    ? 'doc-type-btn px-2.5 py-2 rounded-xl text-xs font-bold border border-blue-900 bg-blue-900 text-white text-left transition'
-                    : 'doc-type-btn px-2.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 text-left transition';
-            });
-
-            const tpl = appState.templates[docType] || DEFAULT_DOC_TEMPLATES.estudios;
-            const asuntoInp = document.getElementById('inpAsuntoConstancia');
-            const bodyInp = document.getElementById('txtCustomFormatBody');
-            if (asuntoInp) asuntoInp.value = tpl.asunto || '';
-            if (bodyInp) bodyInp.value = tpl.body || '';
-
-            const badge = document.getElementById('currentDocTypeBadge');
-            if (badge) badge.textContent = docType.toUpperCase();
-
-            const isAdmin = !appState.activeSession || appState.activeSession.role === 'admin';
-            const prof = !isAdmin ? (appState.profiles || []).find(p => p.id === appState.activeSession.profileId) : null;
-            const docRules = prof?.docAccess?.[docType];
-
-            document.querySelectorAll('[data-field-wrap]').forEach(wrap => {
-                const fKey = wrap.getAttribute('data-field-wrap');
-                if (!isAdmin && docRules && docRules.fields && Object.prototype.hasOwnProperty.call(docRules.fields, fKey)) {
-                    if (docRules.fields[fKey]) wrap.classList.remove('hidden');
-                    else wrap.classList.add('hidden');
-                } else {
-                    wrap.classList.remove('hidden');
-                }
-            });
-
-            const vacBox = document.getElementById('periodoVacacionalControls');
-            const antBox = document.getElementById('periodosAnterioresControls');
-            const calBox = document.getElementById('calificacionesControls');
-            const monBox = document.getElementById('montosControls');
-            const karBox = document.getElementById('kardexControls');
-            const resBox = document.getElementById('resguardoControls');
-
-            if (vacBox) vacBox.style.display = (docType === 'estudios' || docType === 'periodo_vacacional') ? 'block' : 'none';
-            if (antBox) antBox.style.display = (docType === 'periodos_anteriores') ? 'block' : 'none';
-            if (calBox) calBox.style.display = (docType === 'calificaciones') ? 'block' : 'none';
-            if (monBox) monBox.style.display = (docType === 'montos') ? 'block' : 'none';
-            if (karBox) karBox.style.display = (docType === 'kardex') ? 'block' : 'none';
-            if (resBox) resBox.style.display = (docType === 'resguardo') ? 'block' : 'none';
-
-            updateDocument();
-        }
-
-        function updateDocument() {
-            const docType = appState.currentDocType || 'estudios';
-            const tpl = appState.templates[docType] || DEFAULT_DOC_TEMPLATES.estudios;
-            const folio = document.getElementById('inpFolio')?.value || '';
-            const lugar = document.getElementById('inpLugarExpedicion')?.value || '';
-            const fecha = document.getElementById('inpFechaExpedicionTexto')?.value || '';
-            const asunto = document.getElementById('inpAsuntoConstancia')?.value || tpl.asunto || '';
-            const nombre = document.getElementById('inpNombre')?.value || '';
-            const genero = document.getElementById('selGeneroAlumno')?.value || 'M';
-            const matricula = document.getElementById('inpMatricula')?.value || '';
-            const curp = document.getElementById('inpCurp')?.value || '';
-            const grado = document.getElementById('inpPeriodoGrado')?.value || '';
-            const vacacional = document.getElementById('inpPeriodoVacacional')?.value || '';
-            const nota = document.getElementById('inpDestinoNota')?.value || '';
-            const verbo = document.getElementById('selVerboCursado')?.value || 'cursó';
-            const lineHeight = document.getElementById('inpDocLineHeight')?.value || '1.3';
-
-            const paper = document.getElementById('constanciaPaper');
-            if (paper) paper.style.lineHeight = lineHeight;
-
-            const majorId = document.getElementById('selLicenciatura')?.value;
-            const major = (appState.majors || []).find(m => m.id === majorId) || appState.majors[0] || {};
-            const periodId = document.getElementById('selPeriodoEscolar')?.value;
-            const period = (appState.periods || []).find(p => p.id === periodId) || appState.periods[0] || {};
-
-            const articulo = genero === 'F' ? 'la alumna' : 'el alumno';
-            const inscrito = genero === 'F' ? 'inscrita' : 'inscrito';
-            const fechaRvoeTexto = major.rvoeDate ? `, de fecha <b>${major.rvoeDate}</b>` : '';
-            const periodoTexto = period.dates ? `, ${period.dates}` : '';
-
-            const gradesRowsHtml = (appState.grades || []).map(g =>
-                `<tr><td style="text-align:center;">${g.group || ''}</td><td style="text-align:center;">${g.code || ''}</td><td>${g.subject || ''}</td><td style="text-align:center;">${g.score || ''}</td></tr>`
-            ).join('');
-            const validScores = (appState.grades || []).map(g => parseFloat(g.score)).filter(n => !isNaN(n));
-            const avgScore = validScores.length ? (validScores.reduce((a, b) => a + b, 0) / validScores.length).toFixed(2) : '0.00';
-
-            const montosRowsHtml = (appState.montos || []).map(m =>
-                `<tr><td style="border:1px solid #000;padding:4px 8px;">${m.concepto || ''}</td><td style="border:1px solid #000;padding:4px 8px;">${m.periodo || ''}</td><td style="border:1px solid #000;padding:4px 8px;text-align:right;">$${Number(m.importe || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td></tr>`
-            ).join('');
-            const totalMontos = '$' + (appState.montos || []).reduce((acc, m) => acc + (parseFloat(m.importe) || 0), 0).toLocaleString('es-MX', { minimumFractionDigits: 2 });
-
-            const kardexRowsHtml = (appState.kardex || []).map(k =>
-                `<tr><td style="border:1px solid #000;padding:3px 6px;">${k.clave || ''}</td><td style="border:1px solid #000;padding:3px 6px;">${k.asignatura || ''}</td><td style="border:1px solid #000;padding:3px 6px;text-align:center;">${k.ciclo || ''}</td><td style="border:1px solid #000;padding:3px 6px;text-align:center;">${k.creditos || ''}</td><td style="border:1px solid #000;padding:3px 6px;text-align:center;">${k.calif || ''}</td></tr>`
-            ).join('');
-            const totalCreds = (appState.kardex || []).reduce((acc, k) => acc + (parseFloat(k.creditos) || 0), 0);
-            const validKardex = (appState.kardex || []).map(k => parseFloat(k.calif)).filter(n => !isNaN(n));
-            const avgKardex = validKardex.length ? (validKardex.reduce((a, b) => a + b, 0) / validKardex.length).toFixed(2) : '0.00';
-
-            const resguardoRowsHtml = (appState.resguardo || []).map(r =>
-                `<tr><td style="border:1px solid #000;padding:4px 8px;text-align:center;">${r.cantidad || ''}</td><td style="border:1px solid #000;padding:4px 8px;">${r.descripcion || ''}</td><td style="border:1px solid #000;padding:4px 8px;">${r.serie || ''}</td><td style="border:1px solid #000;padding:4px 8px;">${r.estado || ''}</td></tr>`
-            ).join('');
-
-            let html = (tpl.body || '')
-                .replace(/\{FOLIO\}/g, folio)
-                .replace(/\{LUGAR\}/g, lugar)
-                .replace(/\{FECHA\}/g, fecha)
-                .replace(/\{ASUNTO\}/g, asunto)
-                .replace(/\{ARTICULO_ALUMNO\}/g, articulo)
-                .replace(/\{INSCRITO_GENERO\}/g, inscrito)
-                .replace(/\{NOMBRE\}/g, nombre)
-                .replace(/\{MATRICULA\}/g, matricula)
-                .replace(/\{CURP\}/g, curp)
-                .replace(/\{PLAN\}/g, major.plan || '')
-                .replace(/\{LICENCIATURA\}/g, major.name || '')
-                .replace(/\{RVOE\}/g, major.rvoe || '')
-                .replace(/\{FECHA_RVOE\}/g, major.rvoeDate || '')
-                .replace(/\{FECHA_RVOE_TEXTO\}/g, fechaRvoeTexto)
-                .replace(/\{GRADO\}/g, grado)
-                .replace(/\{NOMBRE_PERIODO\}/g, period.name || '')
-                .replace(/\{FECHAS_PERIODO\}/g, period.dates || '')
-                .replace(/\{PERIODO_TEXTO\}/g, periodoTexto)
-                .replace(/\{PERIODO_VACACIONAL\}/g, vacacional)
-                .replace(/\{VERBO_CURSADO\}/g, verbo)
-                .replace(/\{FILAS_CALIFICACIONES\}/g, gradesRowsHtml)
-                .replace(/\{PROMEDIO_ARITMETICO\}/g, avgScore)
-                .replace(/\{FILAS_MONTOS\}/g, montosRowsHtml)
-                .replace(/\{TOTAL_MONTOS\}/g, totalMontos)
-                .replace(/\{FILAS_KARDEX\}/g, kardexRowsHtml)
-                .replace(/\{TOTAL_CREDITOS_KARDEX\}/g, String(totalCreds))
-                .replace(/\{PROMEDIO_KARDEX\}/g, avgKardex)
-                .replace(/\{FILAS_RESGUARDO\}/g, resguardoRowsHtml)
-                .replace(/\{NOTA\}/g, nota);
-
-            const folioEl = document.getElementById('docPreviewFolio');
-            const asuntoEl = document.getElementById('docPreviewHeaderAsunto');
-            const dateEl = document.getElementById('docPreviewHeaderDate');
-            const bodyEl = document.getElementById('docDynamicBody');
-            const sigNameEl = document.getElementById('docPreviewFirmanteNombre');
-            const sigTitleEl = document.getElementById('docPreviewFirmanteCargo');
-
-            if (folioEl) folioEl.textContent = folio;
-            if (asuntoEl) asuntoEl.innerHTML = `<b>Asunto:</b> ${asunto}`;
-            if (dateEl) dateEl.textContent = `${lugar}, ${fecha}`;
-            if (bodyEl) bodyEl.innerHTML = html;
-            if (sigNameEl) sigNameEl.textContent = appState.signer.name || '';
-            if (sigTitleEl) sigTitleEl.textContent = appState.signer.title || '';
-        }
-
-        function refreshAllUI() {
-            const bodyInp = document.getElementById('txtCustomFormatBody');
-            const currentTpl = appState.templates[appState.currentDocType];
-            if (bodyInp && currentTpl) bodyInp.value = currentTpl.body || '';
-            renderMajorsSelectAndCatalog();
-            renderPeriodsSelectAndModal();
-            renderGradesListUI();
-            renderMontosListUI();
-            renderKardexListUI();
-            renderResguardoListUI();
-            renderProfilesManager();
-            updateGithubSummaryUI();
-        }
-
-        function renderMajorsSelectAndCatalog() {
-            const sel = document.getElementById('selLicenciatura');
-            const prevVal = sel?.value;
-            if (sel) {
-                sel.innerHTML = (appState.majors || []).map(m =>
-                    `<option value="${m.id}">${m.name} (${m.rvoe}${m.rvoeDate ? ' · ' + m.rvoeDate : ''})</option>`
-                ).join('');
-                if (prevVal && appState.majors.some(m => m.id === prevVal)) sel.value = prevVal;
-                syncPlanInputFromSelectedMajor(true);
-            }
-            const editSel = document.getElementById('selCatalogMajorToEdit');
-            if (editSel) {
-                editSel.innerHTML = (appState.majors || []).map(m =>
-                    `<option value="${m.id}">${m.name}</option>`
-                ).join('');
-                loadSelectedMajorIntoCatalogEditor();
-            }
-            const list = document.getElementById('majorsCatalogList');
-            if (list) {
-                list.innerHTML = (appState.majors || []).map(m => `
-                    <div class="p-3 flex flex-wrap items-center justify-between gap-2 bg-white hover:bg-slate-50 text-xs">
-                        <div>
-                            <div class="font-bold text-slate-900">${m.name}</div>
-                            <div class="text-[11px] text-slate-500 font-mono">RVOE: ${m.rvoe || 'N/A'} · Fecha: ${m.rvoeDate || 'N/A'} ${m.plan ? '· Plan: ' + m.plan : ''}</div>
-                        </div>
-                        <button type="button" data-admin-only="true" onclick="deleteMajorById('${m.id}')" class="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 text-[11px] font-bold">Eliminar</button>
-                    </div>
-                `).join('');
-            }
-        }
-
-        function syncPlanInputFromSelectedMajor(skipUpdate = false) {
-            const sel = document.getElementById('selLicenciatura');
-            const major = (appState.majors || []).find(m => m.id === sel?.value) || appState.majors[0];
-            if (!major) return;
-            const nInp = document.getElementById('inpNombreLicenciaturaEditable');
-            const rInp = document.getElementById('inpRvoeEditable');
-            const dInp = document.getElementById('inpFechaRvoeEditable');
-            const pInp = document.getElementById('inpPlanEstudios');
-            if (nInp) nInp.value = major.name || '';
-            if (rInp) rInp.value = major.rvoe || '';
-            if (dInp) dInp.value = major.rvoeDate || '';
-            if (pInp) pInp.value = major.plan || '';
-            if (!skipUpdate) updateDocument();
-        }
-
-        function updateActiveMajorNameFromInput() {
-            const major = (appState.majors || []).find(m => m.id === document.getElementById('selLicenciatura')?.value);
-            if (major) major.name = document.getElementById('inpNombreLicenciaturaEditable')?.value || '';
-        }
-        function updateActiveMajorRvoeFromInput() {
-            const major = (appState.majors || []).find(m => m.id === document.getElementById('selLicenciatura')?.value);
-            if (major) major.rvoe = document.getElementById('inpRvoeEditable')?.value || '';
-        }
-        function updateActiveMajorRvoeDateFromInput() {
-            const major = (appState.majors || []).find(m => m.id === document.getElementById('selLicenciatura')?.value);
-            if (major) major.rvoeDate = document.getElementById('inpFechaRvoeEditable')?.value || '';
-        }
-        function updateActiveMajorPlanFromInput() {
-            const major = (appState.majors || []).find(m => m.id === document.getElementById('selLicenciatura')?.value);
-            if (major) major.plan = document.getElementById('inpPlanEstudios')?.value || '';
-        }
-
-        function saveInlineMajorModifications() {
-            renderMajorsSelectAndCatalog();
-            persistBaseState(true, true, true);
-            updateDocument();
-            showToast('Oferta educativa guardada correctamente.');
-        }
-
-        function loadSelectedMajorIntoCatalogEditor() {
-            const id = document.getElementById('selCatalogMajorToEdit')?.value;
-            const m = (appState.majors || []).find(x => x.id === id);
-            if (!m) return;
-            document.getElementById('editCatalogMajorPlan').value = m.plan || '';
-            document.getElementById('editCatalogMajorName').value = m.name || '';
-            document.getElementById('editCatalogMajorRvoe').value = m.rvoe || '';
-            document.getElementById('editCatalogMajorRvoeDate').value = m.rvoeDate || '';
-        }
-
-        function applySelectedMajorCatalogEdit() {
-            const id = document.getElementById('selCatalogMajorToEdit')?.value;
-            const m = (appState.majors || []).find(x => x.id === id);
-            if (!m) return;
-            m.plan = document.getElementById('editCatalogMajorPlan')?.value.trim() || '';
-            m.name = document.getElementById('editCatalogMajorName')?.value.trim() || m.name;
-            m.rvoe = document.getElementById('editCatalogMajorRvoe')?.value.trim() || '';
-            m.rvoeDate = document.getElementById('editCatalogMajorRvoeDate')?.value.trim() || '';
-            renderMajorsSelectAndCatalog();
-            persistBaseState(true, true, true);
-            updateDocument();
-            showToast('Oferta modificada y guardada.');
-        }
-
-        function addNewMajorRvoe() {
-            const name = document.getElementById('newMajorName')?.value.trim();
-            if (!name) return showToast('Escribe el nombre de la licenciatura.');
-            appState.majors.push({
-                id: `maj_${Date.now()}`,
-                plan: document.getElementById('newMajorPlan')?.value.trim() || '',
-                name,
-                rvoe: document.getElementById('newMajorRvoe')?.value.trim() || '',
-                rvoeDate: document.getElementById('newMajorRvoeDate')?.value.trim() || ''
-            });
-            document.getElementById('newMajorPlan').value = '';
-            document.getElementById('newMajorName').value = '';
-            document.getElementById('newMajorRvoe').value = '';
-            document.getElementById('newMajorRvoeDate').value = '';
-            renderMajorsSelectAndCatalog();
-            persistBaseState(true, true, true);
-            showToast('Nueva oferta agregada.');
-        }
-
-        function deleteMajorById(id) {
-            appState.majors = (appState.majors || []).filter(m => m.id !== id);
-            renderMajorsSelectAndCatalog();
-            persistBaseState(true, true, true);
-            updateDocument();
-            showToast('Oferta eliminada.');
-        }
-
-        function saveMajorsCatalogChangesToBase() {
-            persistBaseState(true, true, true);
-            showToast('Catálogo de licenciaturas guardado.');
-        }
-
-        function renderPeriodsSelectAndModal() {
-            const sel = document.getElementById('selPeriodoEscolar');
-            const prevVal = sel?.value;
-            if (sel) {
-                sel.innerHTML = (appState.periods || []).map(p =>
-                    `<option value="${p.id}">${p.name} — ${(p.dates || '').slice(0, 48)}...</option>`
-                ).join('');
-                if (prevVal && appState.periods.some(p => p.id === prevVal)) sel.value = prevVal;
-                syncAcademicPeriodInputFromSelect(true);
-            }
-            const modalSel = document.getElementById('selModalPeriodToEdit');
-            if (modalSel) {
-                modalSel.innerHTML = (appState.periods || []).map(p =>
-                    `<option value="${p.id}">${p.name}</option>`
-                ).join('');
-                loadSelectedPeriodIntoModalEditor();
-            }
-            const list = document.getElementById('periodsModalList');
-            if (list) {
-                list.innerHTML = (appState.periods || []).map(p => `
-                    <div class="p-3 rounded-xl border border-slate-200 bg-white flex items-start justify-between gap-2 text-xs">
-                        <div>
-                            <div class="font-bold text-slate-900">${p.name}</div>
-                            <div class="text-slate-600">${p.dates || ''}</div>
-                            <div class="text-emerald-700 text-[11px]">${p.vacation || ''}</div>
-                        </div>
-                        <button type="button" onclick="deleteAcademicPeriodById('${p.id}')" class="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-800 font-bold">Eliminar</button>
-                    </div>
-                `).join('');
-            }
-        }
-
-        function syncAcademicPeriodInputFromSelect(skipUpdate = false) {
-            const p = (appState.periods || []).find(x => x.id === document.getElementById('selPeriodoEscolar')?.value) || appState.periods[0];
-            if (!p) return;
-            const nInp = document.getElementById('inpNombrePeriodoEditable');
-            const dInp = document.getElementById('inpPeriodoEscolarEditable');
-            const vInp = document.getElementById('inpPeriodoVacacional');
-            if (nInp) nInp.value = p.name || '';
-            if (dInp) dInp.value = p.dates || '';
-            if (vInp && p.vacation) vInp.value = p.vacation;
-            if (!skipUpdate) updateDocument();
-        }
-
-        function updateActiveAcademicPeriodFromInput() {
-            const p = (appState.periods || []).find(x => x.id === document.getElementById('selPeriodoEscolar')?.value);
-            if (!p) return;
-            p.name = document.getElementById('inpNombrePeriodoEditable')?.value || p.name;
-            p.dates = document.getElementById('inpPeriodoEscolarEditable')?.value || p.dates;
-            p.vacation = document.getElementById('inpPeriodoVacacional')?.value || p.vacation;
-        }
-
-        function syncInlineVacationToMain() {
-            const inlineVal = document.getElementById('inpPeriodoVacacionalInline')?.value || '';
-            const mainVac = document.getElementById('inpPeriodoVacacional');
-            if (mainVac) mainVac.value = inlineVal;
-            updateActiveAcademicPeriodFromInput();
-        }
-
-        function saveInlinePeriodModifications() {
-            updateActiveAcademicPeriodFromInput();
-            renderPeriodsSelectAndModal();
-            persistBaseState(true, true, true);
-            updateDocument();
-            showToast('Periodo escolar y vacacional guardado.');
-        }
-
-        function handlePreviewTextSelection() {
-            const toolbar = document.getElementById('selectionFormatToolbar');
-            const sel = window.getSelection();
-            if (!toolbar || !sel || sel.isCollapsed || !sel.toString().trim()) {
-                if (toolbar) toolbar.classList.add('hidden');
-                return;
-            }
-            const rect = sel.getRangeAt(0).getBoundingClientRect();
-            toolbar.style.top = `${Math.max(12, rect.top - 44)}px`;
-            toolbar.style.left = `${Math.max(12, rect.left)}px`;
-            toolbar.classList.remove('hidden');
-        }
-
-        function syncDirectPreviewEdits() {
-            clearTimeout(window._directPreviewTimer);
-            window._directPreviewTimer = setTimeout(() => {
-                persistBaseState(true, false, false);
-            }, 600);
-        }
-
-        function applyBoldToPreviewSelection() {
-            document.execCommand('bold', false, null);
-            syncDirectPreviewEdits();
-        }
-
-        function applyFontSizeToPreviewSelection(ptSize) {
-            const sel = window.getSelection();
-            if (!sel || sel.isCollapsed) return;
-            const range = sel.getRangeAt(0);
-            const span = document.createElement('span');
-            span.style.fontSize = ptSize;
-            try {
-                range.surroundContents(span);
-            } catch (e) {
-                document.execCommand('fontSize', false, '3');
-            }
-            syncDirectPreviewEdits();
-        }
-
-        function stepFontSizeInPreviewSelection(delta) {
-            const selEl = document.getElementById('selPreviewFontSize');
-            if (!selEl) return;
-            const nextIdx = Math.min(selEl.options.length - 1, Math.max(0, selEl.selectedIndex + delta));
-            selEl.selectedIndex = nextIdx;
-            applyFontSizeToPreviewSelection(selEl.value);
-        }
-
-        function exportHistoryToExcel() {
-            const rows = appState.history || [];
-            if (!rows.length) return showToast('No hay registros en el historial para exportar.');
-            if (window.XLSX) {
-                const ws = XLSX.utils.json_to_sheet(rows);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, 'Historial');
-                XLSX.writeFile(wb, 'Historial_Constancias_UAMP.xlsx');
-                showToast('Historial exportado a Excel.');
-            }
-        }
-
-        function insertTagIntoFormatBody(tag) {
-            const ta = document.getElementById('txtCustomFormatBody');
-            if (!ta) return;
-            const start = ta.selectionStart || 0;
-            const end = ta.selectionEnd || 0;
-            ta.value = ta.value.slice(0, start) + tag + ta.value.slice(end);
-            ta.focus();
-            ta.selectionStart = ta.selectionEnd = start + tag.length;
-            previewCustomFormatLive();
-        }
-
-        function toggleBoldInActiveFormatTextarea() {
-            const ta = document.getElementById('txtCustomFormatBody');
-            if (!ta) return;
-            const start = ta.selectionStart || 0;
-            const end = ta.selectionEnd || 0;
-            if (start === end) return showToast('Selecciona primero el texto en el editor de código.');
-            const selected = ta.value.slice(start, end);
-            const wrapped = selected.startsWith('<b>') && selected.endsWith('</b>')
-                ? selected.slice(3, -4)
-                : `<b>${selected}</b>`;
-            ta.value = ta.value.slice(0, start) + wrapped + ta.value.slice(end);
-            previewCustomFormatLive();
-        }
-
-        function previewCustomFormatLive() {
-            const docType = appState.currentDocType || 'estudios';
-            const tpl = appState.templates[docType];
-            const ta = document.getElementById('txtCustomFormatBody');
-            if (tpl && ta) {
-                tpl.body = ta.value;
-            }
-            updateDocument();
-        }
-
-        function saveCurrentFormatTemplate() {
-            previewCustomFormatLive();
-            persistBaseState(true, true, true);
-            showToast('Esqueleto de la constancia guardado en el código fuente.');
-        }
-
-        function resetCurrentFormatTemplate() {
-            const docType = appState.currentDocType || 'estudios';
-            if (DEFAULT_DOC_TEMPLATES[docType]) {
-                appState.templates[docType] = JSON.parse(JSON.stringify(DEFAULT_DOC_TEMPLATES[docType]));
-                const ta = document.getElementById('txtCustomFormatBody');
-                if (ta) ta.value = appState.templates[docType].body;
-                updateDocument();
-                persistBaseState(true, true, false);
-                showToast('Esqueleto restablecido al formato original.');
-            }
-        }
-
-        function cleanDuplicateBlocksInSkeletonEditor() {
-            const ta = document.getElementById('txtCustomFormatBody');
-            if (!ta) return;
-            ta.value = ta.value.replace(/(<div data-block="[^"]+">[\s\S]*?<\/div>)\s*\1+/g, '$1');
-            previewCustomFormatLive();
-            showToast('Bloques duplicados limpiados.');
-        }
-
-        function syncAsuntoInputToTemplate() {
-            const docType = appState.currentDocType || 'estudios';
-            const tpl = appState.templates[docType];
-            const val = document.getElementById('inpAsuntoConstancia')?.value;
-            if (tpl && val !== undefined) tpl.asunto = val;
-        }
-
-        function syncExpeditionDateTextFromPicker() {
-            const picker = document.getElementById('inpFechaExpedicion');
-            const textInp = document.getElementById('inpFechaExpedicionTexto');
-            if (!picker || !picker.value || !textInp) return;
-            const [y, m, d] = picker.value.split('-');
-            const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-            const monthName = months[parseInt(m, 10) - 1] || '';
-            textInp.value = `${d} de ${monthName} de ${y}`;
-        }
-
-        function syncGradoInputFromSelect() {
-            const sel = document.getElementById('selPeriodoGrado');
-            const inp = document.getElementById('inpPeriodoGrado');
-            if (sel && inp) inp.value = sel.value;
-        }
-
-        function renderGradesListUI() {
-            const list = document.getElementById('gradesSavedRowsList');
-            const countBadge = document.getElementById('gradesCountBadge');
-            const avgBadge = document.getElementById('gradesLiveSummaryBadge');
-            const grades = appState.grades || [];
-            if (countBadge) countBadge.textContent = `${grades.length} / 20 filas`;
-            const validScores = grades.map(g => parseFloat(g.score)).filter(n => !isNaN(n));
-            const avg = validScores.length ? (validScores.reduce((a, b) => a + b, 0) / validScores.length).toFixed(2) : '0.00';
-            if (avgBadge) avgBadge.textContent = `Promedio Aritmético: ${avg}`;
-            if (list) {
-                list.innerHTML = grades.map((g, idx) => `
-                    <div class="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-[11px]">
-                        <span><b>${g.group}</b> · ${g.code} · ${g.subject} — <b>${g.score}</b></span>
-                        <button type="button" onclick="appState.grades.splice(${idx},1);renderGradesListUI();updateDocument();" class="text-rose-700 font-bold">✕</button>
-                    </div>
-                `).join('');
-            }
-        }
-
-        function openPeriodsModal() {
-            renderPeriodsSelectAndModal();
-            document.getElementById('periodsModal')?.classList.remove('hidden');
-        }
-
-        function closePeriodsModal() {
-            document.getElementById('periodsModal')?.classList.add('hidden');
-        }
-
-        function loadSelectedPeriodIntoModalEditor() {
-            const id = document.getElementById('selModalPeriodToEdit')?.value;
-            const p = (appState.periods || []).find(x => x.id === id);
-            if (!p) return;
-            document.getElementById('editModalPeriodName').value = p.name || '';
-            document.getElementById('editModalPeriodDates').value = p.dates || '';
-            document.getElementById('editModalPeriodVacation').value = p.vacation || '';
-        }
-
-        function applySelectedPeriodModalEdit() {
-            const id = document.getElementById('selModalPeriodToEdit')?.value;
-            const p = (appState.periods || []).find(x => x.id === id);
-            if (!p) return;
-            p.name = document.getElementById('editModalPeriodName')?.value.trim() || p.name;
-            p.dates = document.getElementById('editModalPeriodDates')?.value.trim() || '';
-            p.vacation = document.getElementById('editModalPeriodVacation')?.value.trim() || '';
-            renderPeriodsSelectAndModal();
-            persistBaseState(true, true, true);
-            updateDocument();
-            showToast('Periodo actualizado y guardado.');
-        }
-
-        function saveCustomAcademicPeriod() {
-            const name = document.getElementById('newAcademicPeriodNameInput')?.value.trim();
-            const dates = document.getElementById('newAcademicPeriodInput')?.value.trim();
-            const vacation = document.getElementById('newAcademicPeriodVacationInput')?.value.trim();
-            if (!name) return showToast('Escribe el nombre del periodo.');
-            appState.periods.push({ id: `per_${Date.now()}`, name, dates, vacation });
-            document.getElementById('newAcademicPeriodNameInput').value = '';
-            document.getElementById('newAcademicPeriodInput').value = '';
-            document.getElementById('newAcademicPeriodVacationInput').value = '';
-            renderPeriodsSelectAndModal();
-            persistBaseState(true, true, true);
-            showToast('Nuevo periodo agregado.');
-        }
-
-        function deleteAcademicPeriodById(id) {
-            appState.periods = (appState.periods || []).filter(p => p.id !== id);
-            renderPeriodsSelectAndModal();
-            persistBaseState(true, true, true);
-            updateDocument();
-            showToast('Periodo eliminado.');
-        }
-
-        function saveAllPeriodsToBase() {
-            persistBaseState(true, true, true);
-            closePeriodsModal();
-            showToast('Todos los periodos guardados en el código fuente.');
-        }
-
-        async function visitorSyncLatestDeploymentNow(btnEl) {
-            if (btnEl) btnEl.disabled = true;
-            try {
-                await refreshLoginDeployedVersionsDropdown(true);
-                refreshAllUI();
-                updateDocument();
-                showToast(`Sincronizado con versión v${appState.version}.`);
-            } finally {
-                if (btnEl) btnEl.disabled = false;
-            }
-        }
-
-        async function replacePreviousDeploymentWithCurrent(btnEl) {
-            return saveAndUpdateDeploymentAction(btnEl);
-        }
-
-        async function saveAndUpdateDeploymentAction(btnEl) {
-            const origText = btnEl ? btnEl.textContent : '';
-            if (btnEl) {
-                btnEl.disabled = true;
-                btnEl.textContent = 'Guardando y actualizando despliegue...';
-            }
-            try {
-                appState.version = Number(appState.version || 1) + 1;
+                appState.version = Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION) + 1;
                 deployedVersionsRegistry = [];
                 persistBaseState(true, true, true);
                 enforceLatestAdminSession();
@@ -2283,13 +1509,19 @@
 
         async function fetchRemoteLatestState() {
             const remoteCandidates = [];
+            const normalizeCandidate = (rawObj) => {
+                if (!rawObj || !Array.isArray(rawObj.profiles)) return null;
+                const v = Number(rawObj.version || 1);
+                if (v < MIN_VALID_DEPLOY_VERSION) return null;
+                return { ...rawObj, version: v };
+            };
             const extractFromHtmlText = (htmlText) => {
                 if (!htmlText) return;
                 try {
                     const vaultMatch = htmlText.match(/<script type="application\/json" id="embeddedInternalVaultData">([\s\S]*?)<\/script>/);
                     if (vaultMatch && vaultMatch[1] && vaultMatch[1].trim() !== '{}') {
-                        const parsedVault = JSON.parse(vaultMatch[1]);
-                        if (parsedVault && Array.isArray(parsedVault.profiles)) {
+                        const parsedVault = normalizeCandidate(JSON.parse(vaultMatch[1]));
+                        if (parsedVault) {
                             remoteCandidates.push(parsedVault);
                         }
                     }
@@ -2298,15 +1530,17 @@
                     if (usersMatch && usersMatch[1]) {
                         const parsedUsers = JSON.parse(usersMatch[1]);
                         const verNum = verMatch ? Number(verMatch[1]) : 1;
-                        remoteCandidates.push({
-                            version: verNum,
-                            updatedAt: verNum * 1000,
-                            profiles: parsedUsers.map(u => ({
-                                ...u,
-                                docAccess: createDefaultDocAccessMatrix(true),
-                                headerButtons: createDefaultHeaderMatrix(true)
-                            }))
-                        });
+                        if (verNum >= MIN_VALID_DEPLOY_VERSION) {
+                            remoteCandidates.push({
+                                version: verNum,
+                                updatedAt: verNum * 1000,
+                                profiles: parsedUsers.map(u => ({
+                                    ...u,
+                                    docAccess: createDefaultDocAccessMatrix(true),
+                                    headerButtons: createDefaultHeaderMatrix(true)
+                                }))
+                            });
+                        }
                     }
                 } catch (e) {}
             };
@@ -2332,10 +1566,10 @@
                                 try {
                                     const evt = JSON.parse(lines[i]);
                                     if (evt && evt.message && evt.message.trim().startsWith('{')) {
-                                        const parsed = JSON.parse(evt.message);
-                                        if (parsed && Array.isArray(parsed.profiles)) {
+                                        const parsed = normalizeCandidate(JSON.parse(evt.message));
+                                        if (parsed) {
+                                            if (!parsed.updatedAt && evt.time) parsed.updatedAt = Number(evt.time) * 1000;
                                             remoteCandidates.push(parsed);
-                                            break;
                                         }
                                     }
                                 } catch (e) {}
@@ -2371,21 +1605,22 @@
             remoteCandidates.sort((a, b) => (Number(b.version || 1) - Number(a.version || 1)) || (Number(b.updatedAt || 0) - Number(a.updatedAt || 0)));
             const highestRemote = remoteCandidates[0] || null;
             if (highestRemote) {
-                registerDeployedVersionSnapshot(highestRemote, `Despliegue v${highestRemote.version || 1}`);
+                registerDeployedVersionSnapshot(highestRemote, `Despliegue v${highestRemote.version || MIN_VALID_DEPLOY_VERSION}`);
             }
             return highestRemote;
         }
 
         function applyRemoteSnapshotImmediately(parsed) {
             if (!parsed || !Array.isArray(parsed.profiles)) return false;
-            const currentVer = Number(appState.version || 1);
+            const currentVer = Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION);
             const incomingVer = Number(parsed.version || 1);
+            if (incomingVer < MIN_VALID_DEPLOY_VERSION) return false;
             const incomingTime = Number(parsed.updatedAt || 0);
             const currentTime = Number(appState.updatedAt || 0);
-            if (incomingVer > currentVer || (incomingVer === currentVer && incomingTime > currentTime)) {
+            if (incomingVer > currentVer || (incomingVer === currentVer && incomingTime >= currentTime)) {
                 const activeSess = appState.activeSession;
                 deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= incomingVer);
-                appState = { ...appState, ...parsed, activeSession: activeSess };
+                appState = { ...appState, ...parsed, version: incomingVer, activeSession: activeSess };
                 registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), `Despliegue Admin v${incomingVer}`);
                 enforceLatestAdminSession();
                 if (!document.getElementById('mainAppWorkspace')?.classList.contains('hidden')) {
@@ -2400,75 +1635,41 @@
             return false;
         }
 
-        function initGlobalRealtimeCloudSync() {
-            try {
-                if (Array.isArray(window._globalRtEventSources)) {
-                    window._globalRtEventSources.forEach(s => { try { s.close(); } catch (e) {} });
-                }
-                window._globalRtEventSources = getAllRealtimeChannels().map(ch => {
-                    const es = new EventSource(`https://ntfy.sh/${ch}/sse`);
-                    es.onmessage = (event) => {
-                        try {
-                            const evt = JSON.parse(event.data);
-                            if (evt && evt.message && evt.message.trim().startsWith('{')) {
-                                const parsed = JSON.parse(evt.message);
-                                const updated = applyRemoteSnapshotImmediately(parsed);
-                                if (updated && appState.activeSession?.role === 'admin') {
-                                    showToast(`Enlace actualizado automáticamente a v${appState.version}`);
-                                }
-                            }
-                        } catch (e) {}
-                    };
-                    return es;
-                });
-            } catch (e) {}
-
-            const syncOnWake = async () => {
-                if (document.visibilityState === 'visible') {
-                    await loadPersistedState(true);
-                    renderLoginDeployedVersionsSelect();
-                    if (!document.getElementById('mainAppWorkspace')?.classList.contains('hidden')) {
-                        refreshAllUI();
-                        updateDocument();
-                    }
-                }
-            };
-            document.addEventListener('visibilitychange', syncOnWake);
-            window.addEventListener('focus', syncOnWake);
-
-            setInterval(async () => {
-                await loadPersistedState(true);
-                renderLoginDeployedVersionsSelect();
-            }, 4000);
-        }
-
         async function loadPersistedState(forceApply = false) {
             const candidates = [];
+            const pushValidCandidate = (obj) => {
+                if (!obj || typeof obj !== 'object') return;
+                const v = Number(obj.version || 1);
+                if (v < MIN_VALID_DEPLOY_VERSION) return;
+                candidates.push({ ...obj, version: v });
+            };
             try {
                 const rawLocal = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(BACKUP_STORAGE_KEY);
-                if (rawLocal) candidates.push(JSON.parse(rawLocal));
+                if (rawLocal) pushValidCandidate(JSON.parse(rawLocal));
             } catch (e) {}
             try {
                 if (window.name && window.name.trim().startsWith('{')) {
-                    candidates.push(JSON.parse(window.name));
+                    pushValidCandidate(JSON.parse(window.name));
                 }
             } catch (e) {}
             try {
                 const domRaw = document.getElementById('embeddedInternalVaultData')?.textContent?.trim();
-                if (domRaw && domRaw !== '{}') candidates.push(JSON.parse(domRaw));
+                if (domRaw && domRaw !== '{}') pushValidCandidate(JSON.parse(domRaw));
             } catch (e) {}
 
             const remoteBest = await fetchRemoteLatestState();
-            if (remoteBest) candidates.push(remoteBest);
+            if (remoteBest) pushValidCandidate(remoteBest);
 
             candidates.sort((a, b) => (Number(b.version || 1) - Number(a.version || 1)) || (Number(b.updatedAt || 0) - Number(a.updatedAt || 0)));
             const best = candidates[0];
-            if (best && (forceApply || Number(best.version || 1) >= Number(appState.version || 1))) {
+            if (best && (forceApply || Number(best.version || 1) >= Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION))) {
                 const activeSess = appState.activeSession;
-                const bestVer = Number(best.version || 1);
+                const bestVer = Math.max(Number(best.version || 1), MIN_VALID_DEPLOY_VERSION);
                 deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= bestVer);
-                appState = { ...appState, ...best, activeSession: activeSess };
+                appState = { ...appState, ...best, version: bestVer, activeSession: activeSess };
                 registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), `Despliegue v${bestVer}`);
+                enforceLatestAdminSession();
+            } else {
                 enforceLatestAdminSession();
             }
         }
@@ -2527,18 +1728,24 @@
 
         function hydrateInstantLocalAndEmbeddedState() {
             const candidates = [];
+            const pushCandidate = (obj) => {
+                if (!obj || typeof obj !== 'object') return;
+                const v = Number(obj.version || 1);
+                if (v < MIN_VALID_DEPLOY_VERSION) return;
+                candidates.push({ ...obj, version: v });
+            };
             try {
                 const rawLocal = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(BACKUP_STORAGE_KEY);
-                if (rawLocal) candidates.push(JSON.parse(rawLocal));
+                if (rawLocal) pushCandidate(JSON.parse(rawLocal));
             } catch (e) {}
             try {
                 if (window.name && window.name.trim().startsWith('{')) {
-                    candidates.push(JSON.parse(window.name));
+                    pushCandidate(JSON.parse(window.name));
                 }
             } catch (e) {}
             try {
                 const domRaw = document.getElementById('embeddedInternalVaultData')?.textContent?.trim();
-                if (domRaw && domRaw !== '{}') candidates.push(JSON.parse(domRaw));
+                if (domRaw && domRaw !== '{}') pushCandidate(JSON.parse(domRaw));
             } catch (e) {}
             try {
                 const histRaw = localStorage.getItem(DEPLOYED_HISTORY_STORAGE_KEY);
@@ -2546,7 +1753,7 @@
                     const parsedHist = JSON.parse(histRaw);
                     if (Array.isArray(parsedHist)) {
                         parsedHist.forEach(item => {
-                            if (item && item.payload) candidates.push(item.payload);
+                            if (item && item.payload) pushCandidate(item.payload);
                         });
                     }
                 }
@@ -2554,20 +1761,21 @@
             try {
                 const params = new URLSearchParams(window.location.search);
                 const verParam = Number(params.get('v') || 0);
-                if (verParam > Number(appState.version || 1)) {
+                if (verParam >= MIN_VALID_DEPLOY_VERSION && verParam > Number(appState.version || 1)) {
                     appState.version = verParam;
                 }
             } catch (e) {}
 
             candidates.sort((a, b) => (Number(b.version || 1) - Number(a.version || 1)) || (Number(b.updatedAt || 0) - Number(a.updatedAt || 0)));
             const highest = candidates[0];
-            if (highest && Number(highest.version || 1) >= Number(appState.version || 1)) {
+            if (highest) {
                 const activeSess = appState.activeSession;
-                const highestVer = Number(highest.version || 1);
+                const highestVer = Math.max(Number(highest.version || 1), MIN_VALID_DEPLOY_VERSION);
                 deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= highestVer);
-                appState = { ...appState, ...highest, activeSession: activeSess };
+                appState = { ...appState, ...highest, version: highestVer, activeSession: activeSess };
             }
-            const activeVer = Number(appState.version || 1);
+            const activeVer = Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION);
+            appState.version = activeVer;
             deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= activeVer);
             registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), `Última Versión Desplegada v${activeVer}`);
             enforceLatestAdminSession();
@@ -3123,7 +2331,7 @@
                 if (chk) prof.headerButtons[btn.id] = chk.checked;
             });
             prof.updatedAt = Date.now();
-            appState.version = Number(appState.version || 1) + 1;
+            appState.version = Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION) + 1;
             persistBaseState(true, true, true);
             renderProfilesManager();
             showToast(`Usuario "${prof.name}" guardado y actualizado a v${appState.version}`);
@@ -3133,14 +2341,14 @@
             appState.profiles = (appState.profiles || []).filter(p => p.id !== profileId);
             if (!Array.isArray(appState.deletedIds)) appState.deletedIds = [];
             appState.deletedIds.push(profileId);
-            appState.version = Number(appState.version || 1) + 1;
+            appState.version = Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION) + 1;
             persistBaseState(true, true, true);
             renderProfilesManager();
             showToast('Usuario eliminado permanentemente.');
         }
 
         function realtimeSaveAndRefreshSystem() {
-            appState.version = Number(appState.version || 1) + 1;
+            appState.version = Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION) + 1;
             persistBaseState(true, true, true);
             renderLoginDeployedVersionsSelect();
             showToast(`Versión v${appState.version} guardada y publicada en tiempo real.`);
