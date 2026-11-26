@@ -184,21 +184,21 @@
                         <span id="loginLiveClock" class="font-mono font-bold text-emerald-300">--:--:--</span>
                     </div>
                     <div class="flex items-center justify-between text-[10px] text-slate-300">
-                        <span>Versión desplegada: <b id="loginLiveVersion" class="text-amber-300 font-mono">Buscando...</b></span>
-                        <span id="loginLiveLastSync" class="font-mono text-emerald-300">Buscando última versión...</span>
+                        <span>Versión desplegada: <b id="loginLiveVersion" class="text-amber-300 font-mono">v34</b></span>
+                        <span id="loginLiveLastSync" class="font-mono text-emerald-300">Sincronizando...</span>
                     </div>
                     <div class="pt-1.5 mt-1 border-t border-slate-800 space-y-1.5">
                         <div class="flex items-center justify-between gap-1.5">
                             <span class="text-[10px] font-bold text-sky-300">Versión Desplegada Guardada:</span>
                             <button type="button" onclick="forceRemoteCloudSyncOnLogin(this)" class="px-2 py-0.5 rounded bg-emerald-950 hover:bg-emerald-900 text-[9px] font-bold text-emerald-300 border border-emerald-700/70 cursor-pointer transition">
-                                <span id="loginDeploymentSyncBadge">Buscando última versión...</span> ↻
+                                <span id="loginDeploymentSyncBadge">Sincronizar</span> ↻
                             </button>
                         </div>
                         <select id="selLoginDeployedVersion" onchange="applySelectedDeployedVersionOnLogin(this.value)" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-emerald-500/50 text-xs font-mono font-black text-amber-300 outline-none cursor-pointer">
-                            <option value="current">Sincronizando última versión...</option>
+                            <option value="34">Versión Desplegada Actual v34 (10 usuarios)</option>
                         </select>
                         <div id="loginDeployedVersionReadonly" class="hidden"></div>
-                        <div id="loginVersionUsersHint" class="text-[10px] text-amber-300 font-semibold">Vinculando con la última versión publicada por el Administrador...</div>
+                        <div id="loginVersionUsersHint" class="text-[10px] text-amber-300 font-semibold">Versión lista · Verificando actualizaciones en segundo plano...</div>
                     </div>
                 </div>
             </div>
@@ -1247,6 +1247,82 @@
 
         let deployedVersionsRegistry = [];
 
+        function loadDeployedVersionsHistoryFromStorage() {
+            try {
+                const raw = localStorage.getItem(DEPLOYED_HISTORY_STORAGE_KEY);
+                if (!raw) {
+                    deployedVersionsRegistry = [];
+                    return;
+                }
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) {
+                    deployedVersionsRegistry = parsed.filter(
+                        item => item && Number(item.version || item.payload?.version || 0) >= MIN_VALID_DEPLOY_VERSION
+                    );
+                } else {
+                    deployedVersionsRegistry = [];
+                }
+            } catch (e) {
+                deployedVersionsRegistry = [];
+            }
+        }
+
+        function purgeOutdatedSnapshotsBelow(minVersion, minTimestamp = 0) {
+            const targetVer = Math.max(Number(minVersion || MIN_VALID_DEPLOY_VERSION), MIN_VALID_DEPLOY_VERSION);
+            deployedVersionsRegistry = (deployedVersionsRegistry || []).filter(item => {
+                const itemVer = Number(item?.version || item?.payload?.version || 0);
+                if (itemVer > targetVer) return true;
+                if (itemVer < targetVer) return false;
+                const itemTs = Number(item?.updatedAt || item?.payload?.adminPublishedAt || item?.payload?.updatedAt || 0);
+                return itemTs >= Number(minTimestamp || 0);
+            });
+            try {
+                localStorage.setItem(DEPLOYED_HISTORY_STORAGE_KEY, JSON.stringify(deployedVersionsRegistry));
+            } catch (e) {}
+        }
+
+        function registerDeployedVersionSnapshot(payload, label = 'Despliegue Admin') {
+            if (!payload || typeof payload !== 'object') return;
+            const ver = Math.max(Number(payload.version || MIN_VALID_DEPLOY_VERSION), MIN_VALID_DEPLOY_VERSION);
+            const ts = Number(payload.adminPublishedAt || payload.updatedAt || Date.now());
+            const cleanCopy = JSON.parse(JSON.stringify(payload));
+            cleanCopy.version = ver;
+            cleanCopy.updatedAt = ts;
+            deployedVersionsRegistry = (deployedVersionsRegistry || []).filter(item => Number(item.version) !== ver);
+            deployedVersionsRegistry.unshift({
+                version: ver,
+                updatedAt: ts,
+                label,
+                payload: cleanCopy
+            });
+            deployedVersionsRegistry.sort((a, b) => Number(b.version) - Number(a.version) || Number(b.updatedAt) - Number(a.updatedAt));
+            deployedVersionsRegistry = deployedVersionsRegistry.slice(0, 5);
+            try {
+                localStorage.setItem(DEPLOYED_HISTORY_STORAGE_KEY, JSON.stringify(deployedVersionsRegistry));
+            } catch (e) {}
+        }
+
+        function isCandidateNewerThan(candidate, current) {
+            if (!candidate) return false;
+            const cVer = Number(candidate.version || 1);
+            const curVer = Number(current?.version || 1);
+            if (cVer !== curVer) return cVer > curVer;
+            const cTs = Number(candidate.adminPublishedAt || candidate.updatedAt || 0);
+            const curTs = Number(current?.adminPublishedAt || current?.updatedAt || 0);
+            return cTs > curTs;
+        }
+
+        function applySelectedDeployedVersionOnLogin(selectedVal) {
+            const verNum = Number(selectedVal || 0);
+            if (!verNum) return;
+            const snap = (deployedVersionsRegistry || []).find(item => Number(item.version) === verNum);
+            if (snap && snap.payload) {
+                const activeSess = appState.activeSession;
+                appState = { ...appState, ...JSON.parse(JSON.stringify(snap.payload)), activeSession: activeSess };
+                renderLoginDeployedVersionsSelect();
+            }
+        }
+
         function showToast(msg) {
             const toast = document.getElementById('toastNotification');
             if (!toast) return;
@@ -1262,119 +1338,50 @@
             return copy;
         }
 
+        function getRepoDedicatedRealtimeChannel() {
+            const host = window.location.hostname || '';
+            const pathParts = (window.location.pathname || '').split('/').filter(Boolean);
+            let repoSlug = (appState.githubConfig?.repo || '').trim();
+            if (!repoSlug && host.endsWith('.github.io') && pathParts.length > 0) {
+                repoSlug = `${host.replace('.github.io', '')}_${pathParts[0]}`;
+            }
+            const cleanSlug = repoSlug.replace(/[^a-zA-Z0-9_-]/g, '_');
+            return cleanSlug ? `UAMP_BUBU_REPO_${cleanSlug}_LIVE_V4` : null;
+        }
+
         function getAllRealtimeChannels() {
-            return [
+            const list = [
                 GLOBAL_RT_LATEST_OVERRIDE_CHANNEL,
                 GLOBAL_RT_CHANNEL,
                 GLOBAL_RT_FALLBACK_CHANNEL,
                 GLOBAL_RT_LEGACY_CHANNEL,
                 GLOBAL_RT_MASTER_CHANNEL
             ];
+            const repoCh = getRepoDedicatedRealtimeChannel();
+            if (repoCh && !list.includes(repoCh)) list.unshift(repoCh);
+            return list;
         }
 
-        function getCandidateFreshnessScore(obj) {
-            if (!obj || typeof obj !== 'object') return { ver: 0, ts: 0, adminFlag: 0 };
-            const ver = Number(obj.version || 1);
-            const ts = Number(obj.adminPublishedAt || obj.updatedAt || 0);
-            const adminFlag = obj.isAdminDeployment ? 1 : 0;
-            return { ver, ts, adminFlag };
-        }
-
-        function isCandidateNewerThan(candidate, current) {
-            if (!candidate) return false;
-            const c = getCandidateFreshnessScore(candidate);
-            if (c.ver < MIN_VALID_DEPLOY_VERSION) return false;
-            if (!current) return true;
-            const cur = getCandidateFreshnessScore(current);
-            if (c.ver !== cur.ver) return c.ver > cur.ver;
-            if (c.ts !== cur.ts) return c.ts > cur.ts;
-            return c.adminFlag > cur.adminFlag;
-        }
-
-        function purgeOutdatedSnapshotsBelow(minVer, minTs = 0) {
-            const targetVer = Math.max(Number(minVer || 1), MIN_VALID_DEPLOY_VERSION);
-            deployedVersionsRegistry = (deployedVersionsRegistry || []).filter(item => {
-                if (!item || !item.payload) return false;
-                const v = Number(item.version || item.payload.version || 0);
-                const t = Number(item.updatedAt || item.payload.updatedAt || 0);
-                if (v < targetVer) return false;
-                if (v === targetVer && minTs > 0 && t < minTs) return false;
-                return true;
-            });
-        }
-
-        function loadDeployedVersionsHistoryFromStorage() {
+        async function purgeLegacyCacheEntries() {
             try {
-                const raw = localStorage.getItem(DEPLOYED_HISTORY_STORAGE_KEY);
-                if (raw) {
+                if ('caches' in window) {
+                    const keys = await caches.keys();
+                    await Promise.all(keys.map(k => caches.delete(k)));
+                }
+            } catch (e) {}
+            try {
+                [STORAGE_KEY, BACKUP_STORAGE_KEY, DEPLOYED_HISTORY_STORAGE_KEY].forEach(k => {
+                    const raw = localStorage.getItem(k);
+                    if (!raw) return;
                     const parsed = JSON.parse(raw);
                     if (Array.isArray(parsed)) {
-                        const currentVer = Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION);
-                        deployedVersionsRegistry = parsed
-                            .filter(item => item && item.payload && Number(item.version || 0) >= currentVer)
-                            .sort((a, b) => (Number(b.version) - Number(a.version)) || (Number(b.updatedAt || 0) - Number(a.updatedAt || 0)));
-                        if (deployedVersionsRegistry.length > 0) {
-                            const top = deployedVersionsRegistry[0];
-                            purgeOutdatedSnapshotsBelow(top.version, top.updatedAt);
-                        }
+                        const validArr = parsed.filter(item => Number(item?.version || item?.payload?.version || 0) >= MIN_VALID_DEPLOY_VERSION);
+                        if (validArr.length === 0) localStorage.removeItem(k);
+                        else localStorage.setItem(k, JSON.stringify(validArr));
+                    } else if (parsed && Number(parsed.version || 0) < MIN_VALID_DEPLOY_VERSION) {
+                        localStorage.removeItem(k);
                     }
-                }
-            } catch (e) {
-                deployedVersionsRegistry = [];
-            }
-        }
-
-        function applySelectedDeployedVersionOnLogin(selectedVer) {
-            const verNum = Number(selectedVer);
-            if (!verNum) return;
-            const found = deployedVersionsRegistry.find(item => Number(item.version) === verNum);
-            if (found && found.payload) {
-                const activeSess = appState.activeSession;
-                appState = { ...appState, ...JSON.parse(JSON.stringify(found.payload)), activeSession: activeSess };
-                enforceLatestAdminSession();
-            }
-        }
-
-        async function refreshLoginDeployedVersionsDropdown(forceSync = false) {
-            if (forceSync) {
-                await loadPersistedState(true);
-            }
-            enforceLatestAdminSession();
-            renderLoginDeployedVersionsSelect();
-        }
-
-        function registerDeployedVersionSnapshot(payload, label = 'Despliegue Guardado por Admin') {
-            if (!payload) return;
-            const ver = Math.max(Number(payload.version || appState.version || 1), MIN_VALID_DEPLOY_VERSION);
-            const cleanPayload = JSON.parse(JSON.stringify(payload));
-            cleanPayload.version = ver;
-            cleanPayload.isAdminDeployment = true;
-            if (!cleanPayload.updatedAt) cleanPayload.updatedAt = Date.now();
-            delete cleanPayload.activeSession;
-
-            // Descarta cualquier versión rezagada inferior o más antigua que el registro actual
-            purgeOutdatedSnapshotsBelow(ver, cleanPayload.updatedAt);
-
-            const idx = deployedVersionsRegistry.findIndex(v => Number(v.version) === ver);
-            const entry = {
-                version: ver,
-                label,
-                updatedAt: cleanPayload.updatedAt,
-                isAdminDeployment: true,
-                payload: cleanPayload
-            };
-            if (idx >= 0) {
-                if (Number(cleanPayload.updatedAt) >= Number(deployedVersionsRegistry[idx].updatedAt || 0)) {
-                    deployedVersionsRegistry[idx] = entry;
-                }
-            } else {
-                deployedVersionsRegistry.push(entry);
-            }
-            deployedVersionsRegistry.sort((a, b) => (Number(b.version) - Number(a.version)) || (Number(b.updatedAt || 0) - Number(a.updatedAt || 0)));
-            // Conserva únicamente el despliegue más reciente publicado por el Administrador
-            deployedVersionsRegistry = deployedVersionsRegistry.slice(0, 1);
-            try {
-                localStorage.setItem(DEPLOYED_HISTORY_STORAGE_KEY, JSON.stringify(deployedVersionsRegistry));
+                });
             } catch (e) {}
         }
 
@@ -1434,7 +1441,7 @@
             const deployBadge = document.getElementById('deployReplaceVersionBadge');
 
             if (liveVerEl) liveVerEl.textContent = `v${ver}`;
-            if (badgeEl) badgeEl.textContent = `Despliegue Actual v${ver} ✓`;
+            if (badgeEl) badgeEl.textContent = window._initialCloudSyncCompleted ? `Despliegue Actual v${ver} ✓` : `v${ver} · Actualizando...`;
             if (selectEl) {
                 if (!deployedVersionsRegistry.some(v => Number(v.version) === ver)) {
                     registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), 'Última Versión Desplegada');
@@ -1447,103 +1454,136 @@
                 selectEl.value = String(ver);
             }
             if (hintEl) hintEl.textContent = `Última versión desplegada v${ver} (${updatedDate}) · ${usersCount} usuarios habilitados`;
-            if (lastSyncEl) lastSyncEl.textContent = `Sincronizado: v${ver} · ${updatedDate}`;
+            if (lastSyncEl) lastSyncEl.textContent = window._initialCloudSyncCompleted ? `Sincronizado: v${ver} · ${updatedDate}` : `Local v${ver} · Buscando nube...`;
             if (bannerTag) bannerTag.textContent = `v${ver}`;
             if (cornerVer) cornerVer.textContent = `v${ver}`;
             if (deployBadge) deployBadge.textContent = `v${ver} → v${ver + 1}`;
         }
-        function persistBaseState(saveLocal = true, saveDom = true, pushCloud = false) {
+
+        function hydrateInstantLocalAndEmbeddedState() {
             try {
-                const nowTs = Date.now();
-                appState.version = Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION);
-                appState.updatedAt = nowTs;
-                if (pushCloud) {
-                    appState.adminPublishedAt = nowTs;
-                    appState.isAdminDeployment = true;
-                }
-                purgeOutdatedSnapshotsBelow(appState.version, nowTs);
-                const serialized = JSON.stringify(buildSerializableVaultPayload(false));
-                if (saveLocal) {
-                    try { localStorage.setItem(STORAGE_KEY, serialized); } catch (e) {}
-                    try { localStorage.setItem(BACKUP_STORAGE_KEY, serialized); } catch (e) {}
-                    try { window.name = serialized; } catch (e) {}
-                    saveStateAndSourceToCacheApi(serialized);
-                }
-                if (saveDom) {
-                    const vaultEl = document.getElementById('embeddedInternalVaultData');
-                    if (vaultEl) vaultEl.textContent = serialized;
-                    const codesEl = document.getElementById('embeddedUserAccessCodes');
-                    if (codesEl) {
-                        codesEl.textContent = JSON.stringify((appState.profiles || []).map(p => ({
-                            id: p.id, name: p.name, roleLabel: p.roleLabel, code: p.code
-                        })), null, 2);
-                    }
-                    const panelCtrl = document.getElementById('workspaceViewControlPanel');
-                    if (panelCtrl && !panelCtrl.classList.contains('hidden')) {
-                        refreshSourceCodePreviewBox();
+                const embeddedEl = document.getElementById('embeddedInternalVaultData');
+                if (embeddedEl && embeddedEl.textContent.trim().length > 2) {
+                    const emb = JSON.parse(embeddedEl.textContent);
+                    if (emb && Number(emb.version || 0) >= MIN_VALID_DEPLOY_VERSION && isCandidateNewerThan(emb, appState)) {
+                        appState = { ...appState, ...emb, activeSession: null };
                     }
                 }
-                registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), 'Última Versión Desplegada');
-                enforceLatestAdminSession();
-                if (pushCloud) {
-                    const cloudCompact = JSON.stringify({
-                        version: Number(appState.version || 1),
-                        updatedAt: appState.updatedAt,
-                        adminPublishedAt: appState.adminPublishedAt || appState.updatedAt,
-                        isAdminDeployment: true,
-                        replacePrevious: true,
-                        signer: appState.signer,
-                        majors: appState.majors,
-                        periods: appState.periods,
-                        templates: appState.templates,
-                        profiles: appState.profiles,
-                        deletedIds: appState.deletedIds || [],
-                        githubConfig: appState.githubConfig
-                    });
-                    getAllRealtimeChannels().forEach(ch => {
-                        fetch(`https://ntfy.sh/${ch}`, {
-                            method: 'POST',
-                            cache: 'no-store',
-                            headers: {
-                                'Title': `UAMP_ADMIN_REPLACE_V${appState.version}_${appState.updatedAt}`,
-                                'Priority': 'urgent',
-                                'Tags': 'rotating_light,rocket'
-                            },
-                            body: cloudCompact
-                        }).catch(() => {});
-                    });
-                    if (appState.githubConfig?.repo && localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)) {
-                        pushUpdatedSourceCodeToGithubRepo(false).catch(() => {});
+            } catch (e) {}
+            [STORAGE_KEY, BACKUP_STORAGE_KEY].forEach(key => {
+                try {
+                    const raw = localStorage.getItem(key);
+                    if (!raw) return;
+                    const parsed = JSON.parse(raw);
+                    if (parsed && Number(parsed.version || 0) >= MIN_VALID_DEPLOY_VERSION && isCandidateNewerThan(parsed, appState)) {
+                        appState = { ...appState, ...parsed, activeSession: null };
                     }
-                }
-            } catch (err) {
-                console.warn('Error al persistir estado:', err);
+                } catch (e) {}
+            });
+            loadDeployedVersionsHistoryFromStorage();
+            enforceLatestAdminSession();
+            renderLoginDeployedVersionsSelect();
+        }
+
+        async function fetchWithFastTimeout(url, options = {}, timeoutMs = 1800) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                return await fetch(url, { ...options, signal: controller.signal, cache: 'no-store' });
+            } finally {
+                clearTimeout(timer);
             }
         }
 
+        async function fetchRemoteLatestState(applyToUi = true) {
+            let foundNewer = false;
+            const channels = getAllRealtimeChannels().slice(0, 3);
+            const tasks = channels.map(async ch => {
+                try {
+                    const res = await fetchWithFastTimeout(`https://ntfy.sh/${ch}/json?poll=1&since=12h&_t=${Date.now()}`, {}, 1800);
+                    if (!res.ok) return;
+                    const text = await res.text();
+                    const lines = text.trim().split('\n').filter(Boolean);
+                    for (const line of lines) {
+                        try {
+                            const evt = JSON.parse(line);
+                            const bodyRaw = evt.message || line;
+                            const candidate = typeof bodyRaw === 'string' && bodyRaw.trim().startsWith('{') ? JSON.parse(bodyRaw) : null;
+                            if (candidate && Number(candidate.version || 0) >= MIN_VALID_DEPLOY_VERSION && isCandidateNewerThan(candidate, appState)) {
+                                const activeSess = appState.activeSession;
+                                appState = { ...appState, ...candidate, activeSession: activeSess };
+                                foundNewer = true;
+                            }
+                        } catch (e) {}
+                    }
+                } catch (e) {}
+            });
+
+            await Promise.allSettled(tasks);
+            window._initialCloudSyncCompleted = true;
+            if (foundNewer) {
+                enforceLatestAdminSession();
+            }
+            if (applyToUi) {
+                renderLoginDeployedVersionsSelect();
+            }
+            return foundNewer;
+        }
+
+        async function forceRemoteCloudSyncOnLogin(btnEl) {
+            if (btnEl) btnEl.disabled = true;
+            const badge = document.getElementById('loginDeploymentSyncBadge');
+            if (badge) badge.textContent = 'Actualizando...';
+            try {
+                await fetchRemoteLatestState(true);
+            } finally {
+                if (btnEl) btnEl.disabled = false;
+                renderLoginDeployedVersionsSelect();
+            }
+        }
+
+        window.addEventListener('storage', (ev) => {
+            if (ev.key === STORAGE_KEY || ev.key === BACKUP_STORAGE_KEY || ev.key === DEPLOYED_HISTORY_STORAGE_KEY) {
+                hydrateInstantLocalAndEmbeddedState();
+            }
+        });
+
+        (function initFastLoginRealtimeBootstrap() {
+            hydrateInstantLocalAndEmbeddedState();
+            fetchRemoteLatestState(true);
+            setInterval(() => {
+                const clockEl = document.getElementById('loginLiveClock');
+                if (clockEl) {
+                    clockEl.textContent = new Date().toLocaleTimeString('es-MX', { hour12: false });
+                }
+            }, 1000);
+            setInterval(() => {
+                const loginEl = document.getElementById('frontLoginScreen');
+                if (loginEl && !loginEl.classList.contains('hidden')) {
+                    fetchRemoteLatestState(true);
+                }
+            }, 3000);
+        })();
+
         function buildUpdatedFullSourceCodeHtml() {
-            const cleanPayload = buildSerializableVaultPayload(false);
-            const serializedVault = JSON.stringify(cleanPayload);
+            const docClone = document.documentElement.cloneNode(true);
+            const vaultScript = docClone.querySelector('#embeddedInternalVaultData');
+            if (vaultScript) {
+                vaultScript.textContent = JSON.stringify(buildSerializableVaultPayload(false));
+            }
             const usersLiteral = JSON.stringify((appState.profiles || []).map(p => ({
                 id: p.id,
                 name: p.name,
                 roleLabel: p.roleLabel || 'Control Escolar',
                 code: p.code
-            })), null, 4);
-            const fullProfilesLiteral = JSON.stringify(appState.profiles || [], null, 4);
-            const majorsLiteral = JSON.stringify(appState.majors || [], null, 4);
-            const periodsLiteral = JSON.stringify(appState.periods || [], null, 4);
-            const templatesLiteral = JSON.stringify(appState.templates || DEFAULT_DOC_TEMPLATES, null, 4);
+            })));
+            const majorsLiteral = JSON.stringify(appState.majors || DEFAULT_MAJORS);
+            const periodsLiteral = JSON.stringify(appState.periods || DEFAULT_PERIODS);
+            const templatesLiteral = JSON.stringify(appState.templates || DEFAULT_DOC_TEMPLATES);
+            const fullProfilesLiteral = JSON.stringify(appState.profiles || buildDefaultProfilesList());
 
-            const vaultEl = document.getElementById('embeddedInternalVaultData');
-            if (vaultEl) vaultEl.textContent = serializedVault;
-            const codesEl = document.getElementById('embeddedUserAccessCodes');
-            if (codesEl) codesEl.textContent = usersLiteral;
-
-            let fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+            let fullHtml = '<!DOCTYPE html>\n' + docClone.outerHTML;
             fullHtml = fullHtml
-                .replace(/<script type="application\/json" id="embeddedInternalVaultData">[\s\S]*?<\/script>/, `<script type="application/json" id="embeddedInternalVaultData">${serializedVault}<\/script>`)
-                .replace(/<script type="application\/json" id="embeddedUserAccessCodes">[\s\S]*?<\/script>/, `<script type="application/json" id="embeddedUserAccessCodes">${usersLiteral}<\/script>`)
                 .replace(/const EMBEDDED_SOURCE_USERS = \[[\s\S]*?\];/, `const EMBEDDED_SOURCE_USERS = ${usersLiteral};`)
                 .replace(/const DEFAULT_MAJORS = \[[\s\S]*?\];/, `const DEFAULT_MAJORS = ${majorsLiteral};`)
                 .replace(/const DEFAULT_PERIODS = \[[\s\S]*?\];/, `const DEFAULT_PERIODS = ${periodsLiteral};`)
@@ -1553,7 +1593,222 @@
             return fullHtml;
         }
 
+        function persistBaseState(saveLocal = true, broadcastRt = true, bumpTimestamp = true) {
+            if (bumpTimestamp) {
+                appState.updatedAt = Date.now();
+            }
+            const serialized = JSON.stringify(buildSerializableVaultPayload(false));
+            if (saveLocal) {
+                try {
+                    localStorage.setItem(STORAGE_KEY, serialized);
+                    localStorage.setItem(BACKUP_STORAGE_KEY, serialized);
+                } catch (e) {}
+                registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), 'Guardado en Sistema');
+                saveStateAndSourceToCacheApi(serialized);
+            }
+            if (broadcastRt) {
+                const channels = getAllRealtimeChannels().slice(0, 3);
+                channels.forEach(ch => {
+                    fetch(`https://ntfy.sh/${ch}`, {
+                        method: 'POST',
+                        body: serialized
+                    }).catch(() => {});
+                });
+            }
+            renderLoginDeployedVersionsSelect();
+        }
+
+        function unlockProfileByFrontLogin(ev) {
+            if (ev) ev.preventDefault();
+            const input = document.getElementById('frontLoginCodeInput');
+            const errBox = document.getElementById('frontLoginError');
+            const code = (input?.value || '').trim();
+            if (!code) {
+                if (errBox) {
+                    errBox.textContent = 'Ingresa un código de acceso válido.';
+                    errBox.classList.remove('hidden');
+                }
+                return false;
+            }
+            let matchedSession = null;
+            if (code === ADMIN_MASTER_CODE) {
+                matchedSession = { isAdmin: true, id: 'admin_master', name: 'Administrador General', roleLabel: 'Administrador' };
+            } else {
+                const profile = (appState.profiles || []).find(p => String(p.code || '').trim() === code);
+                if (profile) {
+                    matchedSession = { isAdmin: false, id: profile.id, name: profile.name, roleLabel: profile.roleLabel || 'Control Escolar', profile };
+                }
+            }
+            if (!matchedSession) {
+                if (errBox) {
+                    errBox.textContent = 'Código incorrecto o no autorizado en la versión desplegada actual.';
+                    errBox.classList.remove('hidden');
+                }
+                return false;
+            }
+            if (errBox) errBox.classList.add('hidden');
+            appState.activeSession = matchedSession;
+            document.getElementById('frontLoginScreen')?.classList.add('hidden');
+            document.getElementById('mainAppWorkspace')?.classList.remove('hidden');
+            const badge = document.getElementById('activeSessionBadge');
+            if (badge) badge.textContent = `${matchedSession.isAdmin ? 'Admin' : 'Usuario'}: ${matchedSession.name}`;
+            document.querySelectorAll('[data-admin-only="true"]').forEach(el => {
+                el.style.display = matchedSession.isAdmin ? '' : 'none';
+            });
+            refreshAllUI();
+            showToast(`Bienvenido(a), ${matchedSession.name}`);
+            return false;
+        }
+
+        function lockProfileQuickAccess() {
+            appState.activeSession = null;
+            document.getElementById('mainAppWorkspace')?.classList.add('hidden');
+            document.getElementById('frontLoginScreen')?.classList.remove('hidden');
+            const input = document.getElementById('frontLoginCodeInput');
+            if (input) input.value = '';
+            renderLoginDeployedVersionsSelect();
+        }
+
+        function renderMontosListUI() {
+            const box = document.getElementById('montosRowsContainer');
+            const badge = document.getElementById('montosCountBadge');
+            const rows = appState.montos || [];
+            if (badge) badge.textContent = `${rows.length} / 20 filas`;
+            if (box) {
+                box.innerHTML = rows.map((m, idx) => `
+                    <div class="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-[11px]">
+                        <span><b>${m.concepto}</b> (${m.periodo}) — $${Number(m.importe || 0).toFixed(2)}</span>
+                        <button type="button" onclick="appState.montos.splice(${idx},1);renderMontosListUI();updateDocument();" class="text-rose-700 font-bold">✕</button>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function renderKardexListUI() {
+            const box = document.getElementById('kardexRowsContainer');
+            if (!box) return;
+            box.innerHTML = (appState.kardex || []).map((k, idx) => `
+                <div class="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-[11px]">
+                    <span><b>${k.clave}</b> · ${k.asignatura} (${k.ciclo}) — <b>${k.calif}</b></span>
+                    <button type="button" onclick="appState.kardex.splice(${idx},1);renderKardexListUI();updateDocument();" class="text-rose-700 font-bold">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function renderResguardoListUI() {
+            const box = document.getElementById('resguardoRowsContainer');
+            if (!box) return;
+            box.innerHTML = (appState.resguardo || []).map((r, idx) => `
+                <div class="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-[11px]">
+                    <span><b>${r.cantidad}x</b> ${r.descripcion} (${r.serie}) — ${r.estado}</span>
+                    <button type="button" onclick="appState.resguardo.splice(${idx},1);renderResguardoListUI();updateDocument();" class="text-rose-700 font-bold">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function renderProfilesManager() {
+            const box = document.getElementById('profilesManagerContainer');
+            if (!box) return;
+            box.innerHTML = (appState.profiles || []).map(p => `
+                <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50/70 space-y-2">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <span class="text-xs font-black text-slate-900">${p.name}</span>
+                            <span class="ml-2 px-2 py-0.5 rounded bg-blue-100 text-blue-900 font-mono text-[11px] font-bold">Código: ${p.code}</span>
+                        </div>
+                        <button type="button" onclick="toggleUserProfileAccordion('${p.id}')" class="px-2.5 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-xs font-bold text-slate-800">Configurar</button>
+                    </div>
+                    <div id="profileBody_${p.id}" class="hidden pt-2 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                        <input type="text" value="${p.name}" onchange="p_update('${p.id}','name',this.value)" class="px-3 py-1.5 rounded-xl border border-slate-300 bg-white font-bold">
+                        <input type="text" value="${p.roleLabel || ''}" onchange="p_update('${p.id}','roleLabel',this.value)" class="px-3 py-1.5 rounded-xl border border-slate-300 bg-white">
+                        <input type="text" value="${p.code}" onchange="p_update('${p.id}','code',this.value)" class="px-3 py-1.5 rounded-xl border border-slate-300 bg-white font-mono font-bold">
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function p_update(id, field, val) {
+            const target = (appState.profiles || []).find(p => p.id === id);
+            if (target) {
+                target[field] = val;
+                persistBaseState(true, true, true);
+                renderProfilesManager();
+            }
+        }
+
+        function updateGithubSummaryUI() {
+            const repoEl = document.getElementById('summaryRepoValue');
+            const tokEl = document.getElementById('summaryTokenValue');
+            const urlEl = document.getElementById('summaryUrlValue');
+            if (repoEl) repoEl.textContent = `${appState.githubConfig?.repo || 'Local / Auto'} (${appState.githubConfig?.branch || 'main'})`;
+            if (tokEl) tokEl.textContent = localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) ? 'Token PAT Vinculado ✓' : 'Modo Tiempo Real Local/Nube';
+            if (urlEl) urlEl.textContent = `${(appState.profiles || []).length} códigos activos · v${appState.version}`;
+        }
+
         async function saveStateAndSourceToCacheApi(serializedVault) {
+            try {
+                if ('caches' in window && serializedVault) {
+                    const cache = await caches.open(CACHE_STORAGE_NAME);
+                    await cache.put(CACHE_VAULT_URL, new Response(serializedVault, {
+                        headers: { 'Content-Type': 'application/json' }
+                    }));
+                }
+            } catch (e) {}
+        }
+
+        async function pushUpdatedSourceCodeToGithubRepo(notifyUser = false) {
+            try {
+                const repo = (appState.githubConfig?.repo || '').trim();
+                const branch = (appState.githubConfig?.branch || 'main').trim();
+                const filePath = (appState.githubConfig?.filePath || 'index.html').trim();
+                const token = (localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '').trim();
+                if (!repo || !token) return false;
+
+                const apiUrl = `https://api.github.com/repos/${repo}/contents/${filePath}`;
+                const headers = {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/vnd.github+json',
+                    'Content-Type': 'application/json'
+                };
+
+                let sha = null;
+                try {
+                    const getRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(branch)}&_t=${Date.now()}`, { headers });
+                    if (getRes.ok) {
+                        const meta = await getRes.json();
+                        sha = meta.sha || null;
+                    }
+                } catch (e) {}
+
+                const fullHtml = buildUpdatedFullSourceCodeHtml();
+                const base64Content = btoa(unescape(encodeURIComponent(fullHtml)));
+                const bodyPayload = {
+                    message: `Despliegue automático SISTEMA BUBU v${appState.version}`,
+                    content: base64Content,
+                    branch
+                };
+                if (sha) bodyPayload.sha = sha;
+
+                const putRes = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers,
+                    body: JSON.stringify(bodyPayload)
+                });
+                if (putRes.ok && notifyUser) {
+                    showToast(`Repositorio ${repo} actualizado a v${appState.version}.`);
+                }
+                return putRes.ok;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        async function saveAndUpdateDeploymentAction(btnEl) {
+            const origText = btnEl ? btnEl.textContent : '';
+            if (btnEl) {
+                btnEl.disabled = true;
+                btnEl.textContent = 'Publicando despliegue...';
+            }
             try {
                 appState.version = Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION) + 1;
                 deployedVersionsRegistry = [];
@@ -1574,931 +1829,240 @@
             }
         }
 
-        async function fetchRemoteLatestState() {
-            const remoteCandidates = [];
-            const normalizeCandidate = (rawObj) => {
-                if (!rawObj || !Array.isArray(rawObj.profiles)) return null;
-                const v = Number(rawObj.version || 1);
-                if (v < MIN_VALID_DEPLOY_VERSION) return null;
-                return {
-                    ...rawObj,
-                    version: v,
-                    updatedAt: Number(rawObj.adminPublishedAt || rawObj.updatedAt || 0)
-                };
+        function refreshSourceCodePreviewBox() {
+            const box = document.getElementById('txtLiveGeneratedSourceCode');
+            if (box) {
+                box.value = buildUpdatedFullSourceCodeHtml();
+            }
+        }
+
+        function switchMainWorkspaceTab(tabName) {
+            const views = {
+                generador: document.getElementById('workspaceViewGenerador'),
+                catalogos: document.getElementById('workspaceViewCatalogos'),
+                control_panel: document.getElementById('workspaceViewControlPanel')
             };
-            const extractFromHtmlText = (htmlText) => {
-                if (!htmlText) return;
-                try {
-                    const vaultMatch = htmlText.match(/<script type="application\/json" id="embeddedInternalVaultData">([\s\S]*?)<\/script>/);
-                    if (vaultMatch && vaultMatch[1] && vaultMatch[1].trim() !== '{}') {
-                        const parsedVault = normalizeCandidate(JSON.parse(vaultMatch[1]));
-                        if (parsedVault) {
-                            remoteCandidates.push(parsedVault);
-                        }
-                    }
-                    const usersMatch = htmlText.match(/const EMBEDDED_SOURCE_USERS = (\[[\s\S]*?\]);/);
-                    const verMatch = htmlText.match(/version:\s*(\d+),/);
-                    if (usersMatch && usersMatch[1]) {
-                        const parsedUsers = JSON.parse(usersMatch[1]);
-                        const verNum = verMatch ? Number(verMatch[1]) : 1;
-                        if (verNum >= MIN_VALID_DEPLOY_VERSION) {
-                            remoteCandidates.push({
-                                version: verNum,
-                                updatedAt: verNum * 1000,
-                                profiles: parsedUsers.map(u => ({
-                                    ...u,
-                                    docAccess: createDefaultDocAccessMatrix(true),
-                                    headerButtons: createDefaultHeaderMatrix(true)
-                                }))
-                            });
-                        }
-                    }
-                } catch (e) {}
-            };
-
-            const host = window.location.hostname || '';
-            const pathParts = (window.location.pathname || '').split('/').filter(Boolean);
-            let detectedRepo = (appState.githubConfig?.repo || '').trim();
-            const detectedBranch = (appState.githubConfig?.branch || 'main').trim();
-            if (!detectedRepo && host.endsWith('.github.io') && pathParts.length > 0) {
-                detectedRepo = `${host.replace('.github.io', '')}/${pathParts[0]}`;
-            }
-
-            const fetchTasks = [];
-
-            getAllRealtimeChannels().forEach(ch => {
-                fetchTasks.push((async () => {
-                    try {
-                        const res = await fetch(`https://ntfy.sh/${ch}/json?poll=1&since=all&_t=${Date.now()}`, { cache: 'no-store' });
-                        if (res.ok) {
-                            const text = await res.text();
-                            const lines = text.trim().split('\n').filter(Boolean);
-                            for (let i = lines.length - 1; i >= 0; i--) {
-                                try {
-                                    const evt = JSON.parse(lines[i]);
-                                    if (evt && evt.message && evt.message.trim().startsWith('{')) {
-                                        const parsed = normalizeCandidate(JSON.parse(evt.message));
-                                        if (parsed) {
-                                            const evtTimeMs = evt.time ? Number(evt.time) * 1000 : 0;
-                                            if (evtTimeMs > parsed.updatedAt) parsed.updatedAt = evtTimeMs;
-                                            remoteCandidates.push(parsed);
-                                        }
-                                    }
-                                } catch (e) {}
-                            }
-                        }
-                    } catch (e) {}
-                })());
-            });
-
-            if (window.location.protocol.startsWith('http')) {
-                fetchTasks.push((async () => {
-                    try {
-                        const freshUrl = `${window.location.pathname}?nocache=${Date.now()}`;
-                        const htmlRes = await fetch(freshUrl, { cache: 'no-store' });
-                        if (htmlRes.ok) extractFromHtmlText(await htmlRes.text());
-                    } catch (e) {}
-                })());
-            }
-
-            if (detectedRepo) {
-                ['main', 'master', detectedBranch].filter((v, i, a) => v && a.indexOf(v) === i).forEach(br => {
-                    fetchTasks.push((async () => {
-                        try {
-                            const rawGhUrl = `https://raw.githubusercontent.com/${detectedRepo}/${br}/index.html?nocache=${Date.now()}`;
-                            const rawRes = await fetch(rawGhUrl, { cache: 'no-store' });
-                            if (rawRes.ok) extractFromHtmlText(await rawRes.text());
-                        } catch (e) {}
-                    })());
-                });
-            }
-
-            await Promise.allSettled(fetchTasks);
-            remoteCandidates.sort((a, b) => {
-                const verDiff = Number(b.version || 1) - Number(a.version || 1);
-                if (verDiff !== 0) return verDiff;
-                const tsDiff = Number(b.adminPublishedAt || b.updatedAt || 0) - Number(a.adminPublishedAt || a.updatedAt || 0);
-                if (tsDiff !== 0) return tsDiff;
-                return (b.isAdminDeployment ? 1 : 0) - (a.isAdminDeployment ? 1 : 0);
-            });
-            const highestRemote = remoteCandidates[0] || null;
-            if (highestRemote) {
-                purgeOutdatedSnapshotsBelow(highestRemote.version, highestRemote.updatedAt);
-                registerDeployedVersionSnapshot(highestRemote, `Despliegue Admin v${highestRemote.version}`);
-            }
-            return highestRemote;
-        }
-
-        function applyRemoteSnapshotImmediately(parsed) {
-            if (!parsed || !Array.isArray(parsed.profiles)) return false;
-            const currentVer = Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION);
-            const incomingVer = Number(parsed.version || 1);
-            if (incomingVer < MIN_VALID_DEPLOY_VERSION) return false;
-            const incomingTime = Number(parsed.adminPublishedAt || parsed.updatedAt || 0);
-            const currentTime = Number(appState.adminPublishedAt || appState.updatedAt || 0);
-            const shouldReplace =
-                incomingVer > currentVer ||
-                (incomingVer === currentVer && (incomingTime > currentTime || parsed.replacePrevious === true));
-
-            if (shouldReplace) {
-                const activeSess = appState.activeSession;
-                deployedVersionsRegistry = [];
-                appState = {
-                    ...appState,
-                    ...parsed,
-                    version: incomingVer,
-                    updatedAt: incomingTime || Date.now(),
-                    activeSession: activeSess
-                };
-                registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), `Despliegue Admin v${incomingVer}`);
-                enforceLatestAdminSession();
-                if (!document.getElementById('mainAppWorkspace')?.classList.contains('hidden')) {
-                    refreshAllUI();
-                    selectDocType(appState.currentDocType || 'estudios');
-                    updateDocument();
-                }
-                const lastSyncEl = document.getElementById('loginLiveLastSync');
-                if (lastSyncEl) lastSyncEl.textContent = `Actualizado v${incomingVer} (${new Date().toLocaleTimeString('es-MX', { hour12: false })})`;
-                return true;
-            }
-            return false;
-        }
-
-        async function loadPersistedState(forceApply = false) {
-            const candidates = [];
-            const pushValidCandidate = (obj, sourcePriority = 0) => {
-                if (!obj || typeof obj !== 'object') return;
-                const v = Number(obj.version || 1);
-                if (v < MIN_VALID_DEPLOY_VERSION) return;
-                candidates.push({
-                    ...obj,
-                    version: v,
-                    updatedAt: Number(obj.adminPublishedAt || obj.updatedAt || 0),
-                    _sourcePriority: sourcePriority
-                });
-            };
-            try {
-                const rawLocal = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(BACKUP_STORAGE_KEY);
-                if (rawLocal) pushValidCandidate(JSON.parse(rawLocal), 1);
-            } catch (e) {}
-            try {
-                if (window.name && window.name.trim().startsWith('{')) {
-                    pushValidCandidate(JSON.parse(window.name), 1);
-                }
-            } catch (e) {}
-            try {
-                const domRaw = document.getElementById('embeddedInternalVaultData')?.textContent?.trim();
-                if (domRaw && domRaw !== '{}') pushValidCandidate(JSON.parse(domRaw), 2);
-            } catch (e) {}
-
-            const remoteBest = await fetchRemoteLatestState();
-            if (remoteBest) pushValidCandidate(remoteBest, 3);
-
-            candidates.sort((a, b) => {
-                const verDiff = Number(b.version || 1) - Number(a.version || 1);
-                if (verDiff !== 0) return verDiff;
-                const tsDiff = Number(b.updatedAt || 0) - Number(a.updatedAt || 0);
-                if (tsDiff !== 0) return tsDiff;
-                return (b._sourcePriority || 0) - (a._sourcePriority || 0);
-            });
-            const best = candidates[0];
-            if (best && (forceApply || isCandidateNewerThan(best, appState))) {
-                const activeSess = appState.activeSession;
-                const bestVer = Math.max(Number(best.version || 1), MIN_VALID_DEPLOY_VERSION);
-                delete best._sourcePriority;
-                deployedVersionsRegistry = [];
-                appState = { ...appState, ...best, version: bestVer, activeSession: activeSess };
-                registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), `Despliegue Admin v${bestVer}`);
-                enforceLatestAdminSession();
-            } else {
-                enforceLatestAdminSession();
-            }
-        }
-
-        function hydrateUserFromSharedUrlParam() {
-            try {
-                const params = new URLSearchParams(window.location.search);
-                const verParam = params.get('v');
-                if (verParam && Number(verParam) > Number(appState.version || 1)) {
-                    appState.version = Number(verParam);
-                }
-                const payloadParam = params.get('u');
-                if (payloadParam) {
-                    const decoded = JSON.parse(decodeURIComponent(escape(atob(payloadParam))));
-                    if (decoded && Array.isArray(decoded.profiles)) {
-                        appState.profiles = decoded.profiles;
-                        if (decoded.version) appState.version = Number(decoded.version);
-                        persistBaseState(true, true, false);
-                    }
-                }
-            } catch (e) {}
-        }
-
-        function copyDirectSharedLinkWithState() {
-            const compact = {
-                version: Number(appState.version || 1),
-                profiles: (appState.profiles || []).map(p => ({
-                    id: p.id,
-                    name: p.name,
-                    roleLabel: p.roleLabel || 'Control Escolar',
-                    code: p.code,
-                    docAccess: p.docAccess || createDefaultDocAccessMatrix(true),
-                    headerButtons: p.headerButtons || createDefaultHeaderMatrix(true)
-                }))
-            };
-            const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(compact))));
-            const baseUrl = `${window.location.origin}${window.location.pathname}`;
-            const fullUrl = `${baseUrl}?v=${appState.version}&u=${encodeURIComponent(encoded)}`;
-            const ta = document.createElement('textarea');
-            ta.value = fullUrl;
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
-            showToast(`Enlace directo v${appState.version} con todos los usuarios copiado al portapapeles.`);
-        }
-
-        async function forceRemoteCloudSyncOnLogin(btnEl) {
-            const hintEl = document.getElementById('loginVersionUsersHint');
-            if (hintEl) hintEl.textContent = 'Buscando la versión más actual publicada por el Administrador...';
-            await loadPersistedState(true);
-            renderLoginDeployedVersionsSelect();
-            const lastSyncEl = document.getElementById('loginLiveLastSync');
-            if (lastSyncEl) lastSyncEl.textContent = `Sync ${new Date().toLocaleTimeString('es-MX', { hour12: false })}`;
-        }
-
-        function hydrateInstantLocalAndEmbeddedState() {
-            const candidates = [];
-            const pushCandidate = (obj, sourcePriority = 0) => {
-                if (!obj || typeof obj !== 'object') return;
-                const v = Number(obj.version || 1);
-                if (v < MIN_VALID_DEPLOY_VERSION) return;
-                candidates.push({
-                    ...obj,
-                    version: v,
-                    updatedAt: Number(obj.adminPublishedAt || obj.updatedAt || 0),
-                    _sourcePriority: sourcePriority
-                });
-            };
-            try {
-                const rawLocal = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(BACKUP_STORAGE_KEY);
-                if (rawLocal) pushCandidate(JSON.parse(rawLocal), 1);
-            } catch (e) {}
-            try {
-                if (window.name && window.name.trim().startsWith('{')) {
-                    pushCandidate(JSON.parse(window.name), 1);
-                }
-            } catch (e) {}
-            try {
-                const domRaw = document.getElementById('embeddedInternalVaultData')?.textContent?.trim();
-                if (domRaw && domRaw !== '{}') pushCandidate(JSON.parse(domRaw), 2);
-            } catch (e) {}
-            try {
-                const histRaw = localStorage.getItem(DEPLOYED_HISTORY_STORAGE_KEY);
-                if (histRaw) {
-                    const parsedHist = JSON.parse(histRaw);
-                    if (Array.isArray(parsedHist)) {
-                        parsedHist.forEach(item => {
-                            if (item && item.payload) pushCandidate(item.payload, 1);
-                        });
-                    }
-                }
-            } catch (e) {}
-            try {
-                const params = new URLSearchParams(window.location.search);
-                const verParam = Number(params.get('v') || 0);
-                if (verParam >= MIN_VALID_DEPLOY_VERSION && verParam > Number(appState.version || 1)) {
-                    appState.version = verParam;
-                }
-            } catch (e) {}
-
-            candidates.sort((a, b) => {
-                const verDiff = Number(b.version || 1) - Number(a.version || 1);
-                if (verDiff !== 0) return verDiff;
-                const tsDiff = Number(b.updatedAt || 0) - Number(a.updatedAt || 0);
-                if (tsDiff !== 0) return tsDiff;
-                return (b._sourcePriority || 0) - (a._sourcePriority || 0);
-            });
-            const highest = candidates[0];
-            if (highest) {
-                const activeSess = appState.activeSession;
-                const highestVer = Math.max(Number(highest.version || 1), MIN_VALID_DEPLOY_VERSION);
-                delete highest._sourcePriority;
-                deployedVersionsRegistry = [];
-                appState = { ...appState, ...highest, version: highestVer, activeSession: activeSess };
-            }
-            const activeVer = Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION);
-            appState.version = activeVer;
-            purgeOutdatedSnapshotsBelow(activeVer, Number(appState.updatedAt || 0));
-            registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), `Última Versión Desplegada v${activeVer}`);
-            enforceLatestAdminSession();
-            renderLoginDeployedVersionsSelect();
-        }
-
-        function initGlobalRealtimeCloudSync() {
-            try {
-                if (Array.isArray(window._globalRtEventSources)) {
-                    window._globalRtEventSources.forEach(s => { try { s.close(); } catch (e) {} });
-                }
-                window._globalRtEventSources = getAllRealtimeChannels().map(ch => {
-                    const es = new EventSource(`https://ntfy.sh/${ch}/sse?since=all`);
-                    es.onmessage = (event) => {
-                        try {
-                            const evt = JSON.parse(event.data);
-                            if (evt && evt.message && evt.message.trim().startsWith('{')) {
-                                const parsed = JSON.parse(evt.message);
-                                const updated = applyRemoteSnapshotImmediately(parsed);
-                                if (updated) {
-                                    renderLoginDeployedVersionsSelect();
-                                    if (appState.activeSession?.role === 'admin') {
-                                        showToast(`Enlace actualizado automáticamente a v${appState.version}`);
-                                    }
-                                }
-                            }
-                        } catch (e) {}
-                    };
-                    return es;
-                });
-            } catch (e) {}
-
-            window.addEventListener('storage', (e) => {
-                if (e.key === STORAGE_KEY || e.key === BACKUP_STORAGE_KEY || e.key === DEPLOYED_HISTORY_STORAGE_KEY) {
-                    hydrateInstantLocalAndEmbeddedState();
-                    if (!document.getElementById('mainAppWorkspace')?.classList.contains('hidden')) {
-                        refreshAllUI();
-                        updateDocument();
-                    }
-                }
-            });
-
-            const syncOnWake = async () => {
-                if (document.visibilityState === 'visible') {
-                    hydrateInstantLocalAndEmbeddedState();
-                    await loadPersistedState(true);
-                    renderLoginDeployedVersionsSelect();
-                    if (!document.getElementById('mainAppWorkspace')?.classList.contains('hidden')) {
-                        refreshAllUI();
-                        updateDocument();
-                    }
-                }
-            };
-            document.addEventListener('visibilitychange', syncOnWake);
-            window.addEventListener('focus', syncOnWake);
-
-            if (window._globalLoginFastPollTimer) clearInterval(window._globalLoginFastPollTimer);
-            window._globalLoginFastPollTimer = setInterval(async () => {
-                await loadPersistedState(true);
-                renderLoginDeployedVersionsSelect();
-            }, 2500);
-        }
-
-        async function unlockProfileByFrontLogin(event) {
-            if (event && typeof event.preventDefault === 'function') event.preventDefault();
-            const input = document.getElementById('frontLoginCodeInput');
-            const errBox = document.getElementById('frontLoginError');
-            const submitBtn = document.getElementById('btnFrontLoginSubmit');
-            const rawCode = (input?.value || '').trim();
-            if (!rawCode) {
-                if (errBox) {
-                    errBox.textContent = 'Por favor escribe tu código de acceso.';
-                    errBox.classList.remove('hidden');
-                }
-                return false;
-            }
-
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Sincronizando última versión...';
-            }
-
-            try {
-                await Promise.race([
-                    loadPersistedState(true),
-                    new Promise(resolve => setTimeout(resolve, 1500))
-                ]);
-                enforceLatestAdminSession();
-
-                if (rawCode.toLowerCase() === ADMIN_MASTER_CODE.toLowerCase()) {
-                    appState.activeSession = { role: 'admin', name: 'Administrador General', profileId: 'admin' };
-                    enterWorkspaceAfterLogin();
-                    return false;
-                }
-
-                let matched = (appState.profiles || []).find(
-                    p => String(p.code || '').trim().toLowerCase() === rawCode.toLowerCase()
-                );
-
-                if (!matched && Array.isArray(deployedVersionsRegistry)) {
-                    for (const snap of deployedVersionsRegistry) {
-                        const foundInSnap = (snap.payload?.profiles || []).find(
-                            p => String(p.code || '').trim().toLowerCase() === rawCode.toLowerCase()
-                        );
-                        if (foundInSnap) {
-                            appState = { ...appState, ...JSON.parse(JSON.stringify(snap.payload)), activeSession: null };
-                            enforceLatestAdminSession();
-                            matched = foundInSnap;
-                            break;
-                        }
-                    }
-                }
-
-                if (!matched) {
-                    const fallbackBase = EMBEDDED_SOURCE_USERS.find(
-                        u => String(u.code || '').trim().toLowerCase() === rawCode.toLowerCase()
-                    );
-                    if (fallbackBase) {
-                        matched = {
-                            ...fallbackBase,
-                            docAccess: createDefaultDocAccessMatrix(true),
-                            headerButtons: createDefaultHeaderMatrix(true)
-                        };
-                        if (!Array.isArray(appState.profiles)) appState.profiles = [];
-                        appState.profiles.push(matched);
-                    }
-                }
-
-                if (!matched) {
-                    if (errBox) {
-                        errBox.textContent = `Código "${rawCode}" no encontrado en la última versión desplegada v${appState.version || 1}.`;
-                        errBox.classList.remove('hidden');
-                    }
-                    return false;
-                }
-
-                appState.activeSession = { role: 'user', name: matched.name, profileId: matched.id };
-                enterWorkspaceAfterLogin();
-            } catch (err) {
-                if (rawCode.toLowerCase() === ADMIN_MASTER_CODE.toLowerCase()) {
-                    appState.activeSession = { role: 'admin', name: 'Administrador General', profileId: 'admin' };
-                    enterWorkspaceAfterLogin();
-                } else if (errBox) {
-                    errBox.textContent = 'Error al validar acceso. Intenta nuevamente.';
-                    errBox.classList.remove('hidden');
-                }
-            } finally {
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Iniciar Sesión';
-                }
-            }
-            return false;
-        }
-
-        function enterWorkspaceAfterLogin() {
-            const errBox = document.getElementById('frontLoginError');
-            if (errBox) errBox.classList.add('hidden');
-
-            const loginScreen = document.getElementById('frontLoginScreen');
-            const mainWorkspace = document.getElementById('mainAppWorkspace');
-            if (loginScreen) {
-                loginScreen.classList.add('hidden');
-                loginScreen.style.setProperty('display', 'none', 'important');
-            }
-            if (mainWorkspace) {
-                mainWorkspace.classList.remove('hidden');
-                mainWorkspace.style.setProperty('display', 'flex', 'important');
-                mainWorkspace.style.visibility = 'visible';
-                mainWorkspace.style.opacity = '1';
-            }
-
-            const isAdmin = !appState.activeSession || appState.activeSession.role === 'admin';
-            const badge = document.getElementById('activeSessionBadge');
-            if (badge) {
-                badge.textContent = isAdmin
-                    ? 'Admin: Administrador General'
-                    : `Usuario: ${appState.activeSession.name}`;
-            }
-
-            document.querySelectorAll('[data-admin-only="true"]').forEach(el => {
-                if (isAdmin) {
+            Object.entries(views).forEach(([key, el]) => {
+                if (!el) return;
+                if (key === tabName) {
                     el.classList.remove('hidden');
-                    el.style.removeProperty('display');
+                    el.style.display = 'block';
                 } else {
                     el.classList.add('hidden');
-                    el.style.setProperty('display', 'none', 'important');
+                    el.style.display = 'none';
                 }
             });
-
-            const prof = !isAdmin ? (appState.profiles || []).find(p => p.id === appState.activeSession.profileId) : null;
-            document.querySelectorAll('[data-header-btn]').forEach(btn => {
-                const key = btn.getAttribute('data-header-btn');
-                if (!isAdmin && prof?.headerButtons && Object.prototype.hasOwnProperty.call(prof.headerButtons, key)) {
-                    if (prof.headerButtons[key]) {
-                        btn.classList.remove('hidden');
-                        btn.style.removeProperty('display');
-                    } else {
-                        btn.classList.add('hidden');
-                        btn.style.setProperty('display', 'none', 'important');
-                    }
-                } else if (!btn.hasAttribute('data-admin-only')) {
-                    btn.classList.remove('hidden');
-                    btn.style.removeProperty('display');
-                }
-            });
-
-            switchMainWorkspaceTab('generador');
-            refreshAllUI();
-            selectDocType(appState.currentDocType || 'estudios');
-            window.scrollTo({ top: 0, behavior: 'instant' });
-            showToast(`Bienvenido(a), ${appState.activeSession.name}`);
-        }
-
-        function lockProfileQuickAccess() {
-            appState.activeSession = null;
-            const inp = document.getElementById('frontLoginCodeInput');
-            if (inp) inp.value = '';
-            const loginScreen = document.getElementById('frontLoginScreen');
-            const mainWorkspace = document.getElementById('mainAppWorkspace');
-            if (mainWorkspace) {
-                mainWorkspace.classList.add('hidden');
-                mainWorkspace.style.setProperty('display', 'none', 'important');
+            if (tabName === 'control_panel') {
+                renderProfilesManager();
+                updateGithubSummaryUI();
+                refreshSourceCodePreviewBox();
+            } else if (tabName === 'catalogos') {
+                renderMajorsCatalogUI();
             }
-            if (loginScreen) {
-                loginScreen.classList.remove('hidden');
-                loginScreen.style.setProperty('display', 'flex', 'important');
-            }
-            renderLoginDeployedVersionsSelect();
         }
 
-        function syncGradesTableRowsToSkeleton() {
-            const bulk = document.getElementById('txtGradesBulkInput')?.value.trim();
-            if (bulk) {
-                bulk.split('\n').forEach(line => {
-                    if ((appState.grades || []).length >= 20) return;
-                    const parts = line.split(/\t|\|/).map(s => s.trim()).filter(Boolean);
-                    if (parts.length >= 4) {
-                        appState.grades.push({ group: parts[0], code: parts[1], subject: parts[2], score: parts[3] });
-                    }
-                });
-                document.getElementById('txtGradesBulkInput').value = '';
-            }
-            renderGradesListUI();
-            updateDocument();
-            persistBaseState(true, true, false);
-            showToast('Tabla de calificaciones actualizada.');
+        function toggleUserProfileAccordion(profileId) {
+            const body = document.getElementById(`profileBody_${profileId}`);
+            if (body) body.classList.toggle('hidden');
         }
 
-        function clearGradesTableRows() {
-            appState.grades = [];
-            renderGradesListUI();
-            updateDocument();
-            persistBaseState(true, true, false);
-        }
-
-        function renderMontosListUI() {
-            const container = document.getElementById('montosRowsContainer');
-            const badge = document.getElementById('montosCountBadge');
-            if (badge) badge.textContent = `${(appState.montos || []).length} / 20 filas`;
-            if (container) {
-                container.innerHTML = (appState.montos || []).map((m, idx) => `
+        function renderGradesListUI() {
+            const list = document.getElementById('gradesSavedRowsList');
+            const badge = document.getElementById('gradesCountBadge');
+            const summary = document.getElementById('gradesLiveSummaryBadge');
+            const rows = appState.grades || [];
+            if (badge) badge.textContent = `${rows.length} / 20 filas`;
+            const nums = rows.map(r => parseFloat(r.score)).filter(n => !isNaN(n));
+            const avg = nums.length ? (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2) : '0.00';
+            if (summary) summary.textContent = `Promedio Aritmético: ${avg}`;
+            if (list) {
+                list.innerHTML = rows.map((r, idx) => `
                     <div class="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-[11px]">
-                        <span><b>${m.concepto}</b> (${m.periodo}) — $${Number(m.importe || 0).toFixed(2)}</span>
-                        <button type="button" onclick="appState.montos.splice(${idx},1);renderMontosListUI();updateDocument();" class="text-rose-700 font-bold">✕</button>
+                        <span><b>${r.group}</b> · ${r.code} · ${r.subject} — <b>${r.score}</b></span>
+                        <button type="button" onclick="appState.grades.splice(${idx},1);renderGradesListUI();updateDocument();" class="text-rose-700 font-bold">✕</button>
                     </div>
                 `).join('');
             }
         }
 
-        function syncMontosTableRowsToSkeleton() {
-            const concepto = document.getElementById('inpNewMontoConcepto')?.value.trim();
-            const periodo = document.getElementById('inpNewMontoPeriodo')?.value.trim();
-            const importe = parseFloat(document.getElementById('inpNewMontoImporte')?.value || '0');
-            if (concepto && (appState.montos || []).length < 20) {
-                appState.montos.push({ concepto, periodo, importe });
-                document.getElementById('inpNewMontoConcepto').value = '';
-                document.getElementById('inpNewMontoPeriodo').value = '';
-                document.getElementById('inpNewMontoImporte').value = '';
+        function renderMajorsCatalogUI() {
+            const sel = document.getElementById('selLicenciatura');
+            if (sel) {
+                const prevVal = sel.value;
+                sel.innerHTML = (appState.majors || []).map(m =>
+                    `<option value="${m.id}">${m.name} (${m.rvoe}${m.rvoeDate ? ' · ' + m.rvoeDate : ''})</option>`
+                ).join('');
+                if (prevVal && (appState.majors || []).some(m => m.id === prevVal)) sel.value = prevVal;
             }
-            renderMontosListUI();
-            updateDocument();
-            persistBaseState(true, true, false);
-        }
-
-        function renderKardexListUI() {
-            const container = document.getElementById('kardexRowsContainer');
-            if (!container) return;
-            container.innerHTML = (appState.kardex || []).map((k, idx) => `
-                <div class="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-[11px]">
-                    <span>${k.clave} · <b>${k.asignatura}</b> (${k.calif})</span>
-                    <button type="button" onclick="appState.kardex.splice(${idx},1);renderKardexListUI();updateDocument();" class="text-rose-700 font-bold">✕</button>
-                </div>
-            `).join('');
-        }
-
-        function addKardexRow() {
-            if ((appState.kardex || []).length >= 20) return;
-            appState.kardex.push({ clave: 'MAT-01', asignatura: 'Nueva Asignatura', ciclo: '1° Semestre', creditos: '8', calif: '9.0' });
-            renderKardexListUI();
-            updateDocument();
-        }
-
-        function renderResguardoListUI() {
-            const container = document.getElementById('resguardoRowsContainer');
-            if (!container) return;
-            container.innerHTML = (appState.resguardo || []).map((r, idx) => `
-                <div class="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-[11px]">
-                    <span>${r.cantidad}x <b>${r.descripcion}</b> (${r.serie})</span>
-                    <button type="button" onclick="appState.resguardo.splice(${idx},1);renderResguardoListUI();updateDocument();" class="text-rose-700 font-bold">✕</button>
-                </div>
-            `).join('');
-        }
-
-        function addResguardoRow() {
-            if ((appState.resguardo || []).length >= 20) return;
-            appState.resguardo.push({ cantidad: '1', descripcion: 'Documento Oficial', serie: 'S/N', estado: 'Original' });
-            renderResguardoListUI();
-            updateDocument();
-        }
-
-        function incrementFolioByOne() {
-            const inp = document.getElementById('inpFolio');
-            if (!inp) return;
-            inp.value = inp.value.replace(/(\d+)(?!.*\d)/, m => String(parseInt(m, 10) + 1));
-            updateDocument();
-            persistBaseState(true, true, false);
-        }
-
-        function clearStudentQuickCommand() {
-            ['inpNombre', 'inpMatricula', 'inpCurp'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.value = '';
-            });
-            updateDocument();
-        }
-
-        function copyDocumentTextCommand() {
-            const body = document.getElementById('constanciaPaper')?.innerText || '';
-            const ta = document.createElement('textarea');
-            ta.value = body;
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
-            showToast('Texto de la constancia copiado al portapapeles.');
-        }
-
-        function setTodayExpeditionDate() {
-            const now = new Date();
-            const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-            const txt = `${String(now.getDate()).padStart(2, '0')} de ${months[now.getMonth()]} de ${now.getFullYear()}`;
-            const inp = document.getElementById('inpFechaExpedicionTexto');
-            if (inp) inp.value = txt;
-            updateDocument();
-        }
-
-        function resetFormToDefaultsCommand() {
-            document.getElementById('inpNombre').value = 'GOMEZ AMORES ENRIQUE';
-            document.getElementById('inpMatricula').value = '2211899';
-            document.getElementById('inpCurp').value = 'GOAE010412HPLRND09';
-            updateDocument();
-            showToast('Datos de ejemplo restablecidos.');
-        }
-
-        function saveResponsibleSignature() {
-            persistBaseState(true, true, true);
-            showToast('Firma de responsable guardada.');
-        }
-
-        async function saveAndDownloadConstanciaPDF() {
-            const paper = document.getElementById('constanciaPaper');
-            if (!paper || !window.html2canvas || !window.jspdf) {
-                window.print();
-                return;
-            }
-            showToast('Generando PDF oficial...');
-            const canvas = await html2canvas(paper, { scale: 2, useCORS: true });
-            const imgData = canvas.toDataURL('image/png');
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [215, 280] });
-            pdf.addImage(imgData, 'PNG', 0, 0, 215, 280);
-            const nombre = (document.getElementById('inpNombre')?.value || 'Constancia').trim().replace(/\s+/g, '_');
-            pdf.save(`Constancia_${nombre}.pdf`);
-            appState.history.unshift({
-                date: new Date().toLocaleString('es-MX'),
-                folio: document.getElementById('inpFolio')?.value || '',
-                student: document.getElementById('inpNombre')?.value || '',
-                type: appState.currentDocType
-            });
-            persistBaseState(true, true, false);
-        }
-
-        function printConstanciaDocument() {
-            window.print();
-        }
-
-        function openHistoryModal() {
-            const list = document.getElementById('historyListContainer');
+            const list = document.getElementById('majorsCatalogList');
             if (list) {
-                list.innerHTML = (appState.history || []).length
-                    ? appState.history.map(h => `<div class="py-2 flex justify-between"><span><b>${h.folio}</b> · ${h.student} (${h.type})</span><span class="text-slate-400">${h.date}</span></div>`).join('')
-                    : '<div class="py-6 text-center text-slate-400">Aún no hay constancias registradas en el historial.</div>';
-            }
-            document.getElementById('historyModal')?.classList.remove('hidden');
-        }
-        function closeHistoryModal() {
-            document.getElementById('historyModal')?.classList.add('hidden');
-        }
-
-        function openDatabaseVaultModal() {
-            document.getElementById('databaseVaultModal')?.classList.remove('hidden');
-        }
-        function closeDatabaseVaultModal() {
-            document.getElementById('databaseVaultModal')?.classList.add('hidden');
-        }
-
-        function importStudentsExcel(event) {
-            const file = event.target.files?.[0];
-            if (!file || !window.XLSX) return;
-            const reader = new FileReader();
-            reader.onload = e => {
-                const wb = XLSX.read(e.target.result, { type: 'binary' });
-                const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-                appState.studentsVault = rows;
-                const list = document.getElementById('studentsVaultList');
-                if (list) {
-                    list.innerHTML = rows.slice(0, 50).map((r, i) => `
-                        <div class="p-2 flex justify-between items-center hover:bg-blue-50 cursor-pointer" onclick="loadStudentFromVault(${i})">
-                            <span><b>${r.NOMBRE || r.Nombre || Object.values(r)[0] || ''}</b></span>
-                            <span class="text-blue-800 font-bold">Cargar →</span>
-                        </div>
-                    `).join('');
-                }
-                persistBaseState(true, true, false);
-                showToast(`${rows.length} alumnos cargados desde Excel.`);
-            };
-            reader.readAsBinaryString(file);
-        }
-
-        function loadStudentFromVault(idx) {
-            const r = appState.studentsVault[idx];
-            if (!r) return;
-            if (r.NOMBRE || r.Nombre) document.getElementById('inpNombre').value = r.NOMBRE || r.Nombre;
-            if (r.MATRICULA || r.Matricula) document.getElementById('inpMatricula').value = r.MATRICULA || r.Matricula;
-            if (r.CURP || r.Curp) document.getElementById('inpCurp').value = r.CURP || r.Curp;
-            closeDatabaseVaultModal();
-            updateDocument();
-            showToast('Alumno cargado en el formulario.');
-        }
-
-        function updateGithubSummaryUI() {
-            const repoEl = document.getElementById('summaryRepoValue');
-            const tokEl = document.getElementById('summaryTokenValue');
-            const urlEl = document.getElementById('summaryUrlValue');
-            if (repoEl) repoEl.textContent = appState.githubConfig?.repo || 'Sincronización Global Nube';
-            if (tokEl) tokEl.textContent = 'Conectado · Sin Bloqueos';
-            if (urlEl) urlEl.textContent = `${(appState.profiles || []).length} códigos activos (v${appState.version || 1})`;
-        }
-
-        function downloadSelfContainedPageWithData() {
-            persistBaseState(true, true, false);
-            const htmlContent = buildUpdatedFullSourceCodeHtml();
-            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'index.html';
-            a.click();
-            showToast(`Código fuente index.html (v${appState.version}) generado con todos tus cambios.`);
-        }
-
-        function saveVinculacionCredentialsExplicitly() {
-            appState.githubConfig.repo = document.getElementById('inpGithubRepo')?.value.trim() || '';
-            appState.githubConfig.branch = document.getElementById('inpGithubBranch')?.value.trim() || 'main';
-            persistBaseState(true, true, true);
-            updateGithubSummaryUI();
-            showToast('Datos de vinculación guardados.');
-        }
-
-        function renderProfilesManager() {
-            const container = document.getElementById('profilesManagerContainer');
-            if (!container) return;
-            container.innerHTML = (appState.profiles || []).map((prof, idx) => {
-                if (!prof.headerButtons) prof.headerButtons = createDefaultHeaderMatrix(true);
-                return `
-                <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50/70 space-y-3">
-                    <div class="flex flex-wrap items-center justify-between gap-2">
+                list.innerHTML = (appState.majors || []).map(m => `
+                    <div class="p-3 flex flex-wrap items-center justify-between gap-2 text-xs bg-white">
                         <div>
-                            <span class="text-xs font-black text-slate-900">${idx + 1}. ${prof.name || 'Usuario Operativo'}</span>
-                            <span class="ml-2 px-2 py-0.5 rounded bg-blue-100 text-blue-900 text-[10px] font-mono font-bold">Código: ${prof.code || ''}</span>
-                        </div>
-                        <div class="flex items-center gap-1.5">
-                            <button type="button" onclick="toggleUserProfileAccordion('${prof.id}')" class="px-3 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold">Editar Usuario y Permisos</button>
-                            <button type="button" onclick="deleteUserProfile('${prof.id}')" class="px-3 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 text-xs font-bold">Eliminar</button>
+                            <div class="font-bold text-slate-900">${m.name}</div>
+                            <div class="text-[11px] text-slate-500 font-mono">RVOE: ${m.rvoe} · Fecha: ${m.rvoeDate || 'N/A'}</div>
                         </div>
                     </div>
-                    <div id="profileBody_${prof.id}" class="hidden pt-3 border-t border-slate-200 space-y-3">
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                            <input type="text" id="profName_${prof.id}" value="${prof.name || ''}" placeholder="Nombre del Usuario" class="px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-bold">
-                            <input type="text" id="profRole_${prof.id}" value="${prof.roleLabel || 'Control Escolar'}" placeholder="Puesto / Área" class="px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-semibold">
-                            <input type="text" id="profCode_${prof.id}" value="${prof.code || ''}" placeholder="Código de Acceso" class="px-3 py-2 rounded-xl border border-blue-300 bg-blue-50/40 text-xs font-mono font-black">
-                        </div>
-                        <div class="bg-white border border-slate-200 rounded-xl p-3 space-y-2">
-                            <div class="text-[11px] font-extrabold text-slate-700">Visualización del Panel Superior:</div>
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-                                ${HEADER_BUTTON_DEFINITIONS.map(btn => `
-                                    <label class="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded border border-slate-200">
-                                        <input type="checkbox" id="profHdr_${prof.id}_${btn.id}" ${prof.headerButtons[btn.id] !== false ? 'checked' : ''}>
-                                        <span class="truncate">${btn.label}</span>
-                                    </label>
-                                `).join('')}
-                            </div>
-                        </div>
-                        <div class="flex justify-end">
-                            <button type="button" onclick="saveSingleUserProfile('${prof.id}')" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow">
-                                Guardar Cambios
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `}).join('');
+                `).join('');
+            }
         }
 
-        function createNewUserProfile() {
-            const nextNum = (appState.profiles || []).length + 1;
-            const id = `usr_${Date.now()}`;
-            appState.profiles.push({
-                id,
-                name: `Usuario Operativo ${nextNum}`,
-                roleLabel: 'Control Escolar',
-                code: `UAMP${String(nextNum).padStart(2, '0')}`,
-                docAccess: createDefaultDocAccessMatrix(true),
-                headerButtons: createDefaultHeaderMatrix(true),
-                updatedAt: Date.now()
+        function renderPeriodsUI() {
+            const sel = document.getElementById('selPeriodoEscolar');
+            if (sel) {
+                const prevVal = sel.value;
+                sel.innerHTML = (appState.periods || []).map(p =>
+                    `<option value="${p.id}">${p.name} — ${p.dates}</option>`
+                ).join('');
+                if (prevVal && (appState.periods || []).some(p => p.id === prevVal)) sel.value = prevVal;
+            }
+        }
+
+        function syncPlanInputFromSelectedMajor() {
+            const sel = document.getElementById('selLicenciatura');
+            const major = (appState.majors || []).find(m => m.id === sel?.value) || (appState.majors || [])[0];
+            if (!major) return;
+            if (document.getElementById('inpNombreLicenciaturaEditable')) document.getElementById('inpNombreLicenciaturaEditable').value = major.name || '';
+            if (document.getElementById('inpRvoeEditable')) document.getElementById('inpRvoeEditable').value = major.rvoe || '';
+            if (document.getElementById('inpFechaRvoeEditable')) document.getElementById('inpFechaRvoeEditable').value = major.rvoeDate || '';
+            if (document.getElementById('inpPlanEstudios')) document.getElementById('inpPlanEstudios').value = major.plan || '';
+        }
+
+        function syncAcademicPeriodInputFromSelect() {
+            const sel = document.getElementById('selPeriodoEscolar');
+            const per = (appState.periods || []).find(p => p.id === sel?.value) || (appState.periods || [])[0];
+            if (!per) return;
+            if (document.getElementById('inpNombrePeriodoEditable')) document.getElementById('inpNombrePeriodoEditable').value = per.name || '';
+            if (document.getElementById('inpPeriodoEscolarEditable')) document.getElementById('inpPeriodoEscolarEditable').value = per.dates || '';
+            if (document.getElementById('inpPeriodoVacacional') && per.vacation) document.getElementById('inpPeriodoVacacional').value = per.vacation;
+        }
+
+        function selectDocType(docType) {
+            appState.currentDocType = docType || 'estudios';
+            document.querySelectorAll('.doc-type-btn').forEach(btn => {
+                const isSelected = btn.getAttribute('data-doc-btn') === appState.currentDocType;
+                btn.className = isSelected
+                    ? 'doc-type-btn px-2.5 py-2 rounded-xl text-xs font-bold border border-blue-900 bg-blue-900 text-white text-left transition'
+                    : 'doc-type-btn px-2.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 text-left transition';
             });
-            renderProfilesManager();
-            toggleUserProfileAccordion(id);
-            showToast('Nuevo usuario creado. Presiona "Guardar Cambios" para confirmar.');
+            const tpl = (appState.templates && appState.templates[appState.currentDocType]) || DEFAULT_DOC_TEMPLATES[appState.currentDocType] || DEFAULT_DOC_TEMPLATES.estudios;
+            const badge = document.getElementById('currentDocTypeBadge');
+            if (badge) badge.textContent = appState.currentDocType.toUpperCase();
+            const asuntoInp = document.getElementById('inpAsuntoConstancia');
+            if (asuntoInp) asuntoInp.value = tpl.asunto || tpl.title || 'Constancia de Estudios';
+            const customBody = document.getElementById('txtCustomFormatBody');
+            if (customBody) customBody.value = tpl.body || '';
+            updateDocument();
         }
 
-        function saveSingleUserProfile(profileId) {
-            const prof = (appState.profiles || []).find(p => p.id === profileId);
-            if (!prof) return;
-            const nameVal = document.getElementById(`profName_${profileId}`)?.value.trim();
-            const roleVal = document.getElementById(`profRole_${profileId}`)?.value.trim();
-            const codeVal = document.getElementById(`profCode_${profileId}`)?.value.trim();
-            if (nameVal) prof.name = nameVal;
-            if (roleVal) prof.roleLabel = roleVal;
-            if (codeVal) prof.code = codeVal;
-            if (!prof.headerButtons) prof.headerButtons = createDefaultHeaderMatrix(true);
-            HEADER_BUTTON_DEFINITIONS.forEach(btn => {
-                const chk = document.getElementById(`profHdr_${profileId}_${btn.id}`);
-                if (chk) prof.headerButtons[btn.id] = chk.checked;
-            });
-            prof.updatedAt = Date.now();
-            appState.version = Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION) + 1;
-            persistBaseState(true, true, true);
-            renderProfilesManager();
-            showToast(`Usuario "${prof.name}" guardado y actualizado a v${appState.version}`);
-        }
+        function updateDocument() {
+            const docType = appState.currentDocType || 'estudios';
+            const tpl = (appState.templates && appState.templates[docType]) || DEFAULT_DOC_TEMPLATES[docType] || DEFAULT_DOC_TEMPLATES.estudios;
+            const folio = document.getElementById('inpFolio')?.value || '';
+            const lugar = document.getElementById('inpLugarExpedicion')?.value || '';
+            const fecha = document.getElementById('inpFechaExpedicionTexto')?.value || '';
+            const asunto = document.getElementById('inpAsuntoConstancia')?.value || tpl.asunto || 'Constancia de Estudios';
+            const nombre = document.getElementById('inpNombre')?.value || '';
+            const genero = document.getElementById('selGeneroAlumno')?.value || 'M';
+            const matricula = document.getElementById('inpMatricula')?.value || '';
+            const curp = document.getElementById('inpCurp')?.value || '';
+            const grado = document.getElementById('inpPeriodoGrado')?.value || '';
+            const licName = document.getElementById('inpNombreLicenciaturaEditable')?.value || (appState.majors?.[0]?.name || '');
+            const rvoe = document.getElementById('inpRvoeEditable')?.value || (appState.majors?.[0]?.rvoe || '');
+            const fechaRvoe = document.getElementById('inpFechaRvoeEditable')?.value || (appState.majors?.[0]?.rvoeDate || '');
+            const plan = document.getElementById('inpPlanEstudios')?.value || '';
+            const nombrePeriodo = document.getElementById('inpNombrePeriodoEditable')?.value || (appState.periods?.[0]?.name || '');
+            const fechasPeriodo = document.getElementById('inpPeriodoEscolarEditable')?.value || (appState.periods?.[0]?.dates || '');
+            const vacacional = document.getElementById('inpPeriodoVacacional')?.value || '';
+            const verboCursado = document.getElementById('selVerboCursado')?.value || 'cursó';
+            const nota = document.getElementById('inpDestinoNota')?.value || '';
 
-        function deleteUserProfile(profileId) {
-            appState.profiles = (appState.profiles || []).filter(p => p.id !== profileId);
-            if (!Array.isArray(appState.deletedIds)) appState.deletedIds = [];
-            appState.deletedIds.push(profileId);
-            appState.version = Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION) + 1;
-            persistBaseState(true, true, true);
-            renderProfilesManager();
-            showToast('Usuario eliminado permanentemente.');
-        }
+            const folioEl = document.getElementById('docPreviewFolio');
+            const asuntoEl = document.getElementById('docPreviewHeaderAsunto');
+            const dateEl = document.getElementById('docPreviewHeaderDate');
+            const firmNameEl = document.getElementById('docPreviewFirmanteNombre');
+            const firmTitleEl = document.getElementById('docPreviewFirmanteCargo');
+            if (folioEl) folioEl.textContent = folio;
+            if (asuntoEl) asuntoEl.innerHTML = `<b>Asunto:</b> ${asunto}`;
+            if (dateEl) dateEl.textContent = `${lugar}, ${fecha}`;
+            if (firmNameEl) firmNameEl.textContent = appState.signer?.name || 'LIC. GISELLE SELENE LÓPEZ SÁNCHEZ';
+            if (firmTitleEl) firmTitleEl.textContent = appState.signer?.title || 'CONTROL ESCOLAR';
 
-        function realtimeSaveAndRefreshSystem() {
-            appState.version = Math.max(Number(appState.version || 1), MIN_VALID_DEPLOY_VERSION) + 1;
-            persistBaseState(true, true, true);
-            renderLoginDeployedVersionsSelect();
-            showToast(`Versión v${appState.version} guardada y publicada en tiempo real.`);
-        }
+            const gradesRows = (appState.grades || []).map(g =>
+                `<tr><td style="border:0.25mm solid #000;text-align:center;">${g.group}</td><td style="border:0.25mm solid #000;text-align:center;">${g.code}</td><td style="border:0.25mm solid #000;text-align:left;">${g.subject}</td><td style="border:0.25mm solid #000;text-align:center;">${g.score}</td></tr>`
+            ).join('');
+            const gradeNums = (appState.grades || []).map(g => parseFloat(g.score)).filter(n => !isNaN(n));
+            const avgGrade = gradeNums.length ? (gradeNums.reduce((a, b) => a + b, 0) / gradeNums.length).toFixed(2) : '0.00';
 
-        function startLoginLiveClock() {
-            const tick = () => {
-                const clockEl = document.getElementById('loginLiveClock');
-                if (clockEl) {
-                    clockEl.textContent = new Date().toLocaleTimeString('es-MX', { hour12: false });
-                }
+            const montosRows = (appState.montos || []).map(m =>
+                `<tr><td style="border:1px solid #000;padding:4px 8px;">${m.concepto}</td><td style="border:1px solid #000;padding:4px 8px;">${m.periodo}</td><td style="border:1px solid #000;padding:4px 8px;text-align:right;">$${Number(m.importe || 0).toFixed(2)}</td></tr>`
+            ).join('');
+            const totalMontos = '$' + (appState.montos || []).reduce((acc, m) => acc + Number(m.importe || 0), 0).toFixed(2);
+
+            const kardexRows = (appState.kardex || []).map(k =>
+                `<tr><td style="border:1px solid #000;padding:3px 6px;">${k.clave}</td><td style="border:1px solid #000;padding:3px 6px;">${k.asignatura}</td><td style="border:1px solid #000;padding:3px 6px;text-align:center;">${k.ciclo}</td><td style="border:1px solid #000;padding:3px 6px;text-align:center;">${k.creditos}</td><td style="border:1px solid #000;padding:3px 6px;text-align:center;">${k.calif}</td></tr>`
+            ).join('');
+            const totalCreds = (appState.kardex || []).reduce((acc, k) => acc + Number(k.creditos || 0), 0);
+            const kardexNums = (appState.kardex || []).map(k => parseFloat(k.calif)).filter(n => !isNaN(n));
+            const avgKardex = kardexNums.length ? (kardexNums.reduce((a, b) => a + b, 0) / kardexNums.length).toFixed(2) : '0.00';
+
+            const resguardoRows = (appState.resguardo || []).map(r =>
+                `<tr><td style="border:1px solid #000;padding:4px 8px;text-align:center;">${r.cantidad}</td><td style="border:1px solid #000;padding:4px 8px;">${r.descripcion}</td><td style="border:1px solid #000;padding:4px 8px;">${r.serie}</td><td style="border:1px solid #000;padding:4px 8px;">${r.estado}</td></tr>`
+            ).join('');
+
+            const templateRaw = document.getElementById('txtCustomFormatBody')?.value || tpl.body || '';
+            const replacements = {
+                '{FOLIO}': folio,
+                '{LUGAR}': lugar,
+                '{FECHA}': fecha,
+                '{ASUNTO}': asunto,
+                '{ARTICULO_ALUMNO}': genero === 'F' ? 'la alumna' : 'el alumno',
+                '{INSCRITO_GENERO}': genero === 'F' ? 'inscrita' : 'inscrito',
+                '{NOMBRE}': nombre,
+                '{MATRICULA}': matricula,
+                '{CURP}': curp,
+                '{PLAN}': plan,
+                '{LICENCIATURA}': licName,
+                '{RVOE}': rvoe,
+                '{FECHA_RVOE}': fechaRvoe,
+                '{FECHA_RVOE_TEXTO}': fechaRvoe ? ` de fecha ${fechaRvoe}` : '',
+                '{GRADO}': grado,
+                '{NOMBRE_PERIODO}': nombrePeriodo,
+                '{FECHAS_PERIODO}': fechasPeriodo,
+                '{PERIODO}': fechasPeriodo,
+                '{PERIODO_TEXTO}': fechasPeriodo ? ` (${fechasPeriodo})` : '',
+                '{PERIODO_VACACIONAL}': vacacional,
+                '{VERBO_CURSADO}': verboCursado,
+                '{FILAS_CALIFICACIONES}': gradesRows,
+                '{PROMEDIO_ARITMETICO}': avgGrade,
+                '{FILAS_MONTOS}': montosRows,
+                '{TOTAL_MONTOS}': totalMontos,
+                '{FILAS_KARDEX}': kardexRows,
+                '{TOTAL_CREDITOS_KARDEX}': String(totalCreds),
+                '{PROMEDIO_KARDEX}': avgKardex,
+                '{FILAS_RESGUARDO}': resguardoRows,
+                '{NOTA}': nota
             };
-            tick();
-            setInterval(tick, 1000);
+
+            let rendered = templateRaw;
+            Object.entries(replacements).forEach(([token, val]) => {
+                rendered = rendered.split(token).join(val);
+            });
+            const bodyContainer = document.getElementById('docDynamicBody');
+            if (bodyContainer) bodyContainer.innerHTML = rendered;
         }
 
-        window.addEventListener('DOMContentLoaded', async () => {
-            startLoginLiveClock();
-            loadDeployedVersionsHistoryFromStorage();
-            hydrateInstantLocalAndEmbeddedState();
-            hydrateUserFromSharedUrlParam();
-            hydrateInstantLocalAndEmbeddedState();
-            initGlobalRealtimeCloudSync();
-
-            await loadPersistedState(true);
-            hydrateInstantLocalAndEmbeddedState();
-
-            const savedRepo = appState.githubConfig?.repo || '';
-            const savedBranch = appState.githubConfig?.branch || 'main';
-            const savedToken = localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '';
-            if (document.getElementById('inpGithubRepo')) document.getElementById('inpGithubRepo').value = savedRepo;
-            if (document.getElementById('inpGithubBranch')) document.getElementById('inpGithubBranch').value = savedBranch;
-            if (document.getElementById('inpGithubToken') && savedToken) document.getElementById('inpGithubToken').value = savedToken;
-            registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), 'Última Versión Desplegada');
-            enforceLatestAdminSession();
-            selectDocType(appState.currentDocType || 'estudios');
-            refreshAllUI();
-        });
-    </script>
-</body></html>
+        function refreshAllUI() {
+            renderMajorsCatalogUI();
+            renderPeriodsUI();
+            syncPlanInputFromSelectedMajor();
+            syncAcademicPeriodInputFromSelect();
+            renderGradesListUI();
+            renderMontosListUI();
+            renderKardexListUI();
+            renderResguardoListUI();
+            renderProfilesManager();
+            updateGithubSummaryUI();
+            renderLoginDeployedVersionsSelect();
+            updateDocument();
+        }
