@@ -189,6 +189,7 @@
                     <div class="flex items-center justify-between text-[10px] text-slate-300">
                         <span>Versión desplegada: <b id="loginLiveVersion" class="text-white font-mono">v1</b></span>
                         <span id="loginLiveLastSync" class="font-mono text-slate-400">Modo Manual Admin</span>
+                    </div>
                     <div class="pt-1.5 mt-1 border-t border-slate-800 space-y-1.5">
                         <div class="flex items-center justify-between gap-1.5">
                             <span class="text-[10px] font-bold text-sky-300">Versión Actual a la que Vas a Entrar:</span>
@@ -205,7 +206,7 @@
                 </div>
             </div>
 
-            <form onsubmit="unlockProfileByFrontLogin(event)" class="space-y-4">
+            <form onsubmit="unlockProfileByFrontLogin(event); return false;" class="space-y-4">
                 <div>
                     <label for="frontLoginCodeInput" class="block text-xs font-bold text-slate-700 mb-1.5">Código de Acceso</label>
                     <input type="password" id="frontLoginCodeInput" autocomplete="off" placeholder="Escribe tu código asignado..." class="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 tracking-wider focus:ring-2 focus:ring-blue-900 outline-none">
@@ -213,7 +214,7 @@
 
                 <div id="frontLoginError" class="hidden text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2"></div>
 
-                <button type="submit" id="btnFrontLoginSubmit" class="w-full py-3 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-sm font-extrabold shadow-lg transition cursor-pointer">
+                <button type="submit" id="btnFrontLoginSubmit" onclick="unlockProfileByFrontLogin(event)" class="w-full py-3 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-sm font-extrabold shadow-lg transition cursor-pointer">
                     Iniciar Sesión
                 </button>
             </form>
@@ -2588,7 +2589,7 @@
         }
 
         async function unlockProfileByFrontLogin(event) {
-            if (event) event.preventDefault();
+            if (event && typeof event.preventDefault === 'function') event.preventDefault();
             const input = document.getElementById('frontLoginCodeInput');
             const errBox = document.getElementById('frontLoginError');
             const submitBtn = document.getElementById('btnFrontLoginSubmit');
@@ -2598,22 +2599,26 @@
                     errBox.textContent = 'Por favor escribe tu código de acceso.';
                     errBox.classList.remove('hidden');
                 }
-                return;
+                return false;
             }
 
             if (submitBtn) {
                 submitBtn.disabled = true;
-                submitBtn.textContent = 'Verificando con última versión...';
+                submitBtn.textContent = 'Abriendo Generador de Constancias...';
             }
 
             try {
-                await loadPersistedState(true);
+                // Sincronización rápida con límite de espera para nunca bloquear el acceso
+                await Promise.race([
+                    loadPersistedState(true),
+                    new Promise(resolve => setTimeout(resolve, 1200))
+                ]);
                 renderLoginDeployedVersionsSelect();
 
-                if (rawCode === ADMIN_MASTER_CODE) {
+                if (rawCode.toLowerCase() === ADMIN_MASTER_CODE.toLowerCase()) {
                     appState.activeSession = { role: 'admin', name: 'Administrador General', profileId: 'admin' };
                     enterWorkspaceAfterLogin();
-                    return;
+                    return false;
                 }
 
                 const matched = (appState.profiles || []).find(
@@ -2625,17 +2630,102 @@
                         errBox.textContent = `Código "${rawCode}" no encontrado en la versión desplegada v${appState.version || 1}.`;
                         errBox.classList.remove('hidden');
                     }
-                    return;
+                    return false;
                 }
 
                 appState.activeSession = { role: 'user', name: matched.name, profileId: matched.id };
                 enterWorkspaceAfterLogin();
+            } catch (err) {
+                if (rawCode.toLowerCase() === ADMIN_MASTER_CODE.toLowerCase()) {
+                    appState.activeSession = { role: 'admin', name: 'Administrador General', profileId: 'admin' };
+                    enterWorkspaceAfterLogin();
+                } else if (errBox) {
+                    errBox.textContent = 'Error al validar acceso. Intenta nuevamente.';
+                    errBox.classList.remove('hidden');
+                }
             } finally {
                 if (submitBtn) {
                     submitBtn.disabled = false;
                     submitBtn.textContent = 'Iniciar Sesión';
                 }
             }
+            return false;
+        }
+
+        function enterWorkspaceAfterLogin() {
+            const errBox = document.getElementById('frontLoginError');
+            if (errBox) errBox.classList.add('hidden');
+
+            const loginScreen = document.getElementById('frontLoginScreen');
+            const mainWorkspace = document.getElementById('mainAppWorkspace');
+            if (loginScreen) {
+                loginScreen.classList.add('hidden');
+                loginScreen.style.setProperty('display', 'none', 'important');
+            }
+            if (mainWorkspace) {
+                mainWorkspace.classList.remove('hidden');
+                mainWorkspace.style.setProperty('display', 'flex', 'important');
+                mainWorkspace.style.visibility = 'visible';
+                mainWorkspace.style.opacity = '1';
+            }
+
+            const isAdmin = !appState.activeSession || appState.activeSession.role === 'admin';
+            const badge = document.getElementById('activeSessionBadge');
+            if (badge) {
+                badge.textContent = isAdmin
+                    ? 'Admin: Administrador General'
+                    : `Usuario: ${appState.activeSession.name}`;
+            }
+
+            document.querySelectorAll('[data-admin-only="true"]').forEach(el => {
+                if (isAdmin) {
+                    el.classList.remove('hidden');
+                    el.style.removeProperty('display');
+                } else {
+                    el.classList.add('hidden');
+                    el.style.setProperty('display', 'none', 'important');
+                }
+            });
+
+            const prof = !isAdmin ? (appState.profiles || []).find(p => p.id === appState.activeSession.profileId) : null;
+            document.querySelectorAll('[data-header-btn]').forEach(btn => {
+                const key = btn.getAttribute('data-header-btn');
+                if (!isAdmin && prof?.headerButtons && Object.prototype.hasOwnProperty.call(prof.headerButtons, key)) {
+                    if (prof.headerButtons[key]) {
+                        btn.classList.remove('hidden');
+                        btn.style.removeProperty('display');
+                    } else {
+                        btn.classList.add('hidden');
+                        btn.style.setProperty('display', 'none', 'important');
+                    }
+                } else if (!btn.hasAttribute('data-admin-only')) {
+                    btn.classList.remove('hidden');
+                    btn.style.removeProperty('display');
+                }
+            });
+
+            switchMainWorkspaceTab('generador');
+            refreshAllUI();
+            selectDocType(appState.currentDocType || 'estudios');
+            window.scrollTo({ top: 0, behavior: 'instant' });
+            showToast(`Bienvenido(a), ${appState.activeSession.name}`);
+        }
+
+        function lockProfileQuickAccess() {
+            appState.activeSession = null;
+            const inp = document.getElementById('frontLoginCodeInput');
+            if (inp) inp.value = '';
+            const loginScreen = document.getElementById('frontLoginScreen');
+            const mainWorkspace = document.getElementById('mainAppWorkspace');
+            if (mainWorkspace) {
+                mainWorkspace.classList.add('hidden');
+                mainWorkspace.style.setProperty('display', 'none', 'important');
+            }
+            if (loginScreen) {
+                loginScreen.classList.remove('hidden');
+                loginScreen.style.setProperty('display', 'flex', 'important');
+            }
+            renderLoginDeployedVersionsSelect();
         }
 
         function syncGradesTableRowsToSkeleton() {
