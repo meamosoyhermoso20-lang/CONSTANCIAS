@@ -172,9 +172,6 @@
                 <div class="w-16 h-16 rounded-2xl bg-blue-950 text-amber-400 flex items-center justify-center font-black text-xl shadow-lg border border-blue-800 mb-3">
                     UAMP
                 </div>
-                <span class="text-[11px] font-extrabold uppercase tracking-widest text-blue-900 bg-blue-50 px-3 py-1 rounded-full border border-blue-200 mb-2">
-                    Control Escolar Oficial
-                </span>
                 <h1 class="text-2xl font-black tracking-tight text-slate-900">SISTEMA BUBU 1.0</h1>
                 <p class="text-xs text-slate-500 mt-1">Ingresa tu código de usuario o administrador para acceder al panel.</p>
                 <div class="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-800">
@@ -1313,7 +1310,6 @@
             const ver = Number(payload.version || appState.version || 1);
             const cleanPayload = JSON.parse(JSON.stringify(payload));
             delete cleanPayload.activeSession;
-            // Descartar automáticamente versiones obsoletas (< ver) para evitar estancamientos en versiones viejas (ej. v33)
             deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= ver);
             const idx = deployedVersionsRegistry.findIndex(v => Number(v.version) === ver);
             const entry = { version: ver, label, updatedAt: cleanPayload.updatedAt || Date.now(), payload: cleanPayload };
@@ -1344,7 +1340,6 @@
                 appState = { ...appState, ...JSON.parse(JSON.stringify(newestPayload)), activeSession: activeSess };
             }
 
-            // Purgar cualquier versión anterior a la más reciente en el registro y almacenamiento local
             const finalVer = Number(appState.version || 1);
             deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= finalVer);
             if (!deployedVersionsRegistry.some(v => Number(v.version) === finalVer)) {
@@ -1360,7 +1355,6 @@
         }
         function renderLoginDeployedVersionsSelect() {
             const ver = Number(appState.version || 1);
-            // Eliminar versiones viejas del selector antes de renderizar
             deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= ver);
             const usersCount = (appState.profiles || []).length;
             const updatedDate = appState.updatedAt
@@ -2269,7 +2263,6 @@
             }
             try {
                 appState.version = Number(appState.version || 1) + 1;
-                // Limpiar versiones anteriores para que la nueva versión sea la única activa
                 deployedVersionsRegistry = [];
                 persistBaseState(true, true, true);
                 enforceLatestAdminSession();
@@ -2391,7 +2384,6 @@
             const currentTime = Number(appState.updatedAt || 0);
             if (incomingVer > currentVer || (incomingVer === currentVer && incomingTime > currentTime)) {
                 const activeSess = appState.activeSession;
-                // Descartar automáticamente versiones anteriores (< incomingVer)
                 deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= incomingVer);
                 appState = { ...appState, ...parsed, activeSession: activeSess };
                 registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), `Despliegue Admin v${incomingVer}`);
@@ -2531,6 +2523,112 @@
             renderLoginDeployedVersionsSelect();
             const lastSyncEl = document.getElementById('loginLiveLastSync');
             if (lastSyncEl) lastSyncEl.textContent = `Sync ${new Date().toLocaleTimeString('es-MX', { hour12: false })}`;
+        }
+
+        function hydrateInstantLocalAndEmbeddedState() {
+            const candidates = [];
+            try {
+                const rawLocal = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(BACKUP_STORAGE_KEY);
+                if (rawLocal) candidates.push(JSON.parse(rawLocal));
+            } catch (e) {}
+            try {
+                if (window.name && window.name.trim().startsWith('{')) {
+                    candidates.push(JSON.parse(window.name));
+                }
+            } catch (e) {}
+            try {
+                const domRaw = document.getElementById('embeddedInternalVaultData')?.textContent?.trim();
+                if (domRaw && domRaw !== '{}') candidates.push(JSON.parse(domRaw));
+            } catch (e) {}
+            try {
+                const histRaw = localStorage.getItem(DEPLOYED_HISTORY_STORAGE_KEY);
+                if (histRaw) {
+                    const parsedHist = JSON.parse(histRaw);
+                    if (Array.isArray(parsedHist)) {
+                        parsedHist.forEach(item => {
+                            if (item && item.payload) candidates.push(item.payload);
+                        });
+                    }
+                }
+            } catch (e) {}
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const verParam = Number(params.get('v') || 0);
+                if (verParam > Number(appState.version || 1)) {
+                    appState.version = verParam;
+                }
+            } catch (e) {}
+
+            candidates.sort((a, b) => (Number(b.version || 1) - Number(a.version || 1)) || (Number(b.updatedAt || 0) - Number(a.updatedAt || 0)));
+            const highest = candidates[0];
+            if (highest && Number(highest.version || 1) >= Number(appState.version || 1)) {
+                const activeSess = appState.activeSession;
+                const highestVer = Number(highest.version || 1);
+                deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= highestVer);
+                appState = { ...appState, ...highest, activeSession: activeSess };
+            }
+            const activeVer = Number(appState.version || 1);
+            deployedVersionsRegistry = deployedVersionsRegistry.filter(v => Number(v.version) >= activeVer);
+            registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), `Última Versión Desplegada v${activeVer}`);
+            enforceLatestAdminSession();
+            renderLoginDeployedVersionsSelect();
+        }
+
+        function initGlobalRealtimeCloudSync() {
+            try {
+                if (Array.isArray(window._globalRtEventSources)) {
+                    window._globalRtEventSources.forEach(s => { try { s.close(); } catch (e) {} });
+                }
+                window._globalRtEventSources = getAllRealtimeChannels().map(ch => {
+                    const es = new EventSource(`https://ntfy.sh/${ch}/sse?since=all`);
+                    es.onmessage = (event) => {
+                        try {
+                            const evt = JSON.parse(event.data);
+                            if (evt && evt.message && evt.message.trim().startsWith('{')) {
+                                const parsed = JSON.parse(evt.message);
+                                const updated = applyRemoteSnapshotImmediately(parsed);
+                                if (updated) {
+                                    renderLoginDeployedVersionsSelect();
+                                    if (appState.activeSession?.role === 'admin') {
+                                        showToast(`Enlace actualizado automáticamente a v${appState.version}`);
+                                    }
+                                }
+                            }
+                        } catch (e) {}
+                    };
+                    return es;
+                });
+            } catch (e) {}
+
+            window.addEventListener('storage', (e) => {
+                if (e.key === STORAGE_KEY || e.key === BACKUP_STORAGE_KEY || e.key === DEPLOYED_HISTORY_STORAGE_KEY) {
+                    hydrateInstantLocalAndEmbeddedState();
+                    if (!document.getElementById('mainAppWorkspace')?.classList.contains('hidden')) {
+                        refreshAllUI();
+                        updateDocument();
+                    }
+                }
+            });
+
+            const syncOnWake = async () => {
+                if (document.visibilityState === 'visible') {
+                    hydrateInstantLocalAndEmbeddedState();
+                    await loadPersistedState(true);
+                    renderLoginDeployedVersionsSelect();
+                    if (!document.getElementById('mainAppWorkspace')?.classList.contains('hidden')) {
+                        refreshAllUI();
+                        updateDocument();
+                    }
+                }
+            };
+            document.addEventListener('visibilitychange', syncOnWake);
+            window.addEventListener('focus', syncOnWake);
+
+            if (window._globalLoginFastPollTimer) clearInterval(window._globalLoginFastPollTimer);
+            window._globalLoginFastPollTimer = setInterval(async () => {
+                await loadPersistedState(true);
+                renderLoginDeployedVersionsSelect();
+            }, 2500);
         }
 
         async function unlockProfileByFrontLogin(event) {
@@ -3062,10 +3160,14 @@
         window.addEventListener('DOMContentLoaded', async () => {
             startLoginLiveClock();
             loadDeployedVersionsHistoryFromStorage();
-            const hintEl = document.getElementById('loginVersionUsersHint');
-            if (hintEl) hintEl.textContent = 'Buscando última versión publicada por el Administrador...';
-            await loadPersistedState(true);
+            hydrateInstantLocalAndEmbeddedState();
             hydrateUserFromSharedUrlParam();
+            hydrateInstantLocalAndEmbeddedState();
+            initGlobalRealtimeCloudSync();
+
+            await loadPersistedState(true);
+            hydrateInstantLocalAndEmbeddedState();
+
             const savedRepo = appState.githubConfig?.repo || '';
             const savedBranch = appState.githubConfig?.branch || 'main';
             const savedToken = localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '';
@@ -3074,7 +3176,6 @@
             if (document.getElementById('inpGithubToken') && savedToken) document.getElementById('inpGithubToken').value = savedToken;
             registerDeployedVersionSnapshot(buildSerializableVaultPayload(false), 'Última Versión Desplegada');
             enforceLatestAdminSession();
-            initGlobalRealtimeCloudSync();
             selectDocType(appState.currentDocType || 'estudios');
             refreshAllUI();
         });
