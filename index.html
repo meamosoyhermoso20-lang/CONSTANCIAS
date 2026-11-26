@@ -1608,8 +1608,16 @@
         function enterWorkspaceAfterLogin() {
             const errBox = document.getElementById('frontLoginError');
             if (errBox) errBox.classList.add('hidden');
-            document.getElementById('frontLoginScreen')?.classList.add('hidden');
-            document.getElementById('mainAppWorkspace')?.classList.remove('hidden');
+            const loginScreen = document.getElementById('frontLoginScreen');
+            const mainWorkspace = document.getElementById('mainAppWorkspace');
+            if (loginScreen) {
+                loginScreen.classList.add('hidden');
+                loginScreen.style.display = 'none';
+            }
+            if (mainWorkspace) {
+                mainWorkspace.classList.remove('hidden');
+                mainWorkspace.style.display = 'flex';
+            }
 
             const isAdmin = !appState.activeSession || appState.activeSession.role === 'admin';
             const badge = document.getElementById('activeSessionBadge');
@@ -1638,6 +1646,7 @@
             switchMainWorkspaceTab('generador');
             refreshAllUI();
             selectDocType(appState.currentDocType || 'estudios');
+            window.scrollTo({ top: 0, behavior: 'instant' });
             showToast(`Bienvenido(a), ${appState.activeSession.name}`);
         }
 
@@ -1645,8 +1654,16 @@
             appState.activeSession = null;
             const inp = document.getElementById('frontLoginCodeInput');
             if (inp) inp.value = '';
-            document.getElementById('mainAppWorkspace')?.classList.add('hidden');
-            document.getElementById('frontLoginScreen')?.classList.remove('hidden');
+            const loginScreen = document.getElementById('frontLoginScreen');
+            const mainWorkspace = document.getElementById('mainAppWorkspace');
+            if (mainWorkspace) {
+                mainWorkspace.classList.add('hidden');
+                mainWorkspace.style.display = 'none';
+            }
+            if (loginScreen) {
+                loginScreen.classList.remove('hidden');
+                loginScreen.style.display = 'flex';
+            }
             renderLoginDeployedVersionsSelect();
         }
 
