@@ -1610,6 +1610,315 @@
             showToast(`Sesión cerrada · Vinculada a v${appState.version || 1}.0.`);
         }
 
+        function switchMainWorkspaceTab(tabName) {
+            const genTab = document.getElementById('workspaceTabGenerador');
+            const admTab = document.getElementById('workspaceTabAdmin');
+            const btnGen = document.getElementById('tabBtnGenerador');
+            const btnAdm = document.getElementById('tabBtnAdminPanel');
+
+            const isAdminTab = tabName === 'admin' && appState.activeSession?.isAdmin;
+            if (genTab) genTab.classList.toggle('hidden', isAdminTab);
+            if (admTab) admTab.classList.toggle('hidden', !isAdminTab);
+
+            if (btnGen) {
+                btnGen.className = !isAdminTab
+                    ? 'px-3.5 py-1.5 rounded-lg bg-white text-blue-950 text-xs font-extrabold shadow-sm transition'
+                    : 'px-3.5 py-1.5 rounded-lg text-blue-100 hover:bg-blue-800/70 text-xs font-bold transition';
+            }
+            if (btnAdm) {
+                btnAdm.className = isAdminTab
+                    ? 'px-3.5 py-1.5 rounded-lg bg-white text-blue-950 text-xs font-extrabold shadow-sm transition'
+                    : 'px-3.5 py-1.5 rounded-lg text-blue-100 hover:bg-blue-800/70 text-xs font-bold transition';
+            }
+            if (isAdminTab) {
+                switchAdminSubTab('constancias');
+            }
+        }
+
+        function buildGithubAuthHeaders(rawToken) {
+            const cleanToken = String(rawToken || '').replace(/[\r\n\t\s"']+/g, '').trim();
+            const headers = { 'Accept': 'application/vnd.github+json' };
+            if (cleanToken) {
+                headers['Authorization'] = cleanToken.startsWith('github_pat_')
+                    ? `Bearer ${cleanToken}`
+                    : `token ${cleanToken}`;
+            }
+            return { headers, cleanToken };
+        }
+
+        function incrementFolioByOne() {
+            const inp = document.getElementById('inpFolio');
+            if (!inp) return;
+            const match = inp.value.match(/^(.*?)(\d+)([^\d]*)$/);
+            if (match) {
+                const nextNum = String(parseInt(match[2], 10) + 1).padStart(match[2].length, '0');
+                inp.value = `${match[1]}${nextNum}${match[3]}`;
+            } else {
+                inp.value = `${inp.value} 1`;
+            }
+            updateDocument();
+        }
+
+        function formatSpanishDateLong(dateObj) {
+            const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            const month = months[dateObj.getMonth()] || 'Enero';
+            const year = dateObj.getFullYear();
+            return `${day} de ${month} de ${year}`;
+        }
+
+        function setTodayExpeditionDate() {
+            const now = new Date();
+            const txtInp = document.getElementById('inpFechaExpedicionTexto');
+            const dateInp = document.getElementById('inpFechaExpedicion');
+            if (txtInp) txtInp.value = formatSpanishDateLong(now);
+            if (dateInp) {
+                const yyyy = now.getFullYear();
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const dd = String(now.getDate()).padStart(2, '0');
+                dateInp.value = `${yyyy}-${mm}-${dd}`;
+            }
+            updateDocument();
+        }
+
+        function syncExpeditionDateTextFromPicker() {
+            const dateInp = document.getElementById('inpFechaExpedicion');
+            const txtInp = document.getElementById('inpFechaExpedicionTexto');
+            if (!dateInp || !dateInp.value || !txtInp) return;
+            const [y, m, d] = dateInp.value.split('-').map(Number);
+            if (y && m && d) {
+                txtInp.value = formatSpanishDateLong(new Date(y, m - 1, d));
+            }
+        }
+
+        function syncAsuntoInputToTemplate() {
+            const docType = appState.currentDocType || 'estudios';
+            const asuntoVal = document.getElementById('inpAsuntoConstancia')?.value || '';
+            if (appState.templates?.[docType]) {
+                appState.templates[docType].asunto = asuntoVal;
+            }
+        }
+
+        function clearStudentQuickCommand() {
+            ['inpNombre', 'inpMatricula', 'inpCurp'].forEach(id => {
+                if (document.getElementById(id)) document.getElementById(id).value = '';
+            });
+            updateDocument();
+        }
+
+        function resetFormToDefaultsCommand() {
+            if (document.getElementById('inpNombre')) document.getElementById('inpNombre').value = 'GOMEZ AMORES ENRIQUE';
+            if (document.getElementById('selGeneroAlumno')) document.getElementById('selGeneroAlumno').value = 'M';
+            if (document.getElementById('inpMatricula')) document.getElementById('inpMatricula').value = '2211899';
+            if (document.getElementById('inpCurp')) document.getElementById('inpCurp').value = 'GOAE010412HPLRND09';
+            updateDocument();
+        }
+
+        function getSelectedMajorObj() {
+            const id = document.getElementById('selLicenciatura')?.value;
+            return (appState.majors || []).find(m => m.id === id) || appState.majors?.[0];
+        }
+
+        function updateActiveMajorNameFromInput() {
+            const m = getSelectedMajorObj();
+            if (m) m.name = document.getElementById('inpNombreLicenciaturaEditable')?.value || '';
+            renderMajorsCatalogUI();
+        }
+
+        function updateActiveMajorRvoeFromInput() {
+            const m = getSelectedMajorObj();
+            if (m) m.rvoe = document.getElementById('inpRvoeEditable')?.value || '';
+        }
+
+        function updateActiveMajorRvoeDateFromInput() {
+            const m = getSelectedMajorObj();
+            if (m) m.rvoeDate = document.getElementById('inpFechaRvoeEditable')?.value || '';
+        }
+
+        function updateActiveMajorPlanFromInput() {
+            const m = getSelectedMajorObj();
+            if (m) m.plan = document.getElementById('inpPlanEstudios')?.value || '';
+        }
+
+        function syncGradoInputFromSelect() {
+            const sel = document.getElementById('selPeriodoGrado');
+            const inp = document.getElementById('inpPeriodoGrado');
+            if (sel && inp) inp.value = sel.value;
+        }
+
+        function updateActiveAcademicPeriodFromInput() {
+            const id = document.getElementById('selPeriodoEscolar')?.value;
+            const p = (appState.periods || []).find(x => x.id === id);
+            if (!p) return;
+            if (document.getElementById('inpPeriodoEscolarEditable')) p.dates = document.getElementById('inpPeriodoEscolarEditable').value;
+            if (document.getElementById('inpPeriodoVacacional')) p.vacation = document.getElementById('inpPeriodoVacacional').value;
+        }
+
+        function addSingleGradeRow() {
+            appState.grades = appState.grades || [];
+            appState.grades.push({ group: '7A', code: 'MAT-001', subject: 'NUEVA ASIGNATURA', score: '9.0' });
+            renderGradesListUI();
+            updateDocument();
+        }
+
+        function clearGradesTableRows() {
+            appState.grades = [];
+            renderGradesListUI();
+            updateDocument();
+        }
+
+        function syncGradesTableRowsToSkeleton() {
+            const raw = (document.getElementById('txtGradesBulkInput')?.value || '').trim();
+            if (!raw) return;
+            const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+            appState.grades = lines.map(line => {
+                const cols = line.split(/\t|\|/).map(c => c.trim());
+                return {
+                    group: cols[0] || '',
+                    code: cols[1] || '',
+                    subject: cols[2] || cols[0] || '',
+                    score: cols[3] || '10'
+                };
+            });
+            document.getElementById('txtGradesBulkInput').value = '';
+            renderGradesListUI();
+            updateDocument();
+        }
+
+        function syncMontosTableRowsToSkeleton() {
+            const concepto = (document.getElementById('inpNewMontoConcepto')?.value || '').trim();
+            const periodo = (document.getElementById('inpNewMontoPeriodo')?.value || '').trim();
+            const importe = parseFloat(document.getElementById('inpNewMontoImporte')?.value || '0') || 0;
+            if (!concepto) return showToast('Escribe el concepto de pago.');
+            appState.montos = appState.montos || [];
+            appState.montos.push({ concepto, periodo, importe });
+            ['inpNewMontoConcepto', 'inpNewMontoPeriodo', 'inpNewMontoImporte'].forEach(id => {
+                if (document.getElementById(id)) document.getElementById(id).value = '';
+            });
+            renderMontosListUI();
+            updateDocument();
+        }
+
+        function addKardexRow() {
+            appState.kardex = appState.kardex || [];
+            appState.kardex.push({ clave: 'ASG-101', asignatura: 'Asignatura cursada', ciclo: '1° semestre', creditos: '8', calif: '9.5' });
+            renderKardexListUI();
+            updateDocument();
+        }
+
+        function addResguardoRow() {
+            appState.resguardo = appState.resguardo || [];
+            appState.resguardo.push({ cantidad: '1', descripcion: 'Documento Original', serie: 'DOC-001', estado: 'En Resguardo' });
+            renderResguardoListUI();
+            updateDocument();
+        }
+
+        function toggleBoldInActiveFormatTextarea() {
+            const ta = document.getElementById('txtCustomFormatBody');
+            if (!ta) return;
+            const start = ta.selectionStart || 0;
+            const end = ta.selectionEnd || 0;
+            const selected = ta.value.substring(start, end) || 'texto';
+            ta.value = ta.value.substring(0, start) + `<b>${selected}</b>` + ta.value.substring(end);
+            previewCustomFormatLive();
+        }
+
+        function resetCurrentFormatTemplate() {
+            const docType = appState.currentDocType || 'estudios';
+            const def = DEFAULT_DOC_TEMPLATES[docType] || DEFAULT_DOC_TEMPLATES.estudios;
+            appState.templates[docType] = JSON.parse(JSON.stringify(def));
+            selectDocType(docType);
+            showToast('Esqueleto restablecido al formato base.');
+        }
+
+        function previewCustomFormatLive() {
+            const docType = appState.currentDocType || 'estudios';
+            const ta = document.getElementById('txtCustomFormatBody');
+            if (ta && appState.templates?.[docType]) {
+                appState.templates[docType].body = ta.value;
+            }
+            updateDocument();
+        }
+
+        function saveResponsibleSignature() {
+            appState.signer = {
+                name: document.getElementById('inpFirmanteNombre')?.value || 'LIC. GISELLE SELENE LÓPEZ SÁNCHEZ',
+                title: document.getElementById('inpFirmanteCargo')?.value || 'CONTROL ESCOLAR'
+            };
+            updateDocument();
+        }
+
+        function copyDocumentTextCommand() {
+            const paper = document.getElementById('constanciaPaper');
+            if (!paper) return;
+            const range = document.createRange();
+            range.selectNodeContents(paper);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            try {
+                document.execCommand('copy');
+                showToast('Texto de la constancia copiado al portapapeles.');
+            } catch (e) {}
+            sel.removeAllRanges();
+        }
+
+        function syncFullPaperSkeletonEdits() {
+            const docType = appState.currentDocType || 'estudios';
+            captureFullPaperLayoutToTemplate(docType);
+            autoFitConstanciaToSingleLetterPage();
+        }
+
+        function handlePreviewTextSelection() {
+            const sel = window.getSelection();
+            const toolbar = document.getElementById('selectionFormatToolbar');
+            const paper = document.getElementById('constanciaPaper');
+            if (!sel || sel.isCollapsed || !toolbar || !paper) {
+                hideSelectionToolbar();
+                return;
+            }
+            const range = sel.getRangeAt(0);
+            if (!paper.contains(range.commonAncestorContainer)) {
+                hideSelectionToolbar();
+                return;
+            }
+            const rect = range.getBoundingClientRect();
+            toolbar.style.top = `${Math.max(12, rect.top - 48)}px`;
+            toolbar.style.left = `${Math.max(12, Math.min(window.innerWidth - 280, rect.left))}px`;
+            toolbar.classList.remove('hidden');
+        }
+
+        function hideSelectionToolbar() {
+            document.getElementById('selectionFormatToolbar')?.classList.add('hidden');
+        }
+
+        function applyBoldToPreviewSelection() {
+            try {
+                document.execCommand('bold', false, null);
+                syncFullPaperSkeletonEdits();
+            } catch (e) {}
+        }
+
+        function applyFontSizeToPreviewSelection(ptSize) {
+            const sel = window.getSelection();
+            if (!sel || sel.isCollapsed) return;
+            try {
+                const range = sel.getRangeAt(0);
+                const span = document.createElement('span');
+                span.style.fontSize = ptSize;
+                range.surroundContents(span);
+                syncFullPaperSkeletonEdits();
+            } catch (e) {}
+        }
+
+        function stepFontSizeInPreviewSelection(delta) {
+            const selEl = document.getElementById('selPreviewFontSize');
+            if (!selEl) return;
+            const nextIdx = Math.max(0, Math.min(selEl.options.length - 1, selEl.selectedIndex + delta));
+            selEl.selectedIndex = nextIdx;
+            applyFontSizeToPreviewSelection(selEl.value);
+        }
+
         const DEFAULT_MAJORS = [
             { id: 'maj_derecho', name: 'LICENCIATURA EN DERECHO', rvoe: '20180945', rvoeDate: '24 de agosto de 2018', plan: 'Semestral' },
             { id: 'maj_contaduria', name: 'LICENCIATURA EN CONTADURÍA Y FINANZAS', rvoe: '20180946', rvoeDate: '24 de agosto de 2018', plan: 'Semestral' },
