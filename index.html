@@ -125,25 +125,25 @@
                     <div>
                         <div class="flex items-center gap-2">
                             <span class="font-extrabold text-sm tracking-tight">SISTEMA BUBU 1.0</span>
-                            <span id="headerActiveRoleBadge" class="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 text-[10px] font-bold">Bloqueado · Vinculado a v4.0</span>
+                            <span id="headerActiveRoleBadge" class="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 text-[10px] font-bold">Bloqueado · Vinculado a versión vigente</span>
                         </div>
                         <p class="text-[11px] text-blue-200">
                             Universidad América Puebla · Control Escolar ·
-                            <span id="loginVersionBadge" class="font-mono font-extrabold text-emerald-300">v4.0</span>
-                            <span id="loginVersionSyncTag" class="ml-1 px-1.5 py-0.2 rounded bg-blue-900 border border-blue-700 text-[10px] text-blue-100">Sesión vinculada a v4.0</span>
+                            <span id="loginVersionBadge" class="font-mono font-extrabold text-emerald-300">v—</span>
+                            <span id="loginVersionSyncTag" class="ml-1 px-1.5 py-0.2 rounded bg-blue-900 border border-blue-700 text-[10px] text-blue-100">Sincronizando versión...</span>
                         </p>
                     </div>
                 </div>
 
                 <!-- ACCESO EN LA MISMA PÁGINA CON CÓDIGO EN ASTERISCOS -->
                 <form id="inlineLoginBarForm" onsubmit="return unlockProfileInline(event)" class="flex flex-wrap items-center gap-1.5 bg-blue-900/70 px-2.5 py-1.5 rounded-xl border border-blue-800">
-                    <span id="loginBarVersionLabel" class="text-[11px] font-bold text-blue-200 px-1">Código de Acceso (v4.0):</span>
+                    <span id="loginBarVersionLabel" class="text-[11px] font-bold text-blue-200 px-1">Código de Acceso:</span>
                     <input type="password" id="inpFrontLoginCode" placeholder="••••••" autocomplete="new-password" class="w-32 px-2.5 py-1 rounded-lg bg-white text-slate-900 text-xs font-mono font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-400">
                     <button type="submit" id="btnInlineUnlock" class="px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold transition cursor-pointer">
-                        Desbloquear
+                        Iniciar Sesión
                     </button>
                     <button type="button" id="btnInlineLock" onclick="lockWorkspaceSession()" class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition cursor-pointer hidden">
-                        Bloquear
+                        Cerrar Sesión
                     </button>
                     <button type="button" onclick="syncGlobalLiveState(true, this)" title="Sincronizar última actualización global" class="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-blue-100 text-[11px] font-semibold transition cursor-pointer">
                         Sincronizar Global
@@ -182,7 +182,7 @@
 
             <!-- AVISO DE MODO BLOQUEADO VINCULADO A LA VERSIÓN ACTIVA -->
             <div id="lockedSessionNoticeBar" class="bg-amber-500 text-slate-950 text-xs font-bold px-4 py-1.5 text-center">
-                Inicio de sesión vinculado a la <span id="noticeVersionLabel">Versión v4.0</span>: ingresa tu código de acceso en la barra superior para habilitar la edición y emisión de constancias.
+                Inicio de sesión vinculado en tiempo real a la <span id="noticeVersionLabel">Versión vigente</span>: ingresa tu código de acceso en la barra superior para habilitar la edición y emisión de constancias.
             </div>
         </header>
 
@@ -293,20 +293,34 @@
                             <input type="text" id="inpFechaRvoeEditable" oninput="updateActiveMajorRvoeDateFromInput(); updateDocument();" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs">
                         </div>
                         <div>
-                            <label class="block text-[11px] font-bold text-slate-600 mb-1">Grado / Semestre</label>
+                            <label class="block text-[11px] font-bold text-slate-600 mb-1">Grado / Semestre o Cuatrimestre</label>
                             <div class="flex gap-1.5">
                                 <select id="selPeriodoGrado" onchange="syncGradoInputFromSelect(); updateDocument();" class="w-1/2 px-2 py-2 rounded-xl border border-slate-300 text-xs bg-white">
-                                    <option value="1er. Semestre">1er. Semestre</option>
-                                    <option value="2do. Semestre">2do. Semestre</option>
-                                    <option value="3er. Semestre">3er. Semestre</option>
-                                    <option value="4to. Semestre">4to. Semestre</option>
-                                    <option value="5to. Semestre">5to. Semestre</option>
-                                    <option value="6to. Semestre">6to. Semestre</option>
-                                    <option value="7mo. Semestre" selected>7mo. Semestre</option>
-                                    <option value="8vo. Semestre">8vo. Semestre</option>
-                                    <option value="9no. Semestre">9no. Semestre</option>
+                                    <optgroup label="Semestres">
+                                        <option value="1° semestre">1° semestre</option>
+                                        <option value="2° semestre">2° semestre</option>
+                                        <option value="3° semestre">3° semestre</option>
+                                        <option value="4° semestre">4° semestre</option>
+                                        <option value="5° semestre">5° semestre</option>
+                                        <option value="6° semestre">6° semestre</option>
+                                        <option value="7° semestre" selected>7° semestre</option>
+                                        <option value="8° semestre">8° semestre</option>
+                                        <option value="9° semestre">9° semestre</option>
+                                    </optgroup>
+                                    <optgroup label="Cuatrimestres">
+                                        <option value="1° cuatrimestre">1° cuatrimestre</option>
+                                        <option value="2° cuatrimestre">2° cuatrimestre</option>
+                                        <option value="3° cuatrimestre">3° cuatrimestre</option>
+                                        <option value="4° cuatrimestre">4° cuatrimestre</option>
+                                        <option value="5° cuatrimestre">5° cuatrimestre</option>
+                                        <option value="6° cuatrimestre">6° cuatrimestre</option>
+                                        <option value="7° cuatrimestre">7° cuatrimestre</option>
+                                        <option value="8° cuatrimestre">8° cuatrimestre</option>
+                                        <option value="9° cuatrimestre">9° cuatrimestre</option>
+                                        <option value="10° cuatrimestre">10° cuatrimestre</option>
+                                    </optgroup>
                                 </select>
-                                <input type="text" id="inpPeriodoGrado" value="7mo. Semestre" oninput="updateDocument()" class="w-1/2 px-2.5 py-2 rounded-xl border border-slate-300 text-xs font-semibold">
+                                <input type="text" id="inpPeriodoGrado" value="7° semestre" oninput="updateDocument()" class="w-1/2 px-2.5 py-2 rounded-xl border border-slate-300 text-xs font-semibold">
                             </div>
                         </div>
                         <div>
@@ -461,16 +475,16 @@
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <div class="flex items-center gap-2">
-                            <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-extrabold uppercase">Inicio de Sesión Vinculado por Versión</span>
-                            <span id="adminCacheStatusBadge" class="px-2.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-400/40 text-blue-200 text-[10px] font-mono">Versión Publicada v4.0</span>
+                            <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-extrabold uppercase">Inicio de Sesión Vinculado en Tiempo Real</span>
+                            <span id="adminCacheStatusBadge" class="px-2.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-400/40 text-blue-200 text-[10px] font-mono">Versión Publicada v—</span>
                         </div>
                         <h2 class="text-lg font-extrabold mt-1">Control Maestro del Administrador por Pestañas y Versionado</h2>
-                        <p class="text-xs text-slate-300">Cada vez que guardes o actualices una versión (ej. <b>v4.0</b>, <b>v54.0</b> y sucesivas), el inicio de sesión y todos los datos quedan vinculados automáticamente a esa versión.</p>
+                        <p class="text-xs text-slate-300">Cada cambio guardado actualiza el código fuente e inicia la sincronización en tiempo real con GitHub para que toda la plataforma refleje al instante la nueva versión.</p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
                         <div class="flex items-center gap-1.5 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
                             <label for="inpTargetVersionNumber" class="text-[11px] font-bold text-slate-300">Versión N°:</label>
-                            <input type="number" id="inpTargetVersionNumber" min="1" step="1" value="4" class="w-16 px-2 py-1 rounded-lg bg-slate-950 text-emerald-300 border border-slate-600 text-xs font-mono font-extrabold text-center">
+                            <input type="number" id="inpTargetVersionNumber" min="1" step="1" value="9" class="w-16 px-2 py-1 rounded-lg bg-slate-950 text-emerald-300 border border-slate-600 text-xs font-mono font-extrabold text-center">
                             <button type="button" onclick="applyCustomVersionAndLinkLogin(this)" class="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-extrabold transition">
                                 Fijar Versión
                             </button>
@@ -527,8 +541,8 @@
                             <option value="montos">Constancia de Pagos / Montos</option>
                             <option value="resguardo">Constancia de Resguardo</option>
                         </select>
-                        <button type="button" onclick="saveAdminTemplateFromPanel()" class="px-4 py-2 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-xs font-extrabold">
-                            Guardar Constancia en Borrador
+                        <button type="button" onclick="saveAdminTemplateFromPanel(this)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow-sm transition">
+                            Guardar Constancia en Código Fuente y Desplegar
                         </button>
                     </div>
                 </div>
@@ -556,20 +570,28 @@
 
             <!-- PESTAÑA ADMIN 2: LICENCIATURAS -->
             <div id="adminSubTab_licenciaturas" class="admin-subtab-panel hidden bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
-                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
                     <div>
                         <span class="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-900 text-[10px] font-extrabold uppercase">Oferta Educativa</span>
-                        <h3 class="text-base font-extrabold text-slate-900 mt-1">Catálogo de Licenciaturas y RVOE (Modificar / Eliminar)</h3>
+                        <h3 class="text-base font-extrabold text-slate-900 mt-1">Catálogo de Licenciaturas y RVOE (Crear / Editar / Guardar en Código Fuente)</h3>
                     </div>
-                    <span class="text-xs font-semibold text-slate-400">Eliminación permanente al actualizar versión</span>
+                    <button type="button" onclick="saveSectionToSourceCodeAndSync('Licenciaturas', this)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow-sm transition">
+                        Guardar Licenciaturas en Código Fuente y Desplegar
+                    </button>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                    <input type="hidden" id="editMajorIndex" value="-1">
                     <input type="text" id="newMajorName" placeholder="Nombre de la Licenciatura" class="lg:col-span-2 px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs">
                     <input type="text" id="newMajorRvoe" placeholder="Número de RVOE" class="px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-mono">
                     <input type="text" id="newMajorRvoeDate" placeholder="Fecha de RVOE" class="px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs">
-                    <div class="flex gap-2">
-                        <input type="text" id="newMajorPlan" placeholder="Plan (Semestral)" class="w-1/2 px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs">
-                        <button type="button" onclick="addNewMajorRvoe()" class="w-1/2 px-3 py-2 rounded-xl bg-blue-950 text-white text-xs font-extrabold">+ Agregar</button>
+                    <input type="text" id="newMajorPlan" placeholder="Plan (Semestral)" class="px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs">
+                    <div class="flex gap-1.5">
+                        <button type="button" id="btnSaveMajorCrud" onclick="saveMajorItemCrud()" class="flex-1 px-3 py-2 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-xs font-extrabold">
+                            Crear Licenciatura
+                        </button>
+                        <button type="button" id="btnCancelMajorEdit" onclick="resetMajorCrudForm()" class="hidden px-2.5 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold">
+                            ✕
+                        </button>
                     </div>
                 </div>
                 <div id="majorsCatalogList" class="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden max-h-96 overflow-y-auto"></div>
@@ -577,18 +599,28 @@
 
             <!-- PESTAÑA ADMIN 3: PERIODOS -->
             <div id="adminSubTab_periodos" class="admin-subtab-panel hidden bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
-                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
                     <div>
                         <span class="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-900 text-[10px] font-extrabold uppercase">Ciclos Escolares</span>
-                        <h3 class="text-base font-extrabold text-slate-900 mt-1">Gestión de Periodos Escolares y Vacaciones</h3>
+                        <h3 class="text-base font-extrabold text-slate-900 mt-1">Gestión de Periodos Escolares y Vacaciones (Crear / Editar / Guardar en Código Fuente)</h3>
                     </div>
-                    <span class="text-xs font-semibold text-slate-400">Modificar o eliminar periodos</span>
+                    <button type="button" onclick="saveSectionToSourceCodeAndSync('Periodos', this)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow-sm transition">
+                        Guardar Periodos en Código Fuente y Desplegar
+                    </button>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-2.5 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-2.5 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                    <input type="hidden" id="editAdminPeriodIndex" value="-1">
                     <input type="text" id="adminNewPeriodName" placeholder="Nombre corto (ej. Ciclo 2026-A)" class="px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs">
                     <input type="text" id="adminNewPeriodDates" placeholder="Fechas oficiales del ciclo" class="px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs">
                     <input type="text" id="adminNewPeriodVacation" placeholder="Periodo vacacional (opcional)" class="px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs">
-                    <button type="button" onclick="addAdminPeriodItem()" class="px-3 py-2 rounded-xl bg-blue-950 text-white text-xs font-extrabold">+ Agregar Periodo</button>
+                    <div class="md:col-span-2 flex gap-1.5">
+                        <button type="button" id="btnSavePeriodCrud" onclick="saveAdminPeriodCrud()" class="flex-1 px-3 py-2 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-xs font-extrabold">
+                            Crear Periodo
+                        </button>
+                        <button type="button" id="btnCancelPeriodEdit" onclick="resetAdminPeriodCrudForm()" class="hidden px-3 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold">
+                            Cancelar
+                        </button>
+                    </div>
                 </div>
                 <div id="adminPeriodsCatalogList" class="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden max-h-96 overflow-y-auto"></div>
             </div>
@@ -599,11 +631,27 @@
                     <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
                         <div>
                             <span class="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-900 text-[10px] font-extrabold uppercase">Cuentas y Claves</span>
-                            <h3 class="text-base font-extrabold text-slate-900 mt-1">Usuarios y Códigos de Acceso (Modificar / Eliminar)</h3>
+                            <h3 class="text-base font-extrabold text-slate-900 mt-1">Usuarios y Códigos de Acceso (Crear / Editar / Guardar en Código Fuente)</h3>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <button type="button" onclick="createNewUserProfile()" class="px-3.5 py-2 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-xs font-bold">+ Nuevo Operador</button>
-                            <button type="button" onclick="saveUsersAndPermissionsChanges()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold">Guardar Usuarios y Vincular Versión</button>
+                        <button type="button" onclick="saveUsersAndPermissionsChanges(this)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow-sm transition">
+                            Guardar Usuarios en Código Fuente y Desplegar
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-2.5 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                        <input type="hidden" id="editUserProfileIndex" value="-1">
+                        <input type="text" id="inpUserProfileName" placeholder="Nombre del Usuario / Operador" class="md:col-span-2 px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-semibold">
+                        <input type="text" id="inpUserProfileCode" placeholder="Código de Acceso (ej. UAMP11)" class="px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-mono font-bold">
+                        <select id="selUserProfileRole" class="px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-semibold">
+                            <option value="Operador">Operador</option>
+                            <option value="Administrador">Administrador</option>
+                        </select>
+                        <div class="flex gap-1.5">
+                            <button type="button" id="btnSaveUserCrud" onclick="saveUserProfileCrud()" class="flex-1 px-3 py-2 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-xs font-extrabold">
+                                Crear Usuario
+                            </button>
+                            <button type="button" id="btnCancelUserEdit" onclick="resetUserCrudForm()" class="hidden px-2.5 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold">
+                                ✕
+                            </button>
                         </div>
                     </div>
                     <div id="profilesManagerList" class="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden max-h-72 overflow-y-auto"></div>
@@ -618,8 +666,8 @@
                         <div class="flex flex-wrap items-center gap-2">
                             <label class="text-xs font-bold text-slate-700">Usuario:</label>
                             <select id="selPermissionTargetUser" onchange="renderPermissionsMatrixUI()" class="px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 text-xs font-extrabold text-blue-950"></select>
-                            <button type="button" onclick="saveUsersAndPermissionsChanges()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow-sm transition">
-                                Guardar Cambios en Usuarios
+                            <button type="button" onclick="saveUsersAndPermissionsChanges(this)" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow-sm transition">
+                                Guardar Permisos y Desplegar
                             </button>
                         </div>
                     </div>
@@ -634,30 +682,30 @@
                         <span class="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-900 text-[10px] font-extrabold uppercase">Despliegue Global Automático</span>
                         <h3 class="text-base font-extrabold text-slate-900 mt-1">Vinculación Paso a Paso con GitHub (Actualización Global en Tiempo Real)</h3>
                     </div>
-                    <span id="githubLinkStatusBadge" class="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">Repo detectado · meamosoyhermoso20-lang/CONSTANCIAS</span>
+                    <span id="githubLinkStatusBadge" class="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">Repo verificado · meamosoyhermoso20-lang/CONSTANCIAS</span>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
                     <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
                         <div class="font-extrabold text-blue-950">Paso 1 · Datos del Repositorio</div>
-                        <p class="text-slate-600">Ingresa tu <b>Usuario/Organización</b> y el <b>Nombre del Repositorio</b> en GitHub (o pega directamente la URL de tu repositorio y el sistema extraerá los datos automáticamente).</p>
+                        <p class="text-slate-600">Propietario <b>meamosoyhermoso20-lang</b> y repositorio <b>CONSTANCIAS</b> configurados y verificados automáticamente.</p>
                     </div>
                     <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
                         <div class="font-extrabold text-blue-950">Paso 2 · Token con Permiso <code>repo</code></div>
-                        <p class="text-slate-600">En GitHub ve a <i>Settings → Developer settings → Personal access tokens (Tokens classic)</i>, genera un token marcando la casilla <b><code>repo</code></b> y pégalo abajo.</p>
+                        <p class="text-slate-600">Ingresa tu token personal de GitHub con permiso <b><code>repo</code></b> para leer y publicar al instante sin retrasos de caché.</p>
                     </div>
                     <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
-                        <div class="font-extrabold text-blue-950">Paso 3 · Rama Desplegable y Sincronización</div>
-                        <p class="text-slate-600">Haz clic en <b>Conectar y Cargar Ramas</b>, selecciona en el desplegable tu rama activa (ej. <code>main</code>) y publica la nueva versión.</p>
+                        <div class="font-extrabold text-blue-950">Paso 3 · Sincronización en Tiempo Real</div>
+                        <p class="text-slate-600">Cada versión guardada por el administrador se despliega en <code>main</code> y sincroniza automáticamente todos los inicios de sesión.</p>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end bg-slate-50 p-4 rounded-2xl border border-slate-200">
                     <div class="md:col-span-12">
-                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Extractor Rápido desde URL de GitHub (pega cualquier enlace de tu repositorio o GitHub Pages)</label>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Extractor Rápido desde URL de GitHub</label>
                         <div class="flex gap-2">
                             <input type="text" id="inpGithubRepoUrlExtractor" value="https://github.com/meamosoyhermoso20-lang/CONSTANCIAS" placeholder="https://github.com/meamosoyhermoso20-lang/CONSTANCIAS" class="flex-1 px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-mono">
-                            <button type="button" onclick="extractGithubRepoFromUrl(this)" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-extrabold transition cursor-pointer">Extraer Datos</button>
+                            <button type="button" onclick="extractGithubRepoFromUrl(this)" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-extrabold transition cursor-pointer">Extraer y Verificar</button>
                         </div>
                     </div>
 
@@ -677,7 +725,7 @@
                             </button>
                         </div>
                         <div class="flex gap-1">
-                            <input type="text" id="inpGithubToken" value="" oninput="onGithubTokenAutoConnect()" onpaste="setTimeout(onGithubTokenAutoConnect, 50)" placeholder="Pega aquí tu token ghp_..." class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-mono">
+                            <input type="password" id="inpGithubToken" value="" oninput="onGithubTokenAutoConnect()" onpaste="setTimeout(onGithubTokenAutoConnect, 50)" placeholder="Pega aquí tu token ghp_..." class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-mono">
                             <button type="button" onclick="toggleGithubTokenVisibility()" title="Mostrar/Ocultar token" class="px-2.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-[11px] font-bold text-slate-600">Ver</button>
                         </div>
                     </div>
@@ -697,13 +745,13 @@
                             Generar Token (permiso repo)
                         </button>
                         <button type="button" onclick="runAutomatedGithubPipeline(this, false)" class="px-4 py-2 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-xs font-extrabold transition cursor-pointer">
-                            Vincular Repositorio y Cargar Ramas
+                            Verificar Repositorio y Cargar Ramas
                         </button>
                         <button type="button" onclick="runAutomatedGithubPipeline(this, true)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow transition cursor-pointer">
-                            Generar index.html, Guardar y Actualizar en Tiempo Real
+                            Guardar y Publicar Versión Actual en Tiempo Real
                         </button>
                     </div>
-                    <div id="githubPipelineLog" class="md:col-span-12 text-[11px] font-mono bg-slate-900 text-emerald-300 px-3.5 py-2.5 rounded-xl border border-slate-800">Listo para vincular y publicar la versión actual en GitHub.</div>
+                    <div id="githubPipelineLog" class="md:col-span-12 text-[11px] font-mono bg-slate-900 text-emerald-300 px-3.5 py-2.5 rounded-xl border border-slate-800">Listo para verificar y sincronizar en tiempo real con meamosoyhermoso20-lang/CONSTANCIAS (main).</div>
                     <div id="githubRepoTokenQuickBox" class="md:col-span-12 hidden bg-amber-50 border border-amber-300 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
                         <div class="space-y-0.5">
                             <div class="font-extrabold text-amber-950">Permiso <code>repo</code> requerido para publicar <code>index.html</code></div>
@@ -833,14 +881,22 @@
         }
 
         function syncLoginUIWithActiveVersion() {
-            const ver = Number(appState.version || 4);
+            const ver = Number(appState.version || 1);
             const verLabel = `v${ver}.0`;
+            const owner = appState.githubConfig?.owner || 'meamosoyhermoso20-lang';
+            const repo = appState.githubConfig?.repo || 'CONSTANCIAS';
+            const branch = appState.githubConfig?.branch || 'main';
+            const hasToken = !!(appState.githubConfig?.token || '').trim();
 
             const verBadge = document.getElementById('loginVersionBadge');
             if (verBadge) verBadge.textContent = verLabel;
 
             const syncTag = document.getElementById('loginVersionSyncTag');
-            if (syncTag) syncTag.textContent = `Sesión vinculada a ${verLabel}`;
+            if (syncTag) {
+                syncTag.textContent = hasToken
+                    ? `En vivo · ${owner}/${repo} (${branch}) · ${verLabel}`
+                    : `Vinculado en vivo a ${verLabel}`;
+            }
 
             const loginBarLabel = document.getElementById('loginBarVersionLabel');
             if (loginBarLabel) loginBarLabel.textContent = `Código de Acceso (${verLabel}):`;
@@ -850,6 +906,16 @@
 
             const adminBadge = document.getElementById('adminCacheStatusBadge');
             if (adminBadge) adminBadge.textContent = `Versión Publicada ${verLabel}`;
+
+            const ghBadge = document.getElementById('githubLinkStatusBadge');
+            if (ghBadge) {
+                ghBadge.textContent = hasToken
+                    ? `Vinculado en Tiempo Real · ${owner}/${repo} (${branch}) · ${verLabel}`
+                    : `Repo verificado · ${owner}/${repo} (${branch}) · ${verLabel}`;
+                ghBadge.className = hasToken
+                    ? 'px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-extrabold'
+                    : 'px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold';
+            }
 
             const targetVerInp = document.getElementById('inpTargetVersionNumber');
             if (targetVerInp && document.activeElement !== targetVerInp) {
@@ -961,7 +1027,7 @@
             if (event) event.preventDefault();
             const codeInput = (document.getElementById('inpFrontLoginCode')?.value || '').trim();
             if (!codeInput) {
-                showToast(`Ingresa tu código de acceso vinculado a v${appState.version || 4}.0.`);
+                showToast(`Ingresa tu código de acceso vinculado a v${appState.version || 1}.0.`);
                 return false;
             }
 
@@ -974,14 +1040,14 @@
             }
 
             if (!matched) {
-                showToast(`Código no reconocido en la versión v${appState.version || 4}.0. Verifica tu clave de acceso.`);
+                showToast(`Código no reconocido en la versión v${appState.version || 1}.0. Verifica tu clave de acceso.`);
                 if (document.getElementById('inpFrontLoginCode')) document.getElementById('inpFrontLoginCode').value = '';
                 return false;
             }
 
             appState.activeSession = {
                 ...matched,
-                boundVersion: Number(appState.version || 4)
+                boundVersion: Number(appState.version || 1)
             };
             if (document.getElementById('inpFrontLoginCode')) document.getElementById('inpFrontLoginCode').value = '';
 
@@ -1006,14 +1072,14 @@
             appState.activeSession = null;
             const badge = document.getElementById('headerActiveRoleBadge');
             if (badge) {
-                badge.textContent = `Bloqueado · Vinculado a v${appState.version || 4}.0`;
+                badge.textContent = `Bloqueado · Vinculado a v${appState.version || 1}.0`;
                 badge.className = 'px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 text-[10px] font-bold';
             }
             const adminBtn = document.getElementById('tabBtnAdminPanel');
             if (adminBtn) adminBtn.style.display = 'none';
             switchMainWorkspaceTab('generador');
             applyActiveUserPermissions();
-            showToast(`Sesión bloqueada · Vinculada a v${appState.version || 4}.0.`);
+            showToast(`Sesión cerrada · Vinculada a v${appState.version || 1}.0.`);
         }
 
         const DEFAULT_MAJORS = [
@@ -1096,7 +1162,7 @@
         }
 
         let appState = {
-            version: 4,
+            version: 9,
             currentDocType: 'estudios',
             activeSession: null,
             deletedIds: [],
@@ -1125,8 +1191,8 @@
                 { concepto: 'Colegiatura Mensual (Sep-Dic)', periodo: '2025/2026', importe: 9600 }
             ],
             kardex: [
-                { clave: 'DER-101', asignatura: 'Introducción al Estudio del Derecho', ciclo: '1er. Semestre', creditos: '8', calif: '9.4' },
-                { clave: 'DER-102', asignatura: 'Derecho Romano I', ciclo: '1er. Semestre', creditos: '8', calif: '9.2' }
+                { clave: 'DER-101', asignatura: 'Introducción al Estudio del Derecho', ciclo: '1° semestre', creditos: '8', calif: '9.4' },
+                { clave: 'DER-102', asignatura: 'Derecho Romano I', ciclo: '1° semestre', creditos: '8', calif: '9.2' }
             ],
             resguardo: [
                 { cantidad: '1', descripcion: 'Acta de Nacimiento Original', serie: 'ACT-2022', estado: 'En Resguardo' },
@@ -1149,16 +1215,12 @@
 
         function persistBaseState(updateVersionCache = false) {
             try {
-                const ver = Number(appState.version || 4);
-                const copy = {
-                    ...appState,
-                    version: ver,
-                    activeSession: null,
-                    githubConfig: { ...(appState.githubConfig || {}), token: '' }
-                };
+                const ver = Number(appState.version || 9);
+                const copy = buildCleanSerializableStateForSourceCode();
                 const jsonStr = JSON.stringify(copy);
                 localStorage.setItem(STORAGE_KEY, jsonStr);
                 if (updateVersionCache) {
+                    injectEmbeddedStateIntoCurrentDomScript();
                     localStorage.setItem(BACKUP_STORAGE_KEY, jsonStr);
                     localStorage.setItem(`${BACKUP_STORAGE_KEY}_V_${ver}`, jsonStr);
                     localStorage.setItem(VERSION_POINTER_KEY, String(ver));
@@ -1180,90 +1242,22 @@
             } catch (e) {}
         }
 
-        function hydrateInstantLocalAndEmbeddedState() {
-            try {
-                const pointerVer = Number(localStorage.getItem(VERSION_POINTER_KEY) || 0);
-                const versionedRaw = pointerVer > 0 ? localStorage.getItem(`${BACKUP_STORAGE_KEY}_V_${pointerVer}`) : null;
-                const officialRaw = versionedRaw || localStorage.getItem(BACKUP_STORAGE_KEY);
-                const draftRaw = localStorage.getItem(STORAGE_KEY);
-                const officialParsed = officialRaw ? JSON.parse(officialRaw) : null;
-                const draftParsed = draftRaw ? JSON.parse(draftRaw) : null;
+        async function commitSourceCodeAndAutoDeploy(sectionLabel = 'Cambios', btnEl = null, customVersion = null) {
+            appState.version = customVersion !== null ? Number(customVersion) : Number(appState.version || 1) + 1;
+            persistBaseState(true);
+            refreshAllUI();
+            applyActiveUserPermissions();
 
-                let chosen = officialParsed || draftParsed;
-                if (officialParsed && draftParsed) {
-                    chosen = Number(draftParsed.version || 1) > Number(officialParsed.version || 1)
-                        ? draftParsed
-                        : officialParsed;
-                }
+            const hasGithubReady = !!(
+                (appState.githubConfig?.owner || '').trim() &&
+                (appState.githubConfig?.repo || '').trim() &&
+                (appState.githubConfig?.token || extractSystemGithubRepoToken() || '').trim()
+            );
 
-                if (chosen && typeof chosen === 'object') {
-                    const currentSess = appState.activeSession;
-                    appState = { ...appState, ...chosen, activeSession: currentSess };
-                }
-
-                const deletedSet = new Set(appState.deletedIds || []);
-                appState.majors = (appState.majors || []).filter(m => !deletedSet.has(m.id));
-                appState.periods = (appState.periods || []).filter(p => !deletedSet.has(p.id));
-                appState.profiles = (appState.profiles || []).filter(u => !deletedSet.has(u.id));
-                (appState.profiles || []).forEach(p => {
-                    if (!p.permissions) p.permissions = buildDefaultUserPermissions(!!p.isAdmin);
-                });
-                const extractedToken = extractSystemGithubRepoToken();
-                if (extractedToken && appState.githubConfig) {
-                    appState.githubConfig.token = extractedToken;
-                }
-            } catch (e) {}
-            syncLoginUIWithActiveVersion();
-        }
-
-        function extractSystemGithubRepoToken() {
-            const tokenPattern = /(ghp_[a-zA-Z0-9]{20,}|github_pat_[a-zA-Z0-9_]{20,}|gho_[a-zA-Z0-9]{20,})/;
-            const candidateKeys = [
-                ADMIN_GITHUB_TOKEN_KEY,
-                'SISTEMA_BUBU_1_0_ADMIN_GH_TOKEN',
-                'GITHUB_TOKEN',
-                'GH_TOKEN',
-                'github_token',
-                'token'
-            ];
-            for (const key of candidateKeys) {
-                try {
-                    const val = (localStorage.getItem(key) || sessionStorage.getItem(key) || '').trim();
-                    if (val && (tokenPattern.test(val) || val.length >= 20)) return val;
-                } catch (e) {}
-            }
-            if (appState.githubConfig?.token && appState.githubConfig.token.trim()) {
-                return appState.githubConfig.token.trim();
-            }
-            return '';
-        }
-
-        function switchMainWorkspaceTab(tab) {
-            const gen = document.getElementById('workspaceTabGenerador');
-            const adm = document.getElementById('workspaceTabAdmin');
-            const btnGen = document.getElementById('tabBtnGenerador');
-            const btnAdm = document.getElementById('tabBtnAdminPanel');
-            if (tab === 'admin') {
-                if (!appState.activeSession || !appState.activeSession.isAdmin) {
-                    showToast('Solo el Administrador autenticado puede abrir el Panel de Control.');
-                    return;
-                }
-                gen?.classList.add('hidden');
-                adm?.classList.remove('hidden');
-                if (btnAdm) btnAdm.className = 'px-3.5 py-1.5 rounded-lg bg-white text-blue-950 text-xs font-extrabold shadow-sm transition';
-                if (btnGen) btnGen.className = 'px-3.5 py-1.5 rounded-lg text-blue-100 hover:bg-blue-800/70 text-xs font-bold transition';
-                switchAdminSubTab('constancias');
-                loadAdminTemplateEditor();
-                renderAdminPeriodsCatalogList();
-                loadGithubConfigToInputs();
-                renderPermissionsUserSelector();
-                renderPermissionsMatrixUI();
+            if (hasGithubReady) {
+                await runAutomatedGithubPipeline(btnEl, true, true);
             } else {
-                adm?.classList.add('hidden');
-                gen?.classList.remove('hidden');
-                if (btnGen) btnGen.className = 'px-3.5 py-1.5 rounded-lg bg-white text-blue-950 text-xs font-extrabold shadow-sm transition';
-                if (btnAdm) btnAdm.className = 'px-3.5 py-1.5 rounded-lg text-blue-100 hover:bg-blue-800/70 text-xs font-bold transition';
-                applyActiveUserPermissions();
+                showToast(`${sectionLabel} inyectados en el código fuente (v${appState.version}.0). Conecta tu token de GitHub para desplegar automáticamente.`);
             }
         }
 
@@ -1295,13 +1289,55 @@
         function editMajorCatalogItem(idx) {
             const m = appState.majors?.[idx];
             if (!m) return;
+            document.getElementById('editMajorIndex').value = String(idx);
             document.getElementById('newMajorName').value = m.name || '';
             document.getElementById('newMajorRvoe').value = m.rvoe || '';
             document.getElementById('newMajorRvoeDate').value = m.rvoeDate || '';
             document.getElementById('newMajorPlan').value = m.plan || 'Semestral';
-            appState.majors.splice(idx, 1);
+            const btnSave = document.getElementById('btnSaveMajorCrud');
+            const btnCancel = document.getElementById('btnCancelMajorEdit');
+            if (btnSave) btnSave.textContent = 'Guardar Edición';
+            if (btnCancel) btnCancel.classList.remove('hidden');
+            showToast(`Editando "${m.name}". Realiza los cambios y presiona "Guardar Edición".`);
+        }
+
+        function resetMajorCrudForm() {
+            if (document.getElementById('editMajorIndex')) document.getElementById('editMajorIndex').value = '-1';
+            ['newMajorName', 'newMajorRvoe', 'newMajorRvoeDate', 'newMajorPlan'].forEach(id => {
+                if (document.getElementById(id)) document.getElementById(id).value = '';
+            });
+            const btnSave = document.getElementById('btnSaveMajorCrud');
+            const btnCancel = document.getElementById('btnCancelMajorEdit');
+            if (btnSave) btnSave.textContent = 'Crear Licenciatura';
+            if (btnCancel) btnCancel.classList.add('hidden');
+        }
+
+        function saveMajorItemCrud() {
+            const editIdx = parseInt(document.getElementById('editMajorIndex')?.value || '-1', 10);
+            const name = (document.getElementById('newMajorName')?.value || '').trim();
+            const rvoe = (document.getElementById('newMajorRvoe')?.value || '').trim();
+            const rvoeDate = (document.getElementById('newMajorRvoeDate')?.value || '').trim();
+            const plan = (document.getElementById('newMajorPlan')?.value || 'Semestral').trim();
+            if (!name) return showToast('Escribe el nombre de la licenciatura.');
+
+            if (editIdx >= 0 && appState.majors?.[editIdx]) {
+                appState.majors[editIdx] = {
+                    ...appState.majors[editIdx],
+                    name,
+                    rvoe,
+                    rvoeDate,
+                    plan
+                };
+                showToast(`Licenciatura "${name}" actualizada. Presiona "Guardar Licenciaturas en Código Fuente" para publicar.`);
+            } else {
+                appState.majors.push({ id: 'maj_' + Date.now(), name, rvoe, rvoeDate, plan });
+                showToast(`Licenciatura "${name}" creada. Presiona "Guardar Licenciaturas en Código Fuente" para publicar.`);
+            }
+            resetMajorCrudForm();
             renderMajorsCatalogUI();
-            showToast('Datos cargados arriba para modificar.');
+            syncPlanInputFromSelectedMajor();
+            updateDocument();
+            persistBaseState(false);
         }
 
         function permanentlyDeleteMajor(idx) {
@@ -1309,10 +1345,12 @@
             if (!m) return;
             appState.deletedIds = Array.from(new Set([...(appState.deletedIds || []), m.id]));
             appState.majors.splice(idx, 1);
+            resetMajorCrudForm();
             renderMajorsCatalogUI();
             syncPlanInputFromSelectedMajor();
             updateDocument();
-            showToast(`Oferta "${m.name}" eliminada. Guarda y actualiza versión para vincular.`);
+            persistBaseState(false);
+            showToast(`Oferta "${m.name}" eliminada. Guarda en Código Fuente para desplegar.`);
         }
 
         function syncPlanInputFromSelectedMajor() {
@@ -1394,16 +1432,95 @@
             box.innerHTML = (appState.profiles || []).map((p, idx) => `
                 <div class="p-3 flex flex-wrap items-center justify-between gap-2 text-xs bg-white">
                     <div class="flex-1 min-w-[160px]">
-                        <input type="text" value="${escapeHtml(p.name)}" onchange="appState.profiles[${idx}].name = this.value; renderPermissionsUserSelector();" class="font-bold text-slate-900 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 w-full">
-                        <div class="text-[11px] text-slate-500 mt-0.5">Rol: ${escapeHtml(p.roleLabel)}</div>
+                        <div class="font-bold text-slate-900">${escapeHtml(p.name)}</div>
+                        <div class="text-[11px] text-slate-500 mt-0.5">Rol: <b>${escapeHtml(p.roleLabel)}</b> · Clave: <span class="font-mono font-bold text-blue-950">${escapeHtml(p.code)}</span></div>
                     </div>
                     <div class="flex items-center gap-1.5">
-                        <span class="text-[11px] text-slate-500 font-semibold">Clave:</span>
-                        <input type="password" value="${escapeHtml(p.code)}" placeholder="••••" onchange="appState.profiles[${idx}].code = this.value;" class="w-24 px-2 py-1 rounded-lg bg-slate-100 border border-slate-300 font-mono font-bold text-slate-800 tracking-widest">
+                        <button type="button" onclick="editUserProfileItem(${idx})" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold">Editar</button>
                         ${p.isAdmin ? '' : `<button type="button" onclick="permanentlyDeleteUserProfile(${idx})" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold">Eliminar</button>`}
                     </div>
                 </div>
             `).join('');
+        }
+
+        function editUserProfileItem(idx) {
+            const u = appState.profiles?.[idx];
+            if (!u) return;
+            document.getElementById('editUserProfileIndex').value = String(idx);
+            document.getElementById('inpUserProfileName').value = u.name || '';
+            document.getElementById('inpUserProfileCode').value = u.code || '';
+            const roleSel = document.getElementById('selUserProfileRole');
+            if (roleSel) {
+                roleSel.value = u.isAdmin ? 'Administrador' : 'Operador';
+                roleSel.disabled = u.id === 'admin';
+            }
+            const btnSave = document.getElementById('btnSaveUserCrud');
+            const btnCancel = document.getElementById('btnCancelUserEdit');
+            if (btnSave) btnSave.textContent = 'Guardar Edición';
+            if (btnCancel) btnCancel.classList.remove('hidden');
+            showToast(`Editando usuario "${u.name}".`);
+        }
+
+        function resetUserCrudForm() {
+            if (document.getElementById('editUserProfileIndex')) document.getElementById('editUserProfileIndex').value = '-1';
+            if (document.getElementById('inpUserProfileName')) document.getElementById('inpUserProfileName').value = '';
+            if (document.getElementById('inpUserProfileCode')) document.getElementById('inpUserProfileCode').value = '';
+            const roleSel = document.getElementById('selUserProfileRole');
+            if (roleSel) {
+                roleSel.value = 'Operador';
+                roleSel.disabled = false;
+            }
+            const btnSave = document.getElementById('btnSaveUserCrud');
+            const btnCancel = document.getElementById('btnCancelUserEdit');
+            if (btnSave) btnSave.textContent = 'Crear Usuario';
+            if (btnCancel) btnCancel.classList.add('hidden');
+        }
+
+        function saveUserProfileCrud() {
+            const editIdx = parseInt(document.getElementById('editUserProfileIndex')?.value || '-1', 10);
+            const name = (document.getElementById('inpUserProfileName')?.value || '').trim();
+            const code = (document.getElementById('inpUserProfileCode')?.value || '').trim();
+            const roleVal = document.getElementById('selUserProfileRole')?.value || 'Operador';
+            const isAdmin = roleVal === 'Administrador';
+
+            if (!name || !code) {
+                return showToast('Completa el nombre y el código de acceso del usuario.');
+            }
+
+            const duplicate = (appState.profiles || []).some((p, i) => i !== editIdx && String(p.code).trim().toLowerCase() === code.toLowerCase());
+            if (duplicate) {
+                return showToast(`El código "${code}" ya está asignado a otro usuario.`);
+            }
+
+            if (editIdx >= 0 && appState.profiles?.[editIdx]) {
+                const existing = appState.profiles[editIdx];
+                const keepAdmin = existing.id === 'admin' ? true : isAdmin;
+                appState.profiles[editIdx] = {
+                    ...existing,
+                    name,
+                    code,
+                    isAdmin: keepAdmin,
+                    roleLabel: keepAdmin ? 'Administrador' : 'Operador',
+                    permissions: existing.permissions || buildDefaultUserPermissions(keepAdmin)
+                };
+                showToast(`Usuario "${name}" actualizado. Presiona "Guardar Usuarios en Código Fuente" para publicar.`);
+            } else {
+                appState.profiles.push({
+                    id: 'usr_' + Date.now(),
+                    name,
+                    roleLabel: isAdmin ? 'Administrador' : 'Operador',
+                    code,
+                    isAdmin,
+                    permissions: buildDefaultUserPermissions(isAdmin)
+                });
+                showToast(`Usuario "${name}" creado con clave "${code}". Presiona "Guardar Usuarios en Código Fuente" para publicar.`);
+            }
+
+            resetUserCrudForm();
+            renderProfilesManager();
+            renderPermissionsUserSelector();
+            renderPermissionsMatrixUI();
+            persistBaseState(false);
         }
 
         function permanentlyDeleteUserProfile(idx) {
@@ -1411,10 +1528,12 @@
             if (!u || u.isAdmin) return;
             appState.deletedIds = Array.from(new Set([...(appState.deletedIds || []), u.id]));
             appState.profiles.splice(idx, 1);
+            resetUserCrudForm();
             renderProfilesManager();
             renderPermissionsUserSelector();
             renderPermissionsMatrixUI();
-            showToast(`Usuario "${u.name}" eliminado. Presiona "Guardar Usuarios y Vincular Versión".`);
+            persistBaseState(false);
+            showToast(`Usuario "${u.name}" eliminado. Guarda en Código Fuente para desplegar.`);
         }
 
         function renderPermissionsUserSelector() {
@@ -1501,14 +1620,28 @@
             `;
         }
 
-        function saveUsersAndPermissionsChanges() {
-            appState.version = Number(appState.version || 4) + 1;
-            persistBaseState(true);
-            renderProfilesManager();
-            renderPermissionsUserSelector();
-            renderPermissionsMatrixUI();
-            applyActiveUserPermissions();
-            showToast(`Usuarios y claves guardados y vinculados a la versión v${appState.version}.0.`);
+        async function saveUsersAndPermissionsChanges(btnEl = null) {
+            await commitSourceCodeAndAutoDeploy('Usuarios y Permisos', btnEl);
+        }
+
+        async function saveSectionToSourceCodeAndSync(sectionLabel, btnEl = null) {
+            await commitSourceCodeAndAutoDeploy(sectionLabel, btnEl);
+        }
+        async function saveAdminTemplateFromPanel(btnEl = null) {
+            const docType = document.getElementById('selAdminTemplateDocType')?.value || 'estudios';
+            const asunto = document.getElementById('inpAdminTemplateAsunto')?.value || '';
+            const body = document.getElementById('txtAdminTemplateBody')?.value || '';
+            appState.templates[docType] = { asunto, body };
+            if (appState.currentDocType === docType) {
+                selectDocType(docType);
+            }
+            updateDocument();
+            await commitSourceCodeAndAutoDeploy('Constancia y Firmante', btnEl);
+        }
+
+        async function saveAndCommitSkeletonTemplateAdmin(btnEl = null) {
+            previewCustomFormatLive();
+            await commitSourceCodeAndAutoDeploy('Esqueleto de Constancia', btnEl);
         }
 
         function toggleUserDocPermission(userId, docId, isAllowed) {
@@ -1543,7 +1676,7 @@
                             <div class="text-[11px] text-slate-500 font-mono">RVOE: ${escapeHtml(m.rvoe || 'N/A')} · Fecha: ${escapeHtml(m.rvoeDate || 'N/A')} · Plan: ${escapeHtml(m.plan || 'Semestral')}</div>
                         </div>
                         <div class="flex gap-1.5">
-                            <button type="button" onclick="editMajorCatalogItem(${idx})" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold">Modificar</button>
+                            <button type="button" onclick="editMajorCatalogItem(${idx})" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold">Editar</button>
                             <button type="button" onclick="permanentlyDeleteMajor(${idx})" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold">Eliminar</button>
                         </div>
                     </div>
@@ -1560,26 +1693,6 @@
             if (document.getElementById('inpAdminFirmanteCargo')) document.getElementById('inpAdminFirmanteCargo').value = appState.signer?.title || '';
         }
 
-        function saveAdminTemplateFromPanel() {
-            const docType = document.getElementById('selAdminTemplateDocType')?.value || 'estudios';
-            const asunto = document.getElementById('inpAdminTemplateAsunto')?.value || '';
-            const body = document.getElementById('txtAdminTemplateBody')?.value || '';
-            appState.templates[docType] = { asunto, body };
-            if (appState.currentDocType === docType) {
-                selectDocType(docType);
-            }
-            updateDocument();
-            persistBaseState(false);
-            showToast('Constancia guardada en borrador. Presiona "Guardar y Actualizar Versión" para vincular.');
-        }
-
-        function saveAndCommitSkeletonTemplateAdmin() {
-            previewCustomFormatLive();
-            appState.version = Number(appState.version || 4) + 1;
-            persistBaseState(true);
-            showToast(`Esqueleto guardado y vinculado a la versión v${appState.version}.0.`);
-        }
-
         function renderAdminPeriodsCatalogList() {
             const box = document.getElementById('adminPeriodsCatalogList');
             if (!box) return;
@@ -1591,7 +1704,7 @@
                         <div class="text-emerald-700 text-[11px]">${escapeHtml(p.vacation || '')}</div>
                     </div>
                     <div class="flex gap-1.5">
-                        <button type="button" onclick="editAdminPeriodItem(${idx})" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold">Modificar</button>
+                        <button type="button" onclick="editAdminPeriodItem(${idx})" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold">Editar</button>
                         <button type="button" onclick="permanentlyDeleteAdminPeriod(${idx})" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold">Eliminar</button>
                     </div>
                 </div>
@@ -1601,26 +1714,53 @@
         function editAdminPeriodItem(idx) {
             const p = appState.periods?.[idx];
             if (!p) return;
+            document.getElementById('editAdminPeriodIndex').value = String(idx);
             document.getElementById('adminNewPeriodName').value = p.name || '';
             document.getElementById('adminNewPeriodDates').value = p.dates || '';
             document.getElementById('adminNewPeriodVacation').value = p.vacation || '';
-            appState.periods.splice(idx, 1);
-            renderAdminPeriodsCatalogList();
-            showToast('Periodo cargado arriba para modificar.');
+            const btnSave = document.getElementById('btnSavePeriodCrud');
+            const btnCancel = document.getElementById('btnCancelPeriodEdit');
+            if (btnSave) btnSave.textContent = 'Guardar Edición';
+            if (btnCancel) btnCancel.classList.remove('hidden');
+            showToast(`Editando periodo "${p.name}". Realiza los cambios y presiona "Guardar Edición".`);
         }
 
-        function addAdminPeriodItem() {
+        function resetAdminPeriodCrudForm() {
+            if (document.getElementById('editAdminPeriodIndex')) document.getElementById('editAdminPeriodIndex').value = '-1';
+            ['adminNewPeriodName', 'adminNewPeriodDates', 'adminNewPeriodVacation'].forEach(id => {
+                if (document.getElementById(id)) document.getElementById(id).value = '';
+            });
+            const btnSave = document.getElementById('btnSavePeriodCrud');
+            const btnCancel = document.getElementById('btnCancelPeriodEdit');
+            if (btnSave) btnSave.textContent = 'Crear Periodo';
+            if (btnCancel) btnCancel.classList.add('hidden');
+        }
+
+        function saveAdminPeriodCrud() {
+            const editIdx = parseInt(document.getElementById('editAdminPeriodIndex')?.value || '-1', 10);
             const name = (document.getElementById('adminNewPeriodName')?.value || '').trim();
             const dates = (document.getElementById('adminNewPeriodDates')?.value || '').trim();
             const vacation = (document.getElementById('adminNewPeriodVacation')?.value || '').trim();
             if (!name || !dates) return showToast('Completa el nombre y las fechas del periodo.');
-            appState.periods.push({ id: 'per_' + Date.now(), name, dates, vacation });
-            ['adminNewPeriodName', 'adminNewPeriodDates', 'adminNewPeriodVacation'].forEach(id => {
-                if (document.getElementById(id)) document.getElementById(id).value = '';
-            });
+
+            if (editIdx >= 0 && appState.periods?.[editIdx]) {
+                appState.periods[editIdx] = {
+                    ...appState.periods[editIdx],
+                    name,
+                    dates,
+                    vacation
+                };
+                showToast(`Periodo "${name}" actualizado. Presiona "Guardar Periodos en Código Fuente" para publicar.`);
+            } else {
+                appState.periods.push({ id: 'per_' + Date.now(), name, dates, vacation });
+                showToast(`Periodo "${name}" creado. Presiona "Guardar Periodos en Código Fuente" para publicar.`);
+            }
+            resetAdminPeriodCrudForm();
             renderPeriodsUI();
+            syncAcademicPeriodInputFromSelect();
             renderAdminPeriodsCatalogList();
-            showToast('Periodo agregado en borrador. Presiona "Guardar y Actualizar Versión" para vincular.');
+            updateDocument();
+            persistBaseState(false);
         }
 
         function permanentlyDeleteAdminPeriod(idx) {
@@ -1628,11 +1768,13 @@
             if (!p) return;
             appState.deletedIds = Array.from(new Set([...(appState.deletedIds || []), p.id]));
             appState.periods.splice(idx, 1);
+            resetAdminPeriodCrudForm();
             renderPeriodsUI();
             syncAcademicPeriodInputFromSelect();
             renderAdminPeriodsCatalogList();
             updateDocument();
-            showToast(`Periodo "${p.name}" eliminado. Presiona "Guardar y Actualizar Versión" para vincular.`);
+            persistBaseState(false);
+            showToast(`Periodo "${p.name}" eliminado. Guarda en Código Fuente para desplegar.`);
         }
 
         function refreshAllUI() {
@@ -1790,30 +1932,202 @@
         async function applyCustomVersionAndLinkLogin(btnEl) {
             const rawVal = parseInt(document.getElementById('inpTargetVersionNumber')?.value || '', 10);
             if (isNaN(rawVal) || rawVal < 1) {
-                showToast('Ingresa un número de versión válido (ej. 4, 54, etc.).');
+                showToast('Ingresa un número de versión válido (ej. 9, 10, 54).');
                 return;
             }
-            appState.version = rawVal;
-            persistBaseState(true);
-            refreshAllUI();
-            applyActiveUserPermissions();
-            if (appState.githubConfig?.owner && appState.githubConfig?.repo && appState.githubConfig?.token) {
-                await runAutomatedGithubPipeline(btnEl, true, true);
-            } else {
-                showToast(`Versión v${appState.version}.0 guardada y vinculada al inicio de sesión.`);
-            }
+            await commitSourceCodeAndAutoDeploy(`Versión v${rawVal}.0`, btnEl, rawVal);
         }
 
         async function commitAndPublishAllAdminChanges(btnEl) {
-            appState.version = Number(appState.version || 4) + 1;
-            persistBaseState(true);
-            refreshAllUI();
-            applyActiveUserPermissions();
-            if (appState.githubConfig?.owner && appState.githubConfig?.repo && appState.githubConfig?.token) {
-                await runAutomatedGithubPipeline(btnEl, true, true);
-            } else {
-                showToast(`Versión v${appState.version}.0 guardada y vinculada al inicio de sesión.`);
+            await commitSourceCodeAndAutoDeploy('Todos los cambios', btnEl);
+        }
+
+        function extractSystemGithubRepoToken() {
+            try {
+                return (localStorage.getItem(ADMIN_GITHUB_TOKEN_KEY) || '').trim();
+            } catch (e) {
+                return '';
             }
+        }
+
+        function switchMainWorkspaceTab(tabName) {
+            const genTab = document.getElementById('workspaceTabGenerador');
+            const admTab = document.getElementById('workspaceTabAdmin');
+            const genBtn = document.getElementById('tabBtnGenerador');
+            const admBtn = document.getElementById('tabBtnAdminPanel');
+            const isAdminTab = tabName === 'admin';
+
+            if (genTab) genTab.classList.toggle('hidden', isAdminTab);
+            if (admTab) admTab.classList.toggle('hidden', !isAdminTab);
+
+            if (genBtn) {
+                genBtn.className = !isAdminTab
+                    ? 'px-3.5 py-1.5 rounded-lg bg-white text-blue-950 text-xs font-extrabold shadow-sm transition'
+                    : 'px-3.5 py-1.5 rounded-lg text-blue-100 hover:bg-blue-800/70 text-xs font-bold transition';
+            }
+            if (admBtn) {
+                admBtn.className = isAdminTab
+                    ? 'px-3.5 py-1.5 rounded-lg bg-white text-blue-950 text-xs font-extrabold shadow-sm transition'
+                    : 'px-3.5 py-1.5 rounded-lg text-blue-100 hover:bg-blue-800/70 text-xs font-bold transition';
+            }
+
+            if (isAdminTab) {
+                switchAdminSubTab('constancias');
+            }
+        }
+
+        function buildSelfContainedHtmlWithEmbeddedState() {
+            injectEmbeddedStateIntoCurrentDomScript();
+            const cleanStateObj = buildCleanSerializableStateForSourceCode();
+            const serializedState = JSON.stringify(cleanStateObj).replace(/<\/script>/gi, '<\\/script>');
+            const markerRegex = /\/\*__EMBEDDED_BUBU_STATE__\*\/[\s\S]*?\/\*__END_EMBEDDED_BUBU_STATE__\*\//;
+            const replacementBlock = `/*__EMBEDDED_BUBU_STATE__*/window.__EMBEDDED_BUBU_STATE__=${serializedState};/*__END_EMBEDDED_BUBU_STATE__*/`;
+            const rawDocHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+            return rawDocHtml.replace(markerRegex, replacementBlock);
+        }
+
+        async function runAutomatedGithubPipeline(btnEl = null, shouldDeploy = true, silent = false) {
+            saveGithubInputsToState();
+            const owner = (appState.githubConfig?.owner || 'meamosoyhermoso20-lang').trim();
+            const repo = (appState.githubConfig?.repo || 'CONSTANCIAS').trim();
+            const branch = (appState.githubConfig?.branch || 'main').trim();
+            const filePath = (appState.githubConfig?.filePath || 'index.html').trim().replace(/^\/+/, '');
+            const token = (appState.githubConfig?.token || extractSystemGithubRepoToken() || '').trim();
+
+            if (!owner || !repo) {
+                setGithubPipelineStatus('Completa el usuario y repositorio de GitHub.', true, false);
+                return;
+            }
+
+            if (btnEl) btnEl.disabled = true;
+            setGithubPipelineStatus(`Verificando repositorio ${owner}/${repo}...`, false, false);
+
+            try {
+                const headers = { 'Accept': 'application/vnd.github.v3+json' };
+                if (token) headers['Authorization'] = `token ${token}`;
+
+                const repoRes = await fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`, { headers, cache: 'no-store' });
+                if (!repoRes.ok) {
+                    throw new Error(`No se pudo acceder a ${owner}/${repo} (HTTP ${repoRes.status}). Verifica el token.`);
+                }
+
+                const branchesRes = await fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/branches`, { headers, cache: 'no-store' });
+                if (branchesRes.ok) {
+                    const branches = await branchesRes.json();
+                    const selBranch = document.getElementById('selGithubBranch');
+                    if (selBranch && Array.isArray(branches) && branches.length) {
+                        const prev = selBranch.value || branch;
+                        selBranch.innerHTML = branches.map(b => `<option value="${escapeHtml(b.name)}">${escapeHtml(b.name)}</option>`).join('');
+                        if (branches.some(b => b.name === prev)) selBranch.value = prev;
+                        appState.githubConfig.branch = selBranch.value;
+                    }
+                }
+
+                if (!shouldDeploy) {
+                    setGithubPipelineStatus(`Repositorio ${owner}/${repo} verificado correctamente (rama ${appState.githubConfig.branch}).`, false, !token);
+                    if (!silent) showToast(`Repositorio ${owner}/${repo} verificado.`);
+                    return;
+                }
+
+                if (!token) {
+                    setGithubPipelineStatus('Se requiere un token personal de GitHub con permiso "repo" para desplegar index.html.', true, true);
+                    return;
+                }
+
+                setGithubPipelineStatus(`Desplegando v${appState.version}.0 en ${owner}/${repo}/${filePath} (${appState.githubConfig.branch})...`, false, false);
+                const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
+                const contentUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodedPath}`;
+
+                let existingSha = undefined;
+                const getFileRes = await fetch(`${contentUrl}?ref=${encodeURIComponent(appState.githubConfig.branch)}&_=${Date.now()}`, { headers, cache: 'no-store' });
+                if (getFileRes.ok) {
+                    const fileJson = await getFileRes.json();
+                    existingSha = fileJson.sha;
+                }
+
+                const htmlPayload = buildSelfContainedHtmlWithEmbeddedState();
+                const utf8Bytes = new TextEncoder().encode(htmlPayload);
+                let binaryStr = '';
+                for (let i = 0; i < utf8Bytes.length; i++) {
+                    binaryStr += String.fromCharCode(utf8Bytes[i]);
+                }
+                const base64Content = btoa(binaryStr);
+
+                const putBody = {
+                    message: `Despliegue automático SISTEMA BUBU v${appState.version}.0`,
+                    content: base64Content,
+                    branch: appState.githubConfig.branch
+                };
+                if (existingSha) putBody.sha = existingSha;
+
+                const putRes = await fetch(contentUrl, {
+                    method: 'PUT',
+                    headers: {
+                        ...headers,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(putBody)
+                });
+
+                if (!putRes.ok) {
+                    const errData = await putRes.json().catch(() => ({}));
+                    throw new Error(errData.message || `Error HTTP ${putRes.status} al publicar en GitHub.`);
+                }
+
+                setGithubPipelineStatus(`Desplegado con éxito en GitHub · v${appState.version}.0 (${owner}/${repo} · ${appState.githubConfig.branch}).`, false, false);
+                showToast(`Versión v${appState.version}.0 guardada en código fuente y desplegada en GitHub.`);
+            } catch (err) {
+                setGithubPipelineStatus(`Error de GitHub: ${err.message}`, true, !token);
+                showToast(`Error al desplegar en GitHub: ${err.message}`);
+            } finally {
+                if (btnEl) btnEl.disabled = false;
+            }
+        }
+
+        function hydrateInstantLocalAndEmbeddedState() {
+            try {
+                const savedToken = extractSystemGithubRepoToken();
+                const pointerVer = Number(localStorage.getItem(VERSION_POINTER_KEY) || 0);
+                const rawCandidates = [
+                    pointerVer ? localStorage.getItem(`${BACKUP_STORAGE_KEY}_V_${pointerVer}`) : null,
+                    localStorage.getItem(BACKUP_STORAGE_KEY),
+                    localStorage.getItem(STORAGE_KEY)
+                ].filter(Boolean);
+
+                let bestState = window.__EMBEDDED_BUBU_STATE__ && typeof window.__EMBEDDED_BUBU_STATE__ === 'object'
+                    ? window.__EMBEDDED_BUBU_STATE__
+                    : null;
+
+                for (const raw of rawCandidates) {
+                    try {
+                        const parsed = JSON.parse(raw);
+                        if (parsed && typeof parsed === 'object') {
+                            if (!bestState || Number(parsed.version || 0) >= Number(bestState.version || 0)) {
+                                bestState = parsed;
+                            }
+                        }
+                    } catch (e) {}
+                }
+
+                if (bestState) {
+                    const currentSession = appState.activeSession;
+                    appState = {
+                        ...appState,
+                        ...bestState,
+                        version: Number(bestState.version || appState.version || 9),
+                        activeSession: currentSession,
+                        githubConfig: {
+                            owner: bestState.githubConfig?.owner || appState.githubConfig?.owner || 'meamosoyhermoso20-lang',
+                            repo: bestState.githubConfig?.repo || appState.githubConfig?.repo || 'CONSTANCIAS',
+                            branch: bestState.githubConfig?.branch || appState.githubConfig?.branch || 'main',
+                            filePath: bestState.githubConfig?.filePath || appState.githubConfig?.filePath || 'index.html',
+                            token: savedToken || bestState.githubConfig?.token || ''
+                        }
+                    };
+                } else if (savedToken) {
+                    appState.githubConfig.token = savedToken;
+                }
+            } catch (e) {}
         }
 
         let githubAutoConnectTimer = null;
@@ -1914,6 +2228,7 @@
                     localStorage.removeItem(ADMIN_GITHUB_TOKEN_KEY);
                 }
             } catch (e) {}
+            syncLoginUIWithActiveVersion();
         }
 
         function loadGithubConfigToInputs() {
@@ -1943,17 +2258,7 @@
                 }
                 selBranch.value = cfg.branch;
             }
-
-            const badge = document.getElementById('githubLinkStatusBadge');
-            if (badge) {
-                if (cfg.owner && cfg.repo && cfg.token) {
-                    badge.textContent = `Vinculado · ${cfg.owner}/${cfg.repo} (${cfg.branch}) · v${appState.version}.0`;
-                    badge.className = 'px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-extrabold';
-                } else if (cfg.owner && cfg.repo) {
-                    badge.textContent = `Repo detectado · ${cfg.owner}/${cfg.repo}`;
-                    badge.className = 'px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold';
-                }
-            }
+            syncLoginUIWithActiveVersion();
         }
 
         function toggleGithubTokenVisibility() {
@@ -2017,160 +2322,43 @@
             await runAutomatedGithubPipeline(btnEl, false);
         }
 
-        function buildSelfContainedHtmlWithEmbeddedState() {
-            const ver = Number(appState.version || 4);
-            const cleanStateObj = {
+        function buildCleanSerializableStateForSourceCode() {
+            const ver = Number(appState.version || 1);
+            return {
                 ...appState,
                 version: ver,
                 activeSession: null,
                 githubConfig: {
-                    ...(appState.githubConfig || {}),
+                    owner: appState.githubConfig?.owner || 'meamosoyhermoso20-lang',
+                    repo: appState.githubConfig?.repo || 'CONSTANCIAS',
+                    branch: appState.githubConfig?.branch || 'main',
+                    filePath: appState.githubConfig?.filePath || 'index.html',
                     token: ''
                 }
             };
-            const serializedState = JSON.stringify(cleanStateObj).replace(/<\/script>/gi, '<\\/script>');
-
-            const cloneDoc = document.documentElement.cloneNode(true);
-            const toastClone = cloneDoc.querySelector('#toastBanner');
-            if (toastClone) toastClone.classList.add('hidden');
-            const toolbarClone = cloneDoc.querySelector('#selectionFormatToolbar');
-            if (toolbarClone) toolbarClone.classList.add('hidden');
-            const tokenClone = cloneDoc.querySelector('#inpGithubToken');
-            if (tokenClone) {
-                tokenClone.value = '';
-                tokenClone.setAttribute('value', '');
-            }
-            const verBadgeClone = cloneDoc.querySelector('#loginVersionBadge');
-            if (verBadgeClone) verBadgeClone.textContent = `v${ver}.0`;
-            const verSyncClone = cloneDoc.querySelector('#loginVersionSyncTag');
-            if (verSyncClone) verSyncClone.textContent = `Sesión vinculada a v${ver}.0`;
-            const loginLabelClone = cloneDoc.querySelector('#loginBarVersionLabel');
-            if (loginLabelClone) loginLabelClone.textContent = `Código de Acceso (v${ver}.0):`;
-            const noticeVerClone = cloneDoc.querySelector('#noticeVersionLabel');
-            if (noticeVerClone) noticeVerClone.textContent = `Versión v${ver}.0`;
-            const roleBadgeClone = cloneDoc.querySelector('#headerActiveRoleBadge');
-            if (roleBadgeClone) roleBadgeClone.textContent = `Bloqueado · Vinculado a v${ver}.0`;
-
-            let rawHtml = '<!DOCTYPE html>\n' + cloneDoc.outerHTML;
-            rawHtml = rawHtml.replace(/(ghp_[a-zA-Z0-9]{20,}|github_pat_[a-zA-Z0-9_]{20,}|gho_[a-zA-Z0-9]{20,})/g, '');
-            const markerRegex = /\/\*__EMBEDDED_BUBU_STATE__\*\/[\s\S]*?\/\*__END_EMBEDDED_BUBU_STATE__\*\//;
-            if (markerRegex.test(rawHtml)) {
-                return rawHtml.replace(
-                    markerRegex,
-                    `/*__EMBEDDED_BUBU_STATE__*/window.__EMBEDDED_BUBU_STATE__=${serializedState};/*__END_EMBEDDED_BUBU_STATE__*/`
-                );
-            }
-            return rawHtml;
         }
 
-        async function runAutomatedGithubPipeline(btnEl, publishIndex = true, preserveCurrentVersion = false) {
-            saveGithubInputsToState();
-            const { owner, repo, token, branch, filePath } = appState.githubConfig;
-            if (!owner || !repo) {
-                setGithubPipelineStatus('Error: Completa Propietario y Repositorio de GitHub.', true);
-                return showToast('Completa Propietario y Repositorio.');
-            }
-            if (btnEl) btnEl.disabled = true;
-            try {
-                setGithubPipelineStatus(`[Paso 1/4] Vinculando repositorio ${owner}/${repo} y verificando permiso repo...`);
-                const headers = { 'Accept': 'application/vnd.github.v3+json' };
-                if (token) headers['Authorization'] = `token ${token}`;
+        function injectEmbeddedStateIntoCurrentDomScript() {
+            const cleanStateObj = buildCleanSerializableStateForSourceCode();
+            window.__EMBEDDED_BUBU_STATE__ = cleanStateObj;
+            const serializedState = JSON.stringify(cleanStateObj).replace(/<\/script>/gi, '<\\/script>');
+            const markerRegex = /\/\*__EMBEDDED_BUBU_STATE__\*\/[\s\S]*?\/\*__END_EMBEDDED_BUBU_STATE__\*\//;
+            const replacementBlock = `/*__EMBEDDED_BUBU_STATE__*/window.__EMBEDDED_BUBU_STATE__=${serializedState};/*__END_EMBEDDED_BUBU_STATE__*/`;
 
-                const repoRes = await fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`, { headers });
-                if (!repoRes.ok) {
-                    throw new Error(`No se pudo acceder a ${owner}/${repo} (HTTP ${repoRes.status}). Verifica el repositorio o tu Token.`);
+            let injectedInDom = false;
+            const scripts = document.querySelectorAll('script');
+            scripts.forEach(sc => {
+                if (sc.textContent && sc.textContent.includes('/*__EMBEDDED_BUBU_STATE__*/')) {
+                    sc.textContent = sc.textContent.replace(markerRegex, replacementBlock);
+                    injectedInDom = true;
                 }
-                const scopesHeader = repoRes.headers.get('X-OAuth-Scopes') || '';
-                const scopesList = scopesHeader.split(',').map(s => s.trim()).filter(Boolean);
-                const hasRepoScope = !token || scopesList.includes('repo') || scopesHeader === '';
-                const repoData = await repoRes.json();
-                if (token && (!hasRepoScope || (repoData.permissions && repoData.permissions.push === false))) {
-                    setGithubPipelineStatus('El Token actual no tiene activado el permiso "repo". Usa el asistente de abajo para generar uno con permiso "repo".', true, true);
-                    showToast('El Token no tiene permiso "repo".');
-                    return;
-                }
-                const defaultBranch = repoData.default_branch || branch || 'main';
+            });
 
-                setGithubPipelineStatus(`[Paso 2/4] Cargando ramas del repositorio en el desplegable...`);
-                const branchesRes = await fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/branches`, { headers });
-                const selBranch = document.getElementById('selGithubBranch');
-                if (branchesRes.ok && selBranch) {
-                    const branches = await branchesRes.json();
-                    if (Array.isArray(branches) && branches.length > 0) {
-                        const prevVal = selBranch.value;
-                        selBranch.innerHTML = branches.map(b =>
-                            `<option value="${escapeHtml(b.name)}">${escapeHtml(b.name)}${b.name === defaultBranch ? ' (Principal)' : ''}</option>`
-                        ).join('');
-                        selBranch.value = branches.some(b => b.name === prevVal) ? prevVal : defaultBranch;
-                    }
-                }
-                saveGithubInputsToState();
-                const activeBranch = appState.githubConfig.branch || defaultBranch;
-
-                setGithubPipelineStatus(`[Paso 3/4] Leyendo ${filePath} en la rama "${activeBranch}"...`);
-                const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodeURIComponent(filePath)}`;
-                let sha = undefined;
-                const getFileRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(activeBranch)}`, { headers });
-                if (getFileRes.ok) {
-                    const existingFile = await getFileRes.json();
-                    sha = existingFile.sha;
-                }
-
-                persistBaseState(true);
-                loadGithubConfigToInputs();
-
-                if (!publishIndex) {
-                    setGithubPipelineStatus(`[Completado] Repositorio ${owner}/${repo} vinculado en rama "${activeBranch}" · Versión v${appState.version}.0 lista.`, false, !token);
-                    showToast(`Repositorio ${owner}/${repo} vinculado (v${appState.version}.0).`);
-                    return;
-                }
-
-                if (!token) {
-                    setGithubPipelineStatus(`Repositorio vinculado (${owner}/${repo}), pero falta el Token con permiso "repo" para subir ${filePath}.`, true, true);
-                    showToast('Falta el Token con permiso "repo" para subir index.html.');
-                    return;
-                }
-
-                if (!preserveCurrentVersion) {
-                    appState.version = Number(appState.version || 4) + 1;
-                }
-                persistBaseState(true);
-                setGithubPipelineStatus(`[Paso 4/4] Generando ${filePath} v${appState.version}.0 con inicio de sesión vinculado y publicando en GitHub...`);
-
-                const htmlContent = buildSelfContainedHtmlWithEmbeddedState();
-                const bytes = new TextEncoder().encode(htmlContent);
-                let binary = '';
-                for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-                const base64Content = btoa(binary);
-
-                const putRes = await fetch(apiUrl, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Accept': 'application/vnd.github.v3+json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        message: `Actualización automática SISTEMA BUBU v${appState.version}.0 (Inicio de sesión vinculado)`,
-                        content: base64Content,
-                        branch: activeBranch,
-                        ...(sha ? { sha } : {})
-                    })
-                });
-
-                if (!putRes.ok) {
-                    const errBody = await putRes.json().catch(() => ({}));
-                    throw new Error(errBody.message || `Error HTTP ${putRes.status} al subir ${filePath}`);
-                }
-
-                const pagesUrl = `https://${owner}.github.io/${repo}/`;
-                setGithubPipelineStatus(`[Éxito Global] ${filePath} v${appState.version}.0 publicado en ${owner}/${repo} (rama "${activeBranch}") · Inicio de sesión vinculado a v${appState.version}.0 → ${pagesUrl}`);
-                showToast(`¡Versión v${appState.version}.0 publicada y vinculada al inicio de sesión en tiempo real!`);
-            } catch (err) {
-                setGithubPipelineStatus(`Error en vinculación/publicación: ${err.message}`, true);
-                showToast(`Error GitHub: ${err.message}`);
-            } finally {
-                if (btnEl) btnEl.disabled = false;
+            if (!injectedInDom && document.body) {
+                const stateScript = document.createElement('script');
+                stateScript.id = 'bubuEmbeddedSourceStateScript';
+                stateScript.textContent = replacementBlock;
+                document.body.appendChild(stateScript);
             }
         }
 
@@ -2183,7 +2371,7 @@
                 type: appState.currentDocType || 'estudios',
                 student: document.getElementById('inpNombre')?.value || '',
                 matricula: document.getElementById('inpMatricula')?.value || '',
-                version: appState.version || 4
+                version: appState.version || 1
             });
             appState.history = appState.history.slice(0, 100);
             persistBaseState(false);
@@ -2392,7 +2580,7 @@
         }
 
         function addKardexRow() {
-            appState.kardex.push({ clave: 'ASIG-0' + (appState.kardex.length + 1), asignatura: 'Asignatura Académica', ciclo: '1er. Semestre', creditos: '8', calif: '9.5' });
+            appState.kardex.push({ clave: 'ASIG-0' + (appState.kardex.length + 1), asignatura: 'Asignatura Académica', ciclo: '1° semestre', creditos: '8', calif: '9.5' });
             renderKardexListUI();
             updateDocument();
             persistBaseState(false);
@@ -2495,32 +2683,13 @@
         }
 
         function addNewMajorRvoe() {
-            const name = (document.getElementById('newMajorName')?.value || '').trim();
-            const rvoe = (document.getElementById('newMajorRvoe')?.value || '').trim();
-            const rvoeDate = (document.getElementById('newMajorRvoeDate')?.value || '').trim();
-            const plan = (document.getElementById('newMajorPlan')?.value || 'Semestral').trim();
-            if (!name) return showToast('Escribe el nombre de la licenciatura.');
-            appState.majors.push({ id: 'maj_' + Date.now(), name, rvoe, rvoeDate, plan });
-            ['newMajorName', 'newMajorRvoe', 'newMajorRvoeDate', 'newMajorPlan'].forEach(id => document.getElementById(id).value = '');
-            renderMajorsCatalogUI();
-            showToast('Nueva licenciatura agregada en borrador.');
+            saveMajorItemCrud();
         }
 
         function createNewUserProfile() {
-            const idx = (appState.profiles || []).length;
-            const code = `UAMP${String(idx).padStart(2, '0')}`;
-            appState.profiles.push({
-                id: 'usr_' + Date.now(),
-                name: `Operador Control Escolar ${idx}`,
-                roleLabel: 'Operador',
-                code,
-                isAdmin: false,
-                permissions: buildDefaultUserPermissions(false)
-            });
-            renderProfilesManager();
-            renderPermissionsUserSelector();
-            renderPermissionsMatrixUI();
-            showToast(`Operador creado con clave ${code}. Guarda cambios para vincular a la versión.`);
+            resetUserCrudForm();
+            document.getElementById('inpUserProfileName')?.focus();
+            showToast('Completa nombre, código y rol arriba, luego presiona "Crear Usuario".');
         }
 
         function downloadSelfContainedPageWithData() {
@@ -2562,7 +2731,7 @@
                     if (parsed && typeof parsed === 'object') {
                         const sess = appState.activeSession;
                         appState = { ...appState, ...parsed, activeSession: sess };
-                        appState.version = Number(appState.version || 4);
+                        appState.version = Number(appState.version || 1);
                         persistBaseState(true);
                         refreshAllUI();
                         showToast(`Sistema restaurado y vinculado a v${appState.version}.0.`);
@@ -2718,42 +2887,83 @@
 
         /*__EMBEDDED_BUBU_STATE__*/window.__EMBEDDED_BUBU_STATE__=null;/*__END_EMBEDDED_BUBU_STATE__*/
 
-        async function syncGlobalLiveState(manualTrigger = false, btnEl = null) {
-            if (btnEl) btnEl.disabled = true;
-            try {
-                const cfg = appState.githubConfig || {};
-                let remoteState = null;
+        async function fetchLatestRemoteEmbeddedState() {
+            const owner = (appState.githubConfig?.owner || 'meamosoyhermoso20-lang').trim();
+            const repo = (appState.githubConfig?.repo || 'CONSTANCIAS').trim();
+            const branch = (appState.githubConfig?.branch || 'main').trim();
+            const filePath = (appState.githubConfig?.filePath || 'index.html').trim().replace(/^\/+/, '');
+            const token = (appState.githubConfig?.token || extractSystemGithubRepoToken() || '').trim();
+            const markerRegex = /\/\*__EMBEDDED_BUBU_STATE__\*\/window\.__EMBEDDED_BUBU_STATE__=(\{[\s\S]*?\});\/\*__END_EMBEDDED_BUBU_STATE__\*\//;
 
-                if (cfg.owner && cfg.repo) {
-                    const branch = cfg.branch || 'main';
-                    const filePath = cfg.filePath || 'index.html';
-                    const rawUrl = `https://raw.githubusercontent.com/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/${encodeURIComponent(branch)}/${filePath}?t=${Date.now()}`;
+            if (owner && repo && token) {
+                try {
+                    const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
+                    const apiRes = await fetch(
+                        `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}&_=${Date.now()}`,
+                        {
+                            headers: {
+                                'Authorization': `token ${token}`,
+                                'Accept': 'application/vnd.github.v3+json'
+                            },
+                            cache: 'no-store'
+                        }
+                    );
+                    if (apiRes.ok) {
+                        const fileMeta = await apiRes.json();
+                        if (fileMeta && fileMeta.content) {
+                            const binary = atob(fileMeta.content.replace(/\s+/g, ''));
+                            const bytes = new Uint8Array(binary.length);
+                            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                            const htmlText = new TextDecoder().decode(bytes);
+                            const match = htmlText.match(markerRegex);
+                            if (match && match[1]) {
+                                return JSON.parse(match[1]);
+                            }
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            if (owner && repo) {
+                try {
+                    const rawUrl = `https://raw.githubusercontent.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(branch)}/${filePath}?t=${Date.now()}`;
                     const res = await fetch(rawUrl, { cache: 'no-store' });
                     if (res.ok) {
                         const htmlText = await res.text();
-                        const match = htmlText.match(/\/\*__EMBEDDED_BUBU_STATE__\*\/window\.__EMBEDDED_BUBU_STATE__=(\{[\s\S]*?\});\/\*__END_EMBEDDED_BUBU_STATE__\*\//);
+                        const match = htmlText.match(markerRegex);
                         if (match && match[1]) {
-                            remoteState = JSON.parse(match[1]);
+                            return JSON.parse(match[1]);
                         }
                     }
-                }
+                } catch (e) {}
+            }
 
-                if (!remoteState && window.location && window.location.protocol.startsWith('http')) {
+            if (window.location && window.location.protocol.startsWith('http')) {
+                try {
                     const selfRes = await fetch(`${window.location.pathname}?t=${Date.now()}`, { cache: 'no-store' });
                     if (selfRes.ok) {
                         const selfHtml = await selfRes.text();
-                        const match = selfHtml.match(/\/\*__EMBEDDED_BUBU_STATE__\*\/window\.__EMBEDDED_BUBU_STATE__=(\{[\s\S]*?\});\/\*__END_EMBEDDED_BUBU_STATE__\*\//);
+                        const match = selfHtml.match(markerRegex);
                         if (match && match[1]) {
-                            remoteState = JSON.parse(match[1]);
+                            return JSON.parse(match[1]);
                         }
                     }
-                }
+                } catch (e) {}
+            }
+
+            return null;
+        }
+
+        async function syncGlobalLiveState(manualTrigger = false, btnEl = null) {
+            if (btnEl) btnEl.disabled = true;
+            try {
+                const remoteState = await fetchLatestRemoteEmbeddedState();
 
                 if (remoteState && typeof remoteState === 'object') {
-                    const currentVer = Number(appState.version || 4);
-                    const remoteVer = Number(remoteState.version || 4);
+                    const currentVer = Number(appState.version || 1);
+                    const remoteVer = Number(remoteState.version || 1);
                     if (remoteVer !== currentVer || manualTrigger) {
-                        const savedToken = appState.githubConfig?.token || '';
+                        const savedToken = appState.githubConfig?.token || extractSystemGithubRepoToken() || '';
                         let keptSession = null;
                         if (appState.activeSession) {
                             const refreshedUser = (remoteState.profiles || []).find(p => p.id === appState.activeSession.id);
@@ -2767,24 +2977,30 @@
                             ...remoteState,
                             version: remoteVer,
                             activeSession: keptSession,
-                            githubConfig: { ...(remoteState.githubConfig || appState.githubConfig), token: savedToken }
+                            githubConfig: {
+                                owner: remoteState.githubConfig?.owner || appState.githubConfig?.owner || 'meamosoyhermoso20-lang',
+                                repo: remoteState.githubConfig?.repo || appState.githubConfig?.repo || 'CONSTANCIAS',
+                                branch: remoteState.githubConfig?.branch || appState.githubConfig?.branch || 'main',
+                                filePath: remoteState.githubConfig?.filePath || appState.githubConfig?.filePath || 'index.html',
+                                token: savedToken
+                            }
                         };
                         persistBaseState(true);
                         refreshAllUI();
                         applyActiveUserPermissions();
 
                         if (manualTrigger || remoteVer !== currentVer) {
-                            showToast(`Inicio de sesión sincronizado y vinculado a la versión v${appState.version}.0.`);
+                            showToast(`Sincronizado en tiempo real con GitHub · Versión vigente v${appState.version}.0.`);
                         }
                     }
                 } else if (manualTrigger) {
                     hydrateInstantLocalAndEmbeddedState();
                     refreshAllUI();
                     applyActiveUserPermissions();
-                    showToast(`Inicio de sesión vinculado a la versión local v${appState.version || 4}.0.`);
+                    showToast(`Versión vigente local v${appState.version || 1}.0 sincronizada.`);
                 }
             } catch (e) {
-                if (manualTrigger) showToast(`Sin conexión remota nueva; inicio de sesión vinculado a v${appState.version || 4}.0.`);
+                if (manualTrigger) showToast(`Sin conexión remota nueva; versión vigente v${appState.version || 1}.0.`);
             } finally {
                 if (btnEl) btnEl.disabled = false;
             }
@@ -2795,13 +3011,13 @@
                 hydrateInstantLocalAndEmbeddedState();
                 refreshAllUI();
                 applyActiveUserPermissions();
-                showToast(`Nueva versión detectada (v${appState.version}.0) · Inicio de sesión actualizado.`);
+                showToast(`Nueva versión detectada en tiempo real (v${appState.version}.0).`);
             }
         });
 
         window.addEventListener('DOMContentLoaded', async () => {
             if (window.__EMBEDDED_BUBU_STATE__ && typeof window.__EMBEDDED_BUBU_STATE__ === 'object') {
-                const embeddedVer = Number(window.__EMBEDDED_BUBU_STATE__.version || 4);
+                const embeddedVer = Number(window.__EMBEDDED_BUBU_STATE__.version || 1);
                 const localPointerVer = Number(localStorage.getItem(VERSION_POINTER_KEY) || 0);
                 if (embeddedVer >= localPointerVer) {
                     const serializedEmbedded = JSON.stringify(window.__EMBEDDED_BUBU_STATE__);
@@ -2818,7 +3034,7 @@
             applyActiveUserPermissions();
 
             await syncGlobalLiveState(false);
-            setInterval(() => syncGlobalLiveState(false), 20000);
+            setInterval(() => syncGlobalLiveState(false), 10000);
         });
     </script>
 </body>
