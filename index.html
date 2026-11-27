@@ -89,7 +89,7 @@
     <!-- NOTIFICACIÓN FLOTANTE (TOAST) -->
     <div id="toastBanner" class="fixed bottom-5 right-5 z-[100] max-w-sm bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700 text-xs font-semibold flex items-center gap-2.5 transition-all hidden">
         <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-        <span id="toastMessage">Versión v12.0 guardada en código fuente y desplegada en meamosoyhermoso20-lang/CONSTANCIAS.</span>
+        <span id="toastMessage">Sincronizado en tiempo real con GitHub · Versión vigente v13.0.</span>
     </div>
 
     <!-- PESTAÑA FLOTANTE DE FORMATO AL SELECCIONAR TEXTO EN LA CONSTANCIA -->
@@ -542,7 +542,7 @@
                                 Fijar Versión
                             </button>
                         </div>
-                        <button type="button" onclick="commitAndPublishAllAdminChanges(this)" class="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold shadow-lg transition" disabled="">
+                        <button type="button" onclick="commitAndPublishAllAdminChanges(this)" class="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold shadow-lg transition">
                             Guardar y Actualizar Versión (+1 / Global)
                         </button>
                         <button type="button" onclick="downloadSelfContainedPageWithData()" class="px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition">
@@ -1217,7 +1217,7 @@
                         <button type="button" onclick="runAutomatedGithubPipeline(this, false)" class="px-4 py-2 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-xs font-extrabold transition cursor-pointer">
                             Verificar Repositorio y Cargar Ramas
                         </button>
-                        <button type="button" onclick="runAutomatedGithubPipeline(this, true)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow transition cursor-pointer">
+                        <button type="button" onclick="runAutomatedGithubPipeline(this, true)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow transition cursor-pointer" disabled="">
                             Guardar y Publicar Versión Actual en Tiempo Real
                         </button>
                     </div>
