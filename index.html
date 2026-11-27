@@ -18,6 +18,7 @@
         /* Hoja Oficial Tamaño Carta / Papel Membretado UAMP (215.9mm x 279.4mm) */
         .constancia-sheet {
             width: 215.9mm;
+            height: 279.4mm;
             min-height: 279.4mm;
             max-height: 279.4mm;
             background: #ffffff;
@@ -37,10 +38,12 @@
         #constanciaPaperInner {
             width: 100%;
             height: 100%;
+            max-height: 100%;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             transform-origin: top left;
+            overflow: hidden;
         }
         .constancia-sheet p {
             margin-bottom: 10px;
@@ -2977,7 +2980,15 @@
             const availableHeight = paperEl.clientHeight;
             if (!availableHeight) return;
 
-            // Fase 1: Compactar progresivamente espaciados y tipografía manteniendo legibilidad y margen inferior de 2.5 cm
+            // Medición real del área útil descontando exactamente los paddings superior e inferior (25mm = 2.5cm)
+            const getInnerUsableHeight = () => {
+                const cs = window.getComputedStyle(paperEl);
+                const pt = parseFloat(cs.paddingTop) || 0;
+                const pb = parseFloat(cs.paddingBottom) || 0;
+                return Math.max(0, paperEl.clientHeight - pt - pb);
+            };
+
+            // Fase 1: Compactar progresivamente espaciados y tipografía manteniendo legibilidad y margen inferior estricto de 2.5 cm
             const steps = [
                 { fontPt: 10, lh: Math.min(baseLineHeight, 1.24), pMb: 8, hdrMb: 12, salMb: 10, sigMt: 16, ateMb: 34, cellPad: '3.5px 5px', padTop: '32mm', padBottom: '25mm' },
                 { fontPt: 9.5, lh: Math.min(baseLineHeight, 1.2), pMb: 7, hdrMb: 10, salMb: 8, sigMt: 14, ateMb: 28, cellPad: '3px 4px', padTop: '30mm', padBottom: '25mm' },
@@ -2986,7 +2997,7 @@
             ];
 
             for (const step of steps) {
-                if (innerEl.scrollHeight <= paperEl.clientHeight) break;
+                if (innerEl.scrollHeight <= getInnerUsableHeight()) break;
                 paperEl.style.padding = `${step.padTop} 20mm ${step.padBottom} 20mm`;
                 paperEl.style.fontSize = `${step.fontPt}pt`;
                 paperEl.style.lineHeight = String(step.lh);
@@ -2998,14 +3009,18 @@
                 paperEl.querySelectorAll('th, td').forEach(cell => { cell.style.padding = step.cellPad; });
             }
 
-            // Fase 2: Si aún excede (p. ej. Kárdex extenso o muchos Enter), escalar proporcionalmente a 1 sola hoja carta
-            const currentAvailHeight = paperEl.clientHeight;
-            const currentContentHeight = innerEl.scrollHeight;
-            if (currentContentHeight > currentAvailHeight && currentAvailHeight > 0) {
-                const scaleRatio = Math.max(0.55, (currentAvailHeight - 2) / currentContentHeight);
+            // Fase 2: Medir la distancia real desde el inicio de #constanciaPaperInner hasta el borde inferior de la firma
+            // y escalar proporcionalmente para que jamás invada el margen inferior de 2.5 cm (25mm)
+            const usableHeight = getInnerUsableHeight();
+            const innerRect = innerEl.getBoundingClientRect();
+            const sigRect = sigBlockEl ? sigBlockEl.getBoundingClientRect() : innerRect;
+            const actualRenderedHeight = Math.max(innerEl.scrollHeight, Math.ceil(sigRect.bottom - innerRect.top));
+
+            if (actualRenderedHeight > usableHeight && usableHeight > 0) {
+                const scaleRatio = Math.max(0.45, (usableHeight - 2) / actualRenderedHeight);
                 innerEl.style.transform = `scale(${scaleRatio.toFixed(4)})`;
                 innerEl.style.width = `${(100 / scaleRatio).toFixed(2)}%`;
-                innerEl.style.height = `${(100 / scaleRatio).toFixed(2)}%`;
+                innerEl.style.height = `${usableHeight}px`;
             }
         }
 
