@@ -25,7 +25,7 @@
             font-family: Arial, Helvetica, sans-serif;
             font-size: 10.5pt;
             line-height: 1.3;
-            padding: 34mm 20mm 24mm 20mm;
+            padding: 34mm 20mm 25mm 20mm;
             box-sizing: border-box;
             position: relative;
             display: flex;
@@ -2954,7 +2954,7 @@
             if (!paperEl || !innerEl) return;
 
             const baseLineHeight = parseFloat(document.getElementById('inpDocLineHeight')?.value || '1.3') || 1.3;
-            paperEl.style.padding = '34mm 20mm 24mm 20mm';
+            paperEl.style.padding = '34mm 20mm 25mm 20mm';
             paperEl.style.fontSize = '10.5pt';
             paperEl.style.lineHeight = String(baseLineHeight);
             innerEl.style.transform = 'none';
@@ -2977,12 +2977,12 @@
             const availableHeight = paperEl.clientHeight;
             if (!availableHeight) return;
 
-            // Fase 1: Compactar progresivamente espaciados y tipografía manteniendo legibilidad
+            // Fase 1: Compactar progresivamente espaciados y tipografía manteniendo legibilidad y margen inferior de 2.5 cm
             const steps = [
-                { fontPt: 10, lh: Math.min(baseLineHeight, 1.24), pMb: 8, hdrMb: 12, salMb: 10, sigMt: 16, ateMb: 34, cellPad: '3.5px 5px', padTop: '32mm', padBottom: '21mm' },
-                { fontPt: 9.5, lh: Math.min(baseLineHeight, 1.2), pMb: 7, hdrMb: 10, salMb: 8, sigMt: 14, ateMb: 28, cellPad: '3px 4px', padTop: '30mm', padBottom: '19mm' },
-                { fontPt: 9, lh: Math.min(baseLineHeight, 1.15), pMb: 5, hdrMb: 8, salMb: 6, sigMt: 10, ateMb: 24, cellPad: '2.5px 4px', padTop: '28mm', padBottom: '17mm' },
-                { fontPt: 8.5, lh: 1.12, pMb: 4, hdrMb: 6, salMb: 5, sigMt: 8, ateMb: 20, cellPad: '2px 3px', padTop: '26mm', padBottom: '15mm' }
+                { fontPt: 10, lh: Math.min(baseLineHeight, 1.24), pMb: 8, hdrMb: 12, salMb: 10, sigMt: 16, ateMb: 34, cellPad: '3.5px 5px', padTop: '32mm', padBottom: '25mm' },
+                { fontPt: 9.5, lh: Math.min(baseLineHeight, 1.2), pMb: 7, hdrMb: 10, salMb: 8, sigMt: 14, ateMb: 28, cellPad: '3px 4px', padTop: '30mm', padBottom: '25mm' },
+                { fontPt: 9, lh: Math.min(baseLineHeight, 1.15), pMb: 5, hdrMb: 8, salMb: 6, sigMt: 10, ateMb: 24, cellPad: '2.5px 4px', padTop: '28mm', padBottom: '25mm' },
+                { fontPt: 8.5, lh: 1.12, pMb: 4, hdrMb: 6, salMb: 5, sigMt: 8, ateMb: 20, cellPad: '2px 3px', padTop: '26mm', padBottom: '25mm' }
             ];
 
             for (const step of steps) {
@@ -3513,7 +3513,7 @@
                     document.body.appendChild(iframe);
                     const doc = iframe.contentWindow.document;
                     doc.open();
-                    doc.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Imprimir Constancia UAMP</title><style>@page{size:letter portrait;margin:0;}html,body{margin:0;padding:0;background:#fff;width:215.9mm;height:279.4mm;font-family:Arial,Helvetica,sans-serif;}.constancia-sheet{width:215.9mm;min-height:279.4mm;max-height:279.4mm;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;font-size:10.5pt;line-height:${paper.style.lineHeight || '1.3'};padding:34mm 20mm 24mm 20mm;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;}.constancia-sheet p{margin-bottom:10px;text-align:justify;}.constancia-sheet table{width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;}.constancia-sheet th,.constancia-sheet td{word-wrap:break-word!important;overflow-wrap:break-word!important;white-space:normal!important;text-align:center;vertical-align:middle;line-height:1.25!important;}</style></head><body><div class="constancia-sheet">${paper.innerHTML}</div></body></html>`);
+                    doc.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Imprimir Constancia UAMP</title><style>@page{size:letter portrait;margin:0;}html,body{margin:0;padding:0;background:#fff;width:215.9mm;height:279.4mm;font-family:Arial,Helvetica,sans-serif;}.constancia-sheet{width:215.9mm;min-height:279.4mm;max-height:279.4mm;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;font-size:10.5pt;line-height:${paper.style.lineHeight || '1.3'};padding:34mm 20mm 25mm 20mm;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;}.constancia-sheet p{margin-bottom:10px;text-align:justify;}.constancia-sheet table{width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;}.constancia-sheet th,.constancia-sheet td{word-wrap:break-word!important;overflow-wrap:break-word!important;white-space:normal!important;text-align:center;vertical-align:middle;line-height:1.25!important;}</style></head><body><div class="constancia-sheet">${paper.innerHTML}</div></body></html>`);
                     doc.close();
                     setTimeout(() => {
                         try {
