@@ -621,7 +621,7 @@
                         <div class="flex items-center gap-1.5 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
                             <label for="inpTargetVersionNumber" class="text-[11px] font-bold text-slate-300">Versión N°:</label>
                             <input type="number" id="inpTargetVersionNumber" min="1" step="1" value="9" class="w-16 px-2 py-1 rounded-lg bg-slate-950 text-emerald-300 border border-slate-600 text-xs font-mono font-extrabold text-center">
-                            <button type="button" onclick="applyCustomVersionAndLinkLogin(this)" class="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-extrabold transition">
+                            <button type="button" onclick="applyCustomVersionAndLinkLogin(this)" class="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-extrabold transition" disabled="">
                                 Fijar Versión
                             </button>
                         </div>
@@ -643,7 +643,7 @@
 
                 <!-- NAVEGACIÓN POR PESTAÑAS DEL ADMINISTRADOR -->
                 <div class="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-800">
-                    <button type="button" data-admin-subtab="constancias" onclick="switchAdminSubTab('constancias')" class="admin-subtab-btn px-4 py-2 rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 text-xs font-bold transition">
+                    <button type="button" data-admin-subtab="constancias" onclick="switchAdminSubTab('constancias')" class="admin-subtab-btn px-4 py-2 rounded-xl bg-white text-slate-950 text-xs font-extrabold shadow transition">
                         1. Constancias
                     </button>
                     <button type="button" data-admin-subtab="licenciaturas" onclick="switchAdminSubTab('licenciaturas')" class="admin-subtab-btn px-4 py-2 rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 text-xs font-bold transition">
@@ -655,14 +655,14 @@
                     <button type="button" data-admin-subtab="usuarios" onclick="switchAdminSubTab('usuarios')" class="admin-subtab-btn px-4 py-2 rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 text-xs font-bold transition">
                         4. Usuarios y Permisos
                     </button>
-                    <button type="button" data-admin-subtab="github" onclick="switchAdminSubTab('github')" class="admin-subtab-btn px-4 py-2 rounded-xl bg-white text-slate-950 text-xs font-extrabold shadow transition">
+                    <button type="button" data-admin-subtab="github" onclick="switchAdminSubTab('github')" class="admin-subtab-btn px-4 py-2 rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 text-xs font-bold transition">
                         5. GitHub y Sincronización
                     </button>
                 </div>
             </div>
 
             <!-- PESTAÑA ADMIN 1: CONSTANCIAS -->
-            <div id="adminSubTab_constancias" class="admin-subtab-panel bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4 hidden">
+            <div id="adminSubTab_constancias" class="admin-subtab-panel bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
                     <div>
                         <span class="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-900 text-[10px] font-extrabold uppercase">Plantillas Oficiales</span>
@@ -1228,7 +1228,7 @@
             </div>
 
             <!-- PESTAÑA ADMIN 5: GITHUB Y SINCRONIZACIÓN GLOBAL -->
-            <div id="adminSubTab_github" class="admin-subtab-panel bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-5">
+            <div id="adminSubTab_github" class="admin-subtab-panel bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-5 hidden">
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
                     <div>
                         <span class="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-900 text-[10px] font-extrabold uppercase">Despliegue Global Automático</span>
@@ -1298,7 +1298,7 @@
                         <button type="button" onclick="runAutomatedGithubPipeline(this, false)" class="px-4 py-2 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-xs font-extrabold transition cursor-pointer">
                             Verificar Repositorio y Cargar Ramas
                         </button>
-                        <button type="button" onclick="runAutomatedGithubPipeline(this, true)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow transition cursor-pointer" disabled="">
+                        <button type="button" onclick="runAutomatedGithubPipeline(this, true)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow transition cursor-pointer">
                             Guardar y Publicar Versión Actual en Tiempo Real
                         </button>
                     </div>
