@@ -108,7 +108,7 @@
     <!-- NOTIFICACIÓN FLOTANTE (TOAST) -->
     <div id="toastBanner" class="fixed bottom-5 right-5 z-[100] max-w-sm bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700 text-xs font-semibold flex items-center gap-2.5 transition-all hidden">
         <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-        <span id="toastMessage">Sistema al día en la versión v31.0.</span>
+        <span id="toastMessage">Versión v32.0 guardada en código fuente y desplegada en meamosoyhermoso20-lang/CONSTANCIAS.</span>
     </div>
 
     <!-- PESTAÑA FLOTANTE DE FORMATO AL SELECCIONAR TEXTO EN LA CONSTANCIA -->
@@ -641,7 +641,7 @@
 
                 <!-- NAVEGACIÓN POR PESTAÑAS DEL ADMINISTRADOR -->
                 <div class="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-800">
-                    <button type="button" data-admin-subtab="constancias" onclick="switchAdminSubTab('constancias')" class="admin-subtab-btn px-4 py-2 rounded-xl bg-white text-slate-950 text-xs font-extrabold shadow transition">
+                    <button type="button" data-admin-subtab="constancias" onclick="switchAdminSubTab('constancias')" class="admin-subtab-btn px-4 py-2 rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 text-xs font-bold transition">
                         1. Constancias
                     </button>
                     <button type="button" data-admin-subtab="licenciaturas" onclick="switchAdminSubTab('licenciaturas')" class="admin-subtab-btn px-4 py-2 rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 text-xs font-bold transition">
@@ -653,14 +653,14 @@
                     <button type="button" data-admin-subtab="usuarios" onclick="switchAdminSubTab('usuarios')" class="admin-subtab-btn px-4 py-2 rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 text-xs font-bold transition">
                         4. Usuarios y Permisos
                     </button>
-                    <button type="button" data-admin-subtab="github" onclick="switchAdminSubTab('github')" class="admin-subtab-btn px-4 py-2 rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 text-xs font-bold transition">
+                    <button type="button" data-admin-subtab="github" onclick="switchAdminSubTab('github')" class="admin-subtab-btn px-4 py-2 rounded-xl bg-white text-slate-950 text-xs font-extrabold shadow transition">
                         5. GitHub y Sincronización
                     </button>
                 </div>
             </div>
 
             <!-- PESTAÑA ADMIN 1: CONSTANCIAS -->
-            <div id="adminSubTab_constancias" class="admin-subtab-panel bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
+            <div id="adminSubTab_constancias" class="admin-subtab-panel bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4 hidden">
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
                     <div>
                         <span class="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-900 text-[10px] font-extrabold uppercase">Plantillas Oficiales</span>
@@ -675,7 +675,7 @@
                             <option value="montos">Constancia de Pagos / Montos</option>
                             <option value="resguardo">Constancia de Resguardo</option>
                         </select>
-                        <button type="button" onclick="saveAdminTemplateFromPanel(this)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow-sm transition" disabled="">
+                        <button type="button" onclick="saveAdminTemplateFromPanel(this)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow-sm transition">
                             Guardar Constancia en Código Fuente y Desplegar
                         </button>
                     </div>
@@ -1228,7 +1228,7 @@
             </div>
 
             <!-- PESTAÑA ADMIN 5: GITHUB Y SINCRONIZACIÓN GLOBAL -->
-            <div id="adminSubTab_github" class="admin-subtab-panel hidden bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-5">
+            <div id="adminSubTab_github" class="admin-subtab-panel bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-5">
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
                     <div>
                         <span class="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-900 text-[10px] font-extrabold uppercase">Despliegue Global Automático</span>
@@ -1298,7 +1298,7 @@
                         <button type="button" onclick="runAutomatedGithubPipeline(this, false)" class="px-4 py-2 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-xs font-extrabold transition cursor-pointer">
                             Verificar Repositorio y Cargar Ramas
                         </button>
-                        <button type="button" onclick="runAutomatedGithubPipeline(this, true)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow transition cursor-pointer">
+                        <button type="button" onclick="runAutomatedGithubPipeline(this, true)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow transition cursor-pointer" disabled="">
                             Guardar y Publicar Versión Actual en Tiempo Real
                         </button>
                     </div>
