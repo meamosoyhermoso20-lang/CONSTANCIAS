@@ -37,10 +37,35 @@
             margin-bottom: 10px;
             text-align: justify;
         }
+        /* Ajuste automático de texto dentro de las celdas de cualquier tabla de la constancia */
+        .constancia-sheet table {
+            width: 100% !important;
+            max-width: 100% !important;
+            table-layout: fixed !important;
+            border-collapse: collapse !important;
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+        }
+        .constancia-sheet th,
+        .constancia-sheet td {
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+            word-break: break-word !important;
+            white-space: normal !important;
+            vertical-align: middle !important;
+            line-height: 1.25 !important;
+        }
         @media print {
             @page {
                 size: 215mm 280mm;
                 margin: 0;
+            }
+            html, body {
+                background: #ffffff !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 215mm !important;
+                height: 280mm !important;
             }
             body * {
                 visibility: hidden !important;
@@ -49,11 +74,11 @@
                 visibility: visible !important;
             }
             #constanciaPaper {
-                position: fixed !important;
+                position: absolute !important;
                 left: 0 !important;
                 top: 0 !important;
                 width: 215mm !important;
-                height: 280mm !important;
+                min-height: 280mm !important;
                 box-shadow: none !important;
                 margin: 0 !important;
                 z-index: 99999 !important;
@@ -627,11 +652,21 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end bg-slate-50 p-4 rounded-2xl border border-slate-200">
                     <div class="md:col-span-12">
-                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Extractor Rápido desde URL de GitHub (opcional — pega ej. https://github.com/usuario/repositorio)</label>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Extractor Rápido desde URL de GitHub (pega cualquier enlace de tu repositorio o GitHub Pages)</label>
                         <div class="flex gap-2">
-                            <input type="text" id="inpGithubRepoUrlExtractor" placeholder="https://github.com/tu-usuario/tu-repositorio" class="flex-1 px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-mono">
-                            <button type="button" onclick="extractGithubRepoFromUrl()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold">Extraer Datos</button>
+                            <input type="text" id="inpGithubRepoUrlExtractor" value="https://github.com/meamosoyhermoso20-lang/CONSTANCIAS" placeholder="https://github.com/meamosoyhermoso20-lang/CONSTANCIAS" class="flex-1 px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-mono">
+                            <button type="button" onclick="extractGithubRepoFromUrl(this)" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-extrabold transition cursor-pointer">Extraer Datos</button>
                         </div>
+                    </div>
+
+                    <div class="md:col-span-3">
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">1. Usuario / Propietario GitHub</label>
+                        <input type="text" id="inpGithubOwner" placeholder="meamosoyhermoso20-lang" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-mono">
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">2. Nombre del Repositorio</label>
+                        <input type="text" id="inpGithubRepo" placeholder="CONSTANCIAS" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-mono">
+                    </div>
                     </div>
 
                     <div class="md:col-span-3">
@@ -1012,8 +1047,8 @@
             activeSession: null,
             deletedIds: [],
             githubConfig: {
-                owner: '',
-                repo: '',
+                owner: 'meamosoyhermoso20-lang',
+                repo: 'CONSTANCIAS',
                 token: '',
                 branch: 'main',
                 filePath: 'index.html'
@@ -1669,30 +1704,30 @@
             if (document.getElementById('docPreviewFirmanteCargo')) document.getElementById('docPreviewFirmanteCargo').textContent = appState.signer?.title || 'CONTROL ESCOLAR';
 
             const gradesRows = (appState.grades || []).map(g =>
-                `<tr><td style="border:1px solid #000;text-align:center;padding:3px;">${g.group}</td><td style="border:1px solid #000;text-align:center;padding:3px;">${g.code}</td><td style="border:1px solid #000;text-align:left;padding:3px 6px;">${g.subject}</td><td style="border:1px solid #000;text-align:center;padding:3px;">${g.score}</td></tr>`
+                `<tr><td style="border:1px solid #000;text-align:center;padding:3px 4px;width:12%;">${g.group}</td><td style="border:1px solid #000;text-align:center;padding:3px 4px;width:18%;">${g.code}</td><td style="border:1px solid #000;text-align:left;padding:3px 6px;width:56%;">${g.subject}</td><td style="border:1px solid #000;text-align:center;padding:3px 4px;width:14%;">${g.score}</td></tr>`
             ).join('');
             const gradeNums = (appState.grades || []).map(g => parseFloat(g.score)).filter(n => !isNaN(n));
             const avgGrade = gradeNums.length ? (gradeNums.reduce((a, b) => a + b, 0) / gradeNums.length).toFixed(2) : '0.00';
-            const tablaCalificacionesHtml = `<table border="1" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;margin:8px 0;font-size:8.5pt;"><thead><tr style="background:#f1f5f9;"><th style="border:1px solid #000;padding:4px;text-align:center;">GRUPO</th><th style="border:1px solid #000;padding:4px;text-align:center;">CÓDIGO</th><th style="border:1px solid #000;padding:4px;text-align:left;">MATERIA</th><th style="border:1px solid #000;padding:4px;text-align:center;">CALIF.</th></tr></thead><tbody>${gradesRows}</tbody><tfoot><tr><td colspan="3" style="border:1px solid #000;padding:4px;text-align:right;font-weight:bold;">PROMEDIO ARITMÉTICO:</td><td style="border:1px solid #000;padding:4px;text-align:center;font-weight:bold;">${avgGrade}</td></tr></tfoot></table>`;
+            const tablaCalificacionesHtml = `<table border="1" cellspacing="0" cellpadding="0" style="width:100%;table-layout:fixed;border-collapse:collapse;margin:8px 0;font-size:8.5pt;"><thead><tr style="background:#f1f5f9;"><th style="border:1px solid #000;padding:4px;text-align:center;width:12%;">GRUPO</th><th style="border:1px solid #000;padding:4px;text-align:center;width:18%;">CÓDIGO</th><th style="border:1px solid #000;padding:4px;text-align:left;width:56%;">MATERIA</th><th style="border:1px solid #000;padding:4px;text-align:center;width:14%;">CALIF.</th></tr></thead><tbody>${gradesRows}</tbody><tfoot><tr><td colspan="3" style="border:1px solid #000;padding:4px;text-align:right;font-weight:bold;">PROMEDIO ARITMÉTICO:</td><td style="border:1px solid #000;padding:4px;text-align:center;font-weight:bold;">${avgGrade}</td></tr></tfoot></table>`;
 
             const montosRows = (appState.montos || []).map(m =>
-                `<tr><td style="border:1px solid #000;padding:4px 8px;">${m.concepto}</td><td style="border:1px solid #000;padding:4px 8px;">${m.periodo}</td><td style="border:1px solid #000;padding:4px 8px;text-align:right;">$${Number(m.importe || 0).toFixed(2)}</td></tr>`
+                `<tr><td style="border:1px solid #000;padding:4px 6px;width:50%;">${m.concepto}</td><td style="border:1px solid #000;padding:4px 6px;width:28%;">${m.periodo}</td><td style="border:1px solid #000;padding:4px 6px;text-align:right;width:22%;">$${Number(m.importe || 0).toFixed(2)}</td></tr>`
             ).join('');
             const totalMontos = '$' + (appState.montos || []).reduce((acc, m) => acc + Number(m.importe || 0), 0).toFixed(2);
-            const tablaMontosHtml = `<table border="1" cellspacing="0" cellpadding="4" style="width:100%;border-collapse:collapse;margin:8px 0;font-size:9pt;"><thead><tr style="background:#f1f5f9;"><th style="border:1px solid #000;padding:4px 8px;text-align:left;">CONCEPTO</th><th style="border:1px solid #000;padding:4px 8px;text-align:left;">PERIODO</th><th style="border:1px solid #000;padding:4px 8px;text-align:right;">IMPORTE</th></tr></thead><tbody>${montosRows}</tbody><tfoot><tr><td colspan="2" style="border:1px solid #000;padding:4px 8px;text-align:right;font-weight:bold;">TOTAL:</td><td style="border:1px solid #000;padding:4px 8px;text-align:right;font-weight:bold;">${totalMontos}</td></tr></tfoot></table>`;
+            const tablaMontosHtml = `<table border="1" cellspacing="0" cellpadding="4" style="width:100%;table-layout:fixed;border-collapse:collapse;margin:8px 0;font-size:9pt;"><thead><tr style="background:#f1f5f9;"><th style="border:1px solid #000;padding:4px 6px;text-align:left;width:50%;">CONCEPTO</th><th style="border:1px solid #000;padding:4px 6px;text-align:left;width:28%;">PERIODO</th><th style="border:1px solid #000;padding:4px 6px;text-align:right;width:22%;">IMPORTE</th></tr></thead><tbody>${montosRows}</tbody><tfoot><tr><td colspan="2" style="border:1px solid #000;padding:4px 6px;text-align:right;font-weight:bold;">TOTAL:</td><td style="border:1px solid #000;padding:4px 6px;text-align:right;font-weight:bold;">${totalMontos}</td></tr></tfoot></table>`;
 
             const kardexRows = (appState.kardex || []).map(k =>
-                `<tr><td style="border:1px solid #000;padding:3px 6px;">${k.clave}</td><td style="border:1px solid #000;padding:3px 6px;">${k.asignatura}</td><td style="border:1px solid #000;padding:3px 6px;text-align:center;">${k.ciclo}</td><td style="border:1px solid #000;padding:3px 6px;text-align:center;">${k.creditos}</td><td style="border:1px solid #000;padding:3px 6px;text-align:center;">${k.calif}</td></tr>`
+                `<tr><td style="border:1px solid #000;padding:3px 5px;width:14%;">${k.clave}</td><td style="border:1px solid #000;padding:3px 5px;width:44%;">${k.asignatura}</td><td style="border:1px solid #000;padding:3px 5px;text-align:center;width:18%;">${k.ciclo}</td><td style="border:1px solid #000;padding:3px 5px;text-align:center;width:12%;">${k.creditos}</td><td style="border:1px solid #000;padding:3px 5px;text-align:center;width:12%;">${k.calif}</td></tr>`
             ).join('');
             const totalCreds = (appState.kardex || []).reduce((acc, k) => acc + Number(k.creditos || 0), 0);
             const kardexNums = (appState.kardex || []).map(k => parseFloat(k.calif)).filter(n => !isNaN(n));
             const avgKardex = kardexNums.length ? (kardexNums.reduce((a, b) => a + b, 0) / kardexNums.length).toFixed(2) : '0.00';
-            const tablaKardexHtml = `<table border="1" cellspacing="0" cellpadding="3" style="width:100%;border-collapse:collapse;margin:8px 0;font-size:8.5pt;"><thead><tr style="background:#f1f5f9;"><th style="border:1px solid #000;padding:4px;text-align:left;">CLAVE</th><th style="border:1px solid #000;padding:4px;text-align:left;">ASIGNATURA</th><th style="border:1px solid #000;padding:4px;text-align:center;">CICLO</th><th style="border:1px solid #000;padding:4px;text-align:center;">CRÉD.</th><th style="border:1px solid #000;padding:4px;text-align:center;">CALIF.</th></tr></thead><tbody>${kardexRows}</tbody><tfoot><tr><td colspan="3" style="border:1px solid #000;padding:4px;text-align:right;font-weight:bold;">TOTAL CRÉDITOS Y PROMEDIO:</td><td style="border:1px solid #000;padding:4px;text-align:center;font-weight:bold;">${totalCreds}</td><td style="border:1px solid #000;padding:4px;text-align:center;font-weight:bold;">${avgKardex}</td></tr></tfoot></table>`;
+            const tablaKardexHtml = `<table border="1" cellspacing="0" cellpadding="3" style="width:100%;table-layout:fixed;border-collapse:collapse;margin:8px 0;font-size:8.5pt;"><thead><tr style="background:#f1f5f9;"><th style="border:1px solid #000;padding:4px;text-align:left;width:14%;">CLAVE</th><th style="border:1px solid #000;padding:4px;text-align:left;width:44%;">ASIGNATURA</th><th style="border:1px solid #000;padding:4px;text-align:center;width:18%;">CICLO</th><th style="border:1px solid #000;padding:4px;text-align:center;width:12%;">CRÉD.</th><th style="border:1px solid #000;padding:4px;text-align:center;width:12%;">CALIF.</th></tr></thead><tbody>${kardexRows}</tbody><tfoot><tr><td colspan="3" style="border:1px solid #000;padding:4px;text-align:right;font-weight:bold;">TOTAL CRÉDITOS Y PROMEDIO:</td><td style="border:1px solid #000;padding:4px;text-align:center;font-weight:bold;">${totalCreds}</td><td style="border:1px solid #000;padding:4px;text-align:center;font-weight:bold;">${avgKardex}</td></tr></tfoot></table>`;
 
             const resguardoRows = (appState.resguardo || []).map(r =>
-                `<tr><td style="border:1px solid #000;padding:4px 8px;text-align:center;">${r.cantidad}</td><td style="border:1px solid #000;padding:4px 8px;">${r.descripcion}</td><td style="border:1px solid #000;padding:4px 8px;">${r.serie}</td><td style="border:1px solid #000;padding:4px 8px;">${r.estado}</td></tr>`
+                `<tr><td style="border:1px solid #000;padding:4px 6px;text-align:center;width:12%;">${r.cantidad}</td><td style="border:1px solid #000;padding:4px 6px;width:46%;">${r.descripcion}</td><td style="border:1px solid #000;padding:4px 6px;width:22%;">${r.serie}</td><td style="border:1px solid #000;padding:4px 6px;width:20%;">${r.estado}</td></tr>`
             ).join('');
-            const tablaResguardoHtml = `<table border="1" cellspacing="0" cellpadding="4" style="width:100%;border-collapse:collapse;margin:8px 0;font-size:9pt;"><thead><tr style="background:#f1f5f9;"><th style="border:1px solid #000;padding:4px 8px;text-align:center;">CANT.</th><th style="border:1px solid #000;padding:4px 8px;text-align:left;">DESCRIPCIÓN DEL DOCUMENTO</th><th style="border:1px solid #000;padding:4px 8px;text-align:left;">FOLIO / SERIE</th><th style="border:1px solid #000;padding:4px 8px;text-align:left;">ESTADO</th></tr></thead><tbody>${resguardoRows}</tbody></table>`;
+            const tablaResguardoHtml = `<table border="1" cellspacing="0" cellpadding="4" style="width:100%;table-layout:fixed;border-collapse:collapse;margin:8px 0;font-size:9pt;"><thead><tr style="background:#f1f5f9;"><th style="border:1px solid #000;padding:4px 6px;text-align:center;width:12%;">CANT.</th><th style="border:1px solid #000;padding:4px 6px;text-align:left;width:46%;">DESCRIPCIÓN DEL DOCUMENTO</th><th style="border:1px solid #000;padding:4px 6px;text-align:left;width:22%;">FOLIO / SERIE</th><th style="border:1px solid #000;padding:4px 6px;text-align:left;width:20%;">ESTADO</th></tr></thead><tbody>${resguardoRows}</tbody></table>`;
 
             const templateRaw = document.getElementById('txtCustomFormatBody')?.value || tpl.body || '';
             let rendered = formatMultilineSkeletonPreservingHtml(templateRaw);
@@ -1763,19 +1798,97 @@
         }
 
         // VINCULACIÓN PASO A PASO CON GITHUB Y DESPLIEGUE EN TIEMPO REAL
-        function extractGithubRepoFromUrl() {
-            const raw = (document.getElementById('inpGithubRepoUrlExtractor')?.value || '').trim();
-            const match = raw.match(/github\.com\/([^\/\s]+)\/([^\/\s#?]+)/i);
-            if (!match) {
-                showToast('Pega una URL válida de GitHub, por ejemplo: https://github.com/usuario/repositorio');
+        async function extractGithubRepoFromUrl(btnEl) {
+            const DEFAULT_REPO_URL = 'https://github.com/meamosoyhermoso20-lang/CONSTANCIAS';
+            const extractorInp = document.getElementById('inpGithubRepoUrlExtractor');
+            let raw = (extractorInp?.value || '').trim();
+            if (!raw) {
+                raw = DEFAULT_REPO_URL;
+                if (extractorInp) extractorInp.value = raw;
+            }
+            if (!raw) {
+                showToast('Pega la URL de tu repositorio de GitHub (ej. https://github.com/usuario/repositorio).');
                 return;
             }
-            const owner = match[1];
-            const repo = match[2].replace(/\.git$/i, '');
-            document.getElementById('inpGithubOwner').value = owner;
-            document.getElementById('inpGithubRepo').value = repo;
+
+            let owner = '';
+            let repo = '';
+            let extractedBranch = '';
+            let extractedPath = '';
+
+            // 1. Formato estándar: https://github.com/owner/repo(/tree|blob/branch/path)
+            const ghMatch = raw.match(/github\.com\/([^\/\s#?]+)\/([^\/\s#?]+)(?:\/(?:tree|blob)\/([^\/\s#?]+)(?:\/([^\s#?]+))?)?/i);
+            // 2. Formato GitHub Pages: https://owner.github.io/repo/
+            const pagesMatch = raw.match(/https?:\/\/([^.\s]+)\.github\.io\/([^\/\s#?]+)/i);
+            // 3. Formato corto: owner/repo
+            const shortMatch = raw.match(/^([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)$/);
+
+            if (ghMatch) {
+                owner = ghMatch[1];
+                repo = ghMatch[2].replace(/\.git$/i, '');
+                if (ghMatch[3]) extractedBranch = ghMatch[3];
+                if (ghMatch[4]) extractedPath = ghMatch[4];
+            } else if (pagesMatch) {
+                owner = pagesMatch[1];
+                repo = pagesMatch[2];
+            } else if (shortMatch) {
+                owner = shortMatch[1];
+                repo = shortMatch[2].replace(/\.git$/i, '');
+            } else {
+                showToast('No se reconoció el enlace. Usa https://github.com/usuario/repositorio o usuario/repositorio.');
+                return;
+            }
+
+            if (document.getElementById('inpGithubOwner')) document.getElementById('inpGithubOwner').value = owner;
+            if (document.getElementById('inpGithubRepo')) document.getElementById('inpGithubRepo').value = repo;
+            if (extractedPath && document.getElementById('inpGithubFilePath')) {
+                document.getElementById('inpGithubFilePath').value = extractedPath;
+            }
+
+            const selBranch = document.getElementById('selGithubBranch');
+            if (extractedBranch && selBranch) {
+                if (![...selBranch.options].some(o => o.value === extractedBranch)) {
+                    const opt = document.createElement('option');
+                    opt.value = extractedBranch;
+                    opt.textContent = extractedBranch;
+                    selBranch.appendChild(opt);
+                }
+                selBranch.value = extractedBranch;
+            }
+
             saveGithubInputsToState();
-            showToast(`Extraído: Propietario "${owner}" y Repositorio "${repo}". Ahora ingresa tu Token con permiso repo.`);
+
+            // Si el token ya está escrito, consultar automáticamente la API de GitHub para traer la rama por defecto y las ramas disponibles
+            const token = (document.getElementById('inpGithubToken')?.value || '').trim();
+            if (btnEl) btnEl.disabled = true;
+            try {
+                const headers = { 'Accept': 'application/vnd.github.v3+json' };
+                if (token) headers['Authorization'] = `token ${token}`;
+                const repoRes = await fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`, { headers });
+                if (repoRes.ok) {
+                    const repoInfo = await repoRes.json();
+                    if (repoInfo.default_branch && selBranch && !extractedBranch) {
+                        if (![...selBranch.options].some(o => o.value === repoInfo.default_branch)) {
+                            const opt = document.createElement('option');
+                            opt.value = repoInfo.default_branch;
+                            opt.textContent = `${repoInfo.default_branch} (Principal)`;
+                            selBranch.appendChild(opt);
+                        }
+                        selBranch.value = repoInfo.default_branch;
+                    }
+                    if (token) {
+                        await verifyAndLoadGithubBranches(null);
+                        return;
+                    }
+                }
+            } catch (e) {} finally {
+                if (btnEl) btnEl.disabled = false;
+            }
+
+            saveGithubInputsToState();
+            persistBaseState(false);
+            loadGithubConfigToInputs();
+            showToast(`Datos extraídos: Propietario "${owner}", Repositorio "${repo}", Rama "${selBranch?.value || 'main'}".`);
         }
 
         function saveGithubInputsToState() {
@@ -1935,8 +2048,19 @@
         }
 
         function printConstanciaDocument() {
+            hideSelectionToolbar();
+            const sel = window.getSelection();
+            if (sel && sel.removeAllRanges) sel.removeAllRanges();
             recordHistoryEntry();
-            window.print();
+            showToast('Abriendo panel de impresión...');
+            setTimeout(() => {
+                try {
+                    window.focus();
+                    window.print();
+                } catch (e) {
+                    showToast('No se pudo abrir la impresión directa; usa Ctrl+P o Descargar PDF Oficial.');
+                }
+            }, 120);
         }
 
         function incrementFolioByOne() {
