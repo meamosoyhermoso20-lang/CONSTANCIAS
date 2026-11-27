@@ -89,7 +89,7 @@
     <!-- NOTIFICACIÓN FLOTANTE (TOAST) -->
     <div id="toastBanner" class="fixed bottom-5 right-5 z-[100] max-w-sm bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700 text-xs font-semibold flex items-center gap-2.5 transition-all hidden">
         <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-        <span id="toastMessage">Sincronizado en tiempo real con GitHub · Versión vigente v13.0.</span>
+        <span id="toastMessage">Versión v13.0 guardada en código fuente y desplegada en meamosoyhermoso20-lang/CONSTANCIAS.</span>
     </div>
 
     <!-- PESTAÑA FLOTANTE DE FORMATO AL SELECCIONAR TEXTO EN LA CONSTANCIA -->
@@ -538,7 +538,7 @@
                         <div class="flex items-center gap-1.5 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
                             <label for="inpTargetVersionNumber" class="text-[11px] font-bold text-slate-300">Versión N°:</label>
                             <input type="number" id="inpTargetVersionNumber" min="1" step="1" value="9" class="w-16 px-2 py-1 rounded-lg bg-slate-950 text-emerald-300 border border-slate-600 text-xs font-mono font-extrabold text-center">
-                            <button type="button" onclick="applyCustomVersionAndLinkLogin(this)" class="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-extrabold transition">
+                            <button type="button" onclick="applyCustomVersionAndLinkLogin(this)" class="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-extrabold transition" disabled="">
                                 Fijar Versión
                             </button>
                         </div>
@@ -1217,7 +1217,7 @@
                         <button type="button" onclick="runAutomatedGithubPipeline(this, false)" class="px-4 py-2 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-xs font-extrabold transition cursor-pointer">
                             Verificar Repositorio y Cargar Ramas
                         </button>
-                        <button type="button" onclick="runAutomatedGithubPipeline(this, true)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow transition cursor-pointer" disabled="">
+                        <button type="button" onclick="runAutomatedGithubPipeline(this, true)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow transition cursor-pointer">
                             Guardar y Publicar Versión Actual en Tiempo Real
                         </button>
                     </div>
