@@ -108,7 +108,7 @@
     <!-- NOTIFICACIÓN FLOTANTE (TOAST) -->
     <div id="toastBanner" class="fixed bottom-5 right-5 z-[100] max-w-sm bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700 text-xs font-semibold flex items-center gap-2.5 transition-all hidden">
         <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-        <span id="toastMessage">Bienvenido(a) KIKE · Sesión vinculada a la versión v14.0.</span>
+        <span id="toastMessage">Versión v28.0 guardada en código fuente y desplegada en meamosoyhermoso20-lang/CONSTANCIAS.</span>
     </div>
 
     <!-- PESTAÑA FLOTANTE DE FORMATO AL SELECCIONAR TEXTO EN LA CONSTANCIA -->
@@ -143,11 +143,11 @@
                     <div>
                         <div class="flex items-center gap-2">
                             <span class="font-extrabold text-sm tracking-tight">SISTEMA BUBU 1.0</span>
-                            <span id="headerActiveRoleBadge" class="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 text-[10px] font-bold">Identificado (v28.0): KIKE (Administrador)</span>
+                            <span id="headerActiveRoleBadge" class="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 text-[10px] font-bold">Identificado (v29.0): KIKE (Administrador)</span>
                         </div>
                         <p class="text-[11px] text-blue-200">
                             Universidad América Puebla · Control Escolar ·
-                            <span id="loginVersionBadge" class="font-mono font-extrabold text-emerald-300">v28.0</span>
+                            <span id="loginVersionBadge" class="font-mono font-extrabold text-emerald-300">v29.0</span>
                             <span id="loginVersionSyncTag" class="ml-1 px-1.5 py-0.2 rounded bg-blue-900 border border-blue-700 text-[10px] text-blue-100">Vinculado en tiempo real</span>
                         </p>
                     </div>
@@ -155,7 +155,7 @@
 
                 <!-- ACCESO EN LA MISMA PÁGINA CON CÓDIGO EN ASTERISCOS -->
                 <form id="inlineLoginBarForm" onsubmit="return unlockProfileInline(event)" class="flex flex-wrap items-center gap-1.5 bg-blue-900/70 px-2.5 py-1.5 rounded-xl border border-blue-800">
-                    <span id="loginBarVersionLabel" class="text-[11px] font-bold text-blue-200 px-1">Código de Acceso (v28.0):</span>
+                    <span id="loginBarVersionLabel" class="text-[11px] font-bold text-blue-200 px-1">Código de Acceso (v29.0):</span>
                     <input type="password" id="inpFrontLoginCode" placeholder="••••••" autocomplete="new-password" class="w-32 px-2.5 py-1 rounded-lg bg-white text-slate-900 text-xs font-mono font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-400" disabled="">
                     <button type="submit" id="btnInlineUnlock" class="px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold transition cursor-pointer hidden">
                         Iniciar Sesión
@@ -200,7 +200,7 @@
 
             <!-- AVISO DE MODO BLOQUEADO VINCULADO A LA VERSIÓN ACTIVA -->
             <div id="lockedSessionNoticeBar" class="bg-amber-500 text-slate-950 text-xs font-bold px-4 py-1.5 text-center hidden">
-                Inicio de sesión vinculado en tiempo real a la <span id="noticeVersionLabel">Versión v28.0</span>: ingresa tu código de acceso en la barra superior para habilitar la edición y emisión de constancias.
+                Inicio de sesión vinculado en tiempo real a la <span id="noticeVersionLabel">Versión v29.0</span>: ingresa tu código de acceso en la barra superior para habilitar la edición y emisión de constancias.
             </div>
         </header>
 
@@ -612,7 +612,7 @@
                     <div>
                         <div class="flex items-center gap-2">
                             <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-extrabold uppercase">Inicio de Sesión Vinculado en Tiempo Real</span>
-                            <span id="adminCacheStatusBadge" class="px-2.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-400/40 text-blue-200 text-[10px] font-mono">Versión Publicada v28.0</span>
+                            <span id="adminCacheStatusBadge" class="px-2.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-400/40 text-blue-200 text-[10px] font-mono">Versión Publicada v29.0</span>
                         </div>
                         <h2 class="text-lg font-extrabold mt-1">Control Maestro del Administrador por Pestañas y Versionado</h2>
                         <p class="text-xs text-slate-300">Cada cambio guardado actualiza el código fuente e inicia la sincronización en tiempo real con GitHub para que toda la plataforma refleje al instante la nueva versión.</p>
@@ -621,11 +621,11 @@
                         <div class="flex items-center gap-1.5 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
                             <label for="inpTargetVersionNumber" class="text-[11px] font-bold text-slate-300">Versión N°:</label>
                             <input type="number" id="inpTargetVersionNumber" min="1" step="1" value="9" class="w-16 px-2 py-1 rounded-lg bg-slate-950 text-emerald-300 border border-slate-600 text-xs font-mono font-extrabold text-center">
-                            <button type="button" onclick="applyCustomVersionAndLinkLogin(this)" class="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-extrabold transition" disabled="">
+                            <button type="button" onclick="applyCustomVersionAndLinkLogin(this)" class="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-extrabold transition">
                                 Fijar Versión
                             </button>
                         </div>
-                        <button type="button" onclick="commitAndPublishAllAdminChanges(this)" class="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold shadow-lg transition">
+                        <button type="button" onclick="commitAndPublishAllAdminChanges(this)" class="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold shadow-lg transition" disabled="">
                             Guardar y Actualizar Versión (+1 / Global)
                         </button>
                         <button type="button" onclick="downloadSelfContainedPageWithData()" class="px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition">
@@ -1234,7 +1234,7 @@
                         <span class="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-900 text-[10px] font-extrabold uppercase">Despliegue Global Automático</span>
                         <h3 class="text-base font-extrabold text-slate-900 mt-1">Vinculación Paso a Paso con GitHub (Actualización Global en Tiempo Real)</h3>
                     </div>
-                    <span id="githubLinkStatusBadge" class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-extrabold">Vinculado en Tiempo Real · meamosoyhermoso20-lang/CONSTANCIAS (main) · v28.0</span>
+                    <span id="githubLinkStatusBadge" class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-extrabold">Vinculado en Tiempo Real · meamosoyhermoso20-lang/CONSTANCIAS (main) · v29.0</span>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
@@ -1302,7 +1302,7 @@
                             Guardar y Publicar Versión Actual en Tiempo Real
                         </button>
                     </div>
-                    <div id="githubPipelineLog" class="md:col-span-12 text-[11px] font-mono bg-slate-900 text-emerald-300 px-3.5 py-2.5 rounded-xl border border-slate-800">Desplegando v28.0 en meamosoyhermoso20-lang/CONSTANCIAS/index.html (main)...</div>
+                    <div id="githubPipelineLog" class="md:col-span-12 text-[11px] font-mono bg-slate-900 text-emerald-300 px-3.5 py-2.5 rounded-xl border border-slate-800">Desplegando v29.0 en meamosoyhermoso20-lang/CONSTANCIAS/index.html (main)...</div>
                     <div id="githubRepoTokenQuickBox" class="md:col-span-12 bg-amber-50 border border-amber-300 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs hidden">
                         <div class="space-y-0.5">
                             <div class="font-extrabold text-amber-950">Permiso <code>repo</code> requerido para publicar <code>index.html</code></div>
