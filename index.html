@@ -725,8 +725,9 @@
                             </button>
                         </div>
                         <div class="flex gap-1">
-                            <input type="password" id="inpGithubToken" value="" oninput="onGithubTokenAutoConnect()" onpaste="setTimeout(onGithubTokenAutoConnect, 50)" placeholder="Pega aquí tu token ghp_..." class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-mono">
+                            <input type="password" id="inpGithubToken" value="" oninput="onGithubTokenAutoConnect()" onpaste="setTimeout(onGithubTokenAutoConnect, 50)" placeholder="Pega aquí tu token ghp_ o github_pat_..." class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-mono">
                             <button type="button" onclick="toggleGithubTokenVisibility()" title="Mostrar/Ocultar token" class="px-2.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-[11px] font-bold text-slate-600">Ver</button>
+                            <button type="button" onclick="saveAndVerifyGithubToken(this)" title="Guardar token en el sistema y vincular repositorio" class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-extrabold shrink-0 transition cursor-pointer">Guardar</button>
                         </div>
                     </div>
                     <div class="md:col-span-3">
@@ -1944,10 +1945,25 @@
 
         function extractSystemGithubRepoToken() {
             try {
-                return (localStorage.getItem(ADMIN_GITHUB_TOKEN_KEY) || '').trim();
+                const raw = (localStorage.getItem(ADMIN_GITHUB_TOKEN_KEY) || sessionStorage.getItem(ADMIN_GITHUB_TOKEN_KEY) || '').trim();
+                return raw.replace(/[\r\n\t\s"']+/g, '');
             } catch (e) {
                 return '';
             }
+        }
+
+        function buildGithubAuthHeaders(rawToken) {
+            const cleanToken = String(rawToken || '').replace(/[\r\n\t\s"']+/g, '').trim();
+            const headers = {
+                'Accept': 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28'
+            };
+            if (cleanToken) {
+                headers['Authorization'] = cleanToken.startsWith('github_pat_')
+                    ? `Bearer ${cleanToken}`
+                    : `token ${cleanToken}`;
+            }
+            return { headers, cleanToken };
         }
 
         function switchMainWorkspaceTab(tabName) {
@@ -1992,7 +2008,8 @@
             const repo = (appState.githubConfig?.repo || 'CONSTANCIAS').trim();
             const branch = (appState.githubConfig?.branch || 'main').trim();
             const filePath = (appState.githubConfig?.filePath || 'index.html').trim().replace(/^\/+/, '');
-            const token = (appState.githubConfig?.token || extractSystemGithubRepoToken() || '').trim();
+            const rawToken = (appState.githubConfig?.token || extractSystemGithubRepoToken() || '').trim();
+            const { headers, cleanToken: token } = buildGithubAuthHeaders(rawToken);
 
             if (!owner || !repo) {
                 setGithubPipelineStatus('Completa el usuario y repositorio de GitHub.', true, false);
@@ -2003,12 +2020,24 @@
             setGithubPipelineStatus(`Verificando repositorio ${owner}/${repo}...`, false, false);
 
             try {
-                const headers = { 'Accept': 'application/vnd.github.v3+json' };
-                if (token) headers['Authorization'] = `token ${token}`;
+                if (token) {
+                    const userRes = await fetch('https://api.github.com/user', { headers, cache: 'no-store' });
+                    if (!userRes.ok) {
+                        throw new Error(`El token ingresado no es válido o expiró (HTTP ${userRes.status}). Genera uno nuevo con permiso "repo".`);
+                    }
+                    const scopesHeader = userRes.headers.get('X-OAuth-Scopes') || '';
+                    if (scopesHeader && !scopesHeader.split(',').map(s => s.trim()).includes('repo') && !token.startsWith('github_pat_')) {
+                        throw new Error(`El token no tiene marcado el permiso "repo" (permisos detectados: ${scopesHeader || 'ninguno'}).`);
+                    }
+                }
 
                 const repoRes = await fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`, { headers, cache: 'no-store' });
                 if (!repoRes.ok) {
-                    throw new Error(`No se pudo acceder a ${owner}/${repo} (HTTP ${repoRes.status}). Verifica el token.`);
+                    throw new Error(`No se pudo acceder a ${owner}/${repo} (HTTP ${repoRes.status}). Verifica que el token tenga permiso "repo".`);
+                }
+                const repoMeta = await repoRes.json();
+                if (token && repoMeta.permissions && repoMeta.permissions.push === false) {
+                    throw new Error(`Tu usuario no tiene permisos de escritura (push) en ${owner}/${repo}.`);
                 }
 
                 const branchesRes = await fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/branches`, { headers, cache: 'no-store' });
@@ -2016,16 +2045,21 @@
                     const branches = await branchesRes.json();
                     const selBranch = document.getElementById('selGithubBranch');
                     if (selBranch && Array.isArray(branches) && branches.length) {
-                        const prev = selBranch.value || branch;
+                        const prev = selBranch.value || branch || repoMeta.default_branch || 'main';
                         selBranch.innerHTML = branches.map(b => `<option value="${escapeHtml(b.name)}">${escapeHtml(b.name)}</option>`).join('');
-                        if (branches.some(b => b.name === prev)) selBranch.value = prev;
+                        if (branches.some(b => b.name === prev)) {
+                            selBranch.value = prev;
+                        } else if (repoMeta.default_branch && branches.some(b => b.name === repoMeta.default_branch)) {
+                            selBranch.value = repoMeta.default_branch;
+                        }
                         appState.githubConfig.branch = selBranch.value;
                     }
                 }
 
                 if (!shouldDeploy) {
-                    setGithubPipelineStatus(`Repositorio ${owner}/${repo} verificado correctamente (rama ${appState.githubConfig.branch}).`, false, !token);
-                    if (!silent) showToast(`Repositorio ${owner}/${repo} verificado.`);
+                    setGithubPipelineStatus(`Repositorio ${owner}/${repo} vinculado y verificado correctamente (rama ${appState.githubConfig.branch}).`, false, !token);
+                    syncLoginUIWithActiveVersion();
+                    if (!silent) showToast(`Repositorio ${owner}/${repo} vinculado con éxito.`);
                     return;
                 }
 
@@ -2074,11 +2108,12 @@
                     throw new Error(errData.message || `Error HTTP ${putRes.status} al publicar en GitHub.`);
                 }
 
-                setGithubPipelineStatus(`Desplegado con éxito en GitHub · v${appState.version}.0 (${owner}/${repo} · ${appState.githubConfig.branch}).`, false, false);
-                showToast(`Versión v${appState.version}.0 guardada en código fuente y desplegada en GitHub.`);
+                setGithubPipelineStatus(`Vinculado y desplegado en tiempo real · v${appState.version}.0 (${owner}/${repo} · ${appState.githubConfig.branch}).`, false, false);
+                syncLoginUIWithActiveVersion();
+                showToast(`Versión v${appState.version}.0 guardada en código fuente y desplegada en ${owner}/${repo}.`);
             } catch (err) {
-                setGithubPipelineStatus(`Error de GitHub: ${err.message}`, true, !token);
-                showToast(`Error al desplegar en GitHub: ${err.message}`);
+                setGithubPipelineStatus(`Error de GitHub: ${err.message}`, true, true);
+                showToast(`Error de vinculación/token: ${err.message}`);
             } finally {
                 if (btnEl) btnEl.disabled = false;
             }
@@ -2166,13 +2201,29 @@
 
         function onGithubTokenAutoConnect() {
             saveGithubInputsToState();
+            persistBaseState(false);
             clearTimeout(githubAutoConnectTimer);
             const { owner, repo, token } = appState.githubConfig;
             if (owner && repo && token && (token.startsWith('ghp_') || token.startsWith('github_pat_') || token.length >= 20)) {
+                setGithubPipelineStatus('Token guardado en el sistema. Verificando vinculación con GitHub...', false, false);
                 githubAutoConnectTimer = setTimeout(() => {
-                    runAutomatedGithubPipeline(null, true);
+                    runAutomatedGithubPipeline(null, false);
                 }, 400);
             }
+        }
+
+        async function saveAndVerifyGithubToken(btnEl = null) {
+            saveGithubInputsToState();
+            const token = (appState.githubConfig?.token || '').trim();
+            if (!token) {
+                setGithubPipelineStatus('Ingresa o pega primero tu token de GitHub en el campo 3.', true, true);
+                showToast('Pega tu token antes de presionar Guardar.');
+                document.getElementById('inpGithubToken')?.focus();
+                return;
+            }
+            persistBaseState(false);
+            showToast('Token guardado. Verificando conexión con el repositorio...');
+            await runAutomatedGithubPipeline(btnEl, false);
         }
 
         let waitingForGeneratedGithubToken = false;
@@ -2209,9 +2260,16 @@
         function saveGithubInputsToState() {
             const ownerVal = (document.getElementById('inpGithubOwner')?.value || '').trim();
             const repoVal = (document.getElementById('inpGithubRepo')?.value || '').trim();
-            const tokenVal = (document.getElementById('inpGithubToken')?.value || '').trim();
+            const inpTokenEl = document.getElementById('inpGithubToken');
+            const tokenVal = inpTokenEl
+                ? (inpTokenEl.value || '').replace(/[\r\n\t\s"']+/g, '').trim()
+                : (appState.githubConfig?.token || extractSystemGithubRepoToken() || '').trim();
             const branchVal = (document.getElementById('selGithubBranch')?.value || 'main').trim();
             const filePathVal = (document.getElementById('inpGithubFilePath')?.value || 'index.html').trim();
+
+            if (inpTokenEl && inpTokenEl.value !== tokenVal) {
+                inpTokenEl.value = tokenVal;
+            }
 
             appState.githubConfig = {
                 owner: ownerVal || 'meamosoyhermoso20-lang',
@@ -2224,8 +2282,10 @@
             try {
                 if (tokenVal) {
                     localStorage.setItem(ADMIN_GITHUB_TOKEN_KEY, tokenVal);
-                } else {
+                    sessionStorage.setItem(ADMIN_GITHUB_TOKEN_KEY, tokenVal);
+                } else if (inpTokenEl) {
                     localStorage.removeItem(ADMIN_GITHUB_TOKEN_KEY);
+                    sessionStorage.removeItem(ADMIN_GITHUB_TOKEN_KEY);
                 }
             } catch (e) {}
             syncLoginUIWithActiveVersion();
@@ -2892,7 +2952,8 @@
             const repo = (appState.githubConfig?.repo || 'CONSTANCIAS').trim();
             const branch = (appState.githubConfig?.branch || 'main').trim();
             const filePath = (appState.githubConfig?.filePath || 'index.html').trim().replace(/^\/+/, '');
-            const token = (appState.githubConfig?.token || extractSystemGithubRepoToken() || '').trim();
+            const rawToken = (appState.githubConfig?.token || extractSystemGithubRepoToken() || '').trim();
+            const { headers, cleanToken: token } = buildGithubAuthHeaders(rawToken);
             const markerRegex = /\/\*__EMBEDDED_BUBU_STATE__\*\/window\.__EMBEDDED_BUBU_STATE__=(\{[\s\S]*?\});\/\*__END_EMBEDDED_BUBU_STATE__\*\//;
 
             if (owner && repo && token) {
@@ -2901,10 +2962,7 @@
                     const apiRes = await fetch(
                         `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}&_=${Date.now()}`,
                         {
-                            headers: {
-                                'Authorization': `token ${token}`,
-                                'Accept': 'application/vnd.github.v3+json'
-                            },
+                            headers,
                             cache: 'no-store'
                         }
                     );
@@ -3029,12 +3087,13 @@
 
             hydrateInstantLocalAndEmbeddedState();
             appState.activeSession = null;
+            loadGithubConfigToInputs();
             refreshAllUI();
             selectDocType(appState.currentDocType || 'estudios');
             applyActiveUserPermissions();
 
             await syncGlobalLiveState(false);
-            setInterval(() => syncGlobalLiveState(false), 10000);
+            setInterval(() => syncGlobalLiveState(false), 4000);
         });
     </script>
 </body>
