@@ -1546,7 +1546,7 @@
             }
 
             const dynBody = document.getElementById('docDynamicBody');
-            if (dynBody) dynBody.contentEditable = 'false';
+            if (dynBody) dynBody.contentEditable = isUnlocked && (session.isAdmin || !!perms.fields?.canEditDirectPreview || !!perms.fields?.canEditSkeleton) ? 'true' : 'false';
 
             const paperEl = document.getElementById('constanciaPaper');
             const canEditWholeSheet = isUnlocked && (session.isAdmin || !!perms.fields?.canEditDirectPreview || !!perms.fields?.canEditSkeleton);
@@ -2831,6 +2831,64 @@
             updateDocument();
         }
 
+        function applySavedPaperSpacingToPreview(tpl) {
+            if (!tpl || typeof tpl !== 'object') return;
+            const spacing = tpl.spacing || {};
+            const headerEl = document.getElementById('docPreviewHeaderBlock');
+            const salutationEl = document.getElementById('docPreviewSalutationBlock');
+            const sigBlockEl = document.getElementById('docPreviewSignatureBlock');
+            const atentamenteEl = document.getElementById('docPreviewAtentamente');
+
+            if (headerEl && typeof spacing.headerHtml === 'string') {
+                headerEl.innerHTML = spacing.headerHtml;
+            }
+            if (salutationEl && typeof spacing.salutationHtml === 'string') {
+                salutationEl.innerHTML = spacing.salutationHtml;
+            }
+            if (sigBlockEl && typeof spacing.signatureHtml === 'string') {
+                sigBlockEl.innerHTML = spacing.signatureHtml;
+            }
+            if (headerEl && spacing.headerMarginBottom) headerEl.style.marginBottom = spacing.headerMarginBottom;
+            if (salutationEl && spacing.salutationMarginBottom) salutationEl.style.marginBottom = spacing.salutationMarginBottom;
+            if (sigBlockEl && spacing.signatureMarginTop) sigBlockEl.style.marginTop = spacing.signatureMarginTop;
+            if (atentamenteEl && spacing.atentamenteMarginBottom) atentamenteEl.style.marginBottom = spacing.atentamenteMarginBottom;
+        }
+
+        function captureFullPaperLayoutToTemplate(docType) {
+            const targetType = docType || appState.currentDocType || 'estudios';
+            if (!appState.templates) appState.templates = JSON.parse(JSON.stringify(DEFAULT_DOC_TEMPLATES));
+            if (!appState.templates[targetType]) {
+                appState.templates[targetType] = JSON.parse(JSON.stringify(DEFAULT_DOC_TEMPLATES[targetType] || DEFAULT_DOC_TEMPLATES.estudios));
+            }
+            const tpl = appState.templates[targetType];
+
+            const headerEl = document.getElementById('docPreviewHeaderBlock');
+            const salutationEl = document.getElementById('docPreviewSalutationBlock');
+            const sigBlockEl = document.getElementById('docPreviewSignatureBlock');
+            const atentamenteEl = document.getElementById('docPreviewAtentamente');
+            const dynBody = document.getElementById('docDynamicBody');
+
+            tpl.spacing = {
+                headerHtml: headerEl ? headerEl.innerHTML : '',
+                salutationHtml: salutationEl ? salutationEl.innerHTML : '',
+                signatureHtml: sigBlockEl ? sigBlockEl.innerHTML : '',
+                headerMarginBottom: headerEl ? headerEl.style.marginBottom : '16px',
+                salutationMarginBottom: salutationEl ? salutationEl.style.marginBottom : '14px',
+                signatureMarginTop: sigBlockEl ? sigBlockEl.style.marginTop : '22px',
+                atentamenteMarginBottom: atentamenteEl ? atentamenteEl.style.marginBottom : '42px'
+            };
+
+            const paperEl = document.getElementById('constanciaPaper');
+            const isEditingBodyDirectly = dynBody && paperEl && (document.activeElement === paperEl || paperEl.contains(document.activeElement));
+            if (isEditingBodyDirectly && dynBody) {
+                // Conservar los saltos de línea del cuerpo editado en pantalla sin destruir los tokens de tabla
+                const hasTableTag = /<table[\s>]/i.test(dynBody.innerHTML);
+                if (!hasTableTag) {
+                    tpl.body = dynBody.innerHTML;
+                }
+            }
+        }
+
         function handleSkeletonTextareaKeydown(event) {
             if (event.key === 'Enter') {
                 event.stopPropagation();
@@ -2840,47 +2898,23 @@
         function handlePaperSheetKeydown(event) {
             if (event.key === 'Enter') {
                 event.stopPropagation();
-            }
-        }
-
-        function applySavedPaperSpacingToPreview(tpl) {
-            const headerEl = document.getElementById('docPreviewHeaderBlock');
-            const salutationEl = document.getElementById('docPreviewSalutationBlock');
-            const sigBlockEl = document.getElementById('docPreviewSignatureBlock');
-            const atentamenteEl = document.getElementById('docPreviewAtentamente');
-            if (headerEl && tpl?.headerHtml !== undefined) {
-                headerEl.innerHTML = tpl.headerHtml;
-            } else if (headerEl) {
-                headerEl.innerHTML = `<div style="font-weight:800;" id="docPreviewFolio"></div><div id="docPreviewHeaderAsunto"></div><div id="docPreviewHeaderDate"></div>`;
-            }
-            if (salutationEl && tpl?.salutationHtml !== undefined) {
-                salutationEl.innerHTML = tpl.salutationHtml;
-            } else if (salutationEl) {
-                salutationEl.innerHTML = `A QUIEN CORRESPONDA:<br>P R E S E N T E`;
-            }
-            if (sigBlockEl && tpl?.signatureBlockHtml !== undefined) {
-                sigBlockEl.innerHTML = tpl.signatureBlockHtml;
-            } else if (atentamenteEl && tpl?.atentamenteHtml !== undefined) {
-                atentamenteEl.innerHTML = tpl.atentamenteHtml;
-            }
-        }
-
-        function captureFullPaperLayoutToTemplate(docType) {
-            const tpl = appState.templates?.[docType];
-            if (!tpl) return;
-            const headerEl = document.getElementById('docPreviewHeaderBlock');
-            const salutationEl = document.getElementById('docPreviewSalutationBlock');
-            const bodyContainer = document.getElementById('docDynamicBody');
-            const sigBlockEl = document.getElementById('docPreviewSignatureBlock');
-
-            if (headerEl) tpl.headerHtml = headerEl.innerHTML;
-            if (salutationEl) tpl.salutationHtml = salutationEl.innerHTML;
-            if (sigBlockEl) tpl.signatureBlockHtml = sigBlockEl.innerHTML;
-            if (bodyContainer) {
-                tpl.body = bodyContainer.innerHTML;
-                const textareaEl = document.getElementById('txtCustomFormatBody');
-                if (textareaEl && document.activeElement !== textareaEl) {
-                    textareaEl.value = bodyContainer.innerHTML;
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount > 0) {
+                    const range = sel.getRangeAt(0);
+                    const anchorNode = range.startContainer;
+                    const parentEl = anchorNode.nodeType === 1 ? anchorNode : anchorNode.parentElement;
+                    // Evitar dividir contenedores estructurales principales para que no se mueva el resto de bloques
+                    if (parentEl && (parentEl.id === 'constanciaPaper' || parentEl.id === 'constanciaPaperInner' || parentEl.id === 'docPreviewSignatureBlock')) {
+                        event.preventDefault();
+                        const br = document.createElement('br');
+                        range.deleteContents();
+                        range.insertNode(br);
+                        range.setStartAfter(br);
+                        range.setEndAfter(br);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                        syncFullPaperSkeletonEdits();
+                    }
                 }
             }
         }
@@ -3042,14 +3076,16 @@
                 rendered = rendered.split(token).join(val);
             });
 
-            // Garantizar concordancia de género si en el esqueleto se escribió literal "el alumno"/"la alumna" o "inscrito"/"inscrita"
+            // Garantizar concordancia exacta de género (Niño -> alumno / inscrito, Niña -> alumna / inscrita)
             if (isFemale) {
                 rendered = rendered
                     .replace(/\bel alumno\b/gi, 'la alumna')
+                    .replace(/\balumno\b/gi, 'alumna')
                     .replace(/\binscrito\b/gi, 'inscrita');
             } else {
                 rendered = rendered
                     .replace(/\bla alumna\b/gi, 'el alumno')
+                    .replace(/\balumna\b/gi, 'alumno')
                     .replace(/\binscrita\b/gi, 'inscrito');
             }
 
@@ -3586,12 +3622,11 @@
                 ? `${activeUser.name} (${activeUser.code || activeUser.roleLabel})`
                 : 'Sesión sin identificar';
             const docMeta = ALL_DOC_TYPES_META.find(d => d.id === (appState.currentDocType || 'estudios'));
-
             appState.history.unshift({
                 id: 'hist_' + Date.now(),
                 date: new Date().toLocaleString('es-MX'),
-                folio: document.getElementById('inpFolio')?.value || '',
-                type: docMeta ? docMeta.label : (appState.currentDocType || 'estudios'),
+                folio: document.getElementById('inpFolio')?.value || 'S/F',
+                type: docMeta?.label || (appState.currentDocType || 'Constancia'),
                 student: document.getElementById('inpNombre')?.value || '',
                 matricula: document.getElementById('inpMatricula')?.value || '',
                 licenciatura: document.getElementById('inpNombreLicenciaturaEditable')?.value || '',
@@ -3599,30 +3634,92 @@
                 elaboratedBy: authorLabel,
                 version: appState.version || 1
             });
-            appState.history = appState.history.slice(0, 200);
-            persistBaseState(true);
+            if (appState.history.length > 500) appState.history.length = 500;
+            persistBaseState(false);
+        }
+
+        function buildExactVisualSheetClone(paper) {
+            const clone = paper.cloneNode(true);
+            const origNodes = [paper, ...paper.querySelectorAll('*')];
+            const cloneNodes = [clone, ...clone.querySelectorAll('*')];
+
+            origNodes.forEach((origEl, idx) => {
+                const targetEl = cloneNodes[idx];
+                if (!targetEl) return;
+                const cs = window.getComputedStyle(origEl);
+                const propsToCopy = [
+                    'display', 'flex-direction', 'justify-content', 'align-items',
+                    'width', 'min-width', 'max-width', 'height', 'min-height', 'max-height',
+                    'margin', 'padding', 'box-sizing', 'position',
+                    'font-family', 'font-size', 'font-weight', 'font-style', 'line-height',
+                    'letter-spacing', 'text-align', 'vertical-align', 'text-transform',
+                    'white-space', 'word-wrap', 'overflow-wrap', 'word-break',
+                    'color', 'background-color',
+                    'border', 'border-top', 'border-right', 'border-bottom', 'border-left',
+                    'border-collapse', 'border-spacing', 'table-layout',
+                    'transform', 'transform-origin', 'overflow'
+                ];
+                let inlineCss = '';
+                propsToCopy.forEach(prop => {
+                    const val = cs.getPropertyValue(prop);
+                    if (val) inlineCss += `${prop}:${val};`;
+                });
+                targetEl.style.cssText = inlineCss;
+                targetEl.removeAttribute('contenteditable');
+            });
+
+            // Evitar que las reglas globales .constancia-sheet th/td con !important alteren la alineación de celdas en el PDF/impresión
+            clone.classList.remove('constancia-sheet');
+            clone.style.position = 'relative';
+            clone.style.left = '0';
+            clone.style.top = '0';
+            clone.style.margin = '0';
+            clone.style.boxShadow = 'none';
+            clone.style.width = '215.9mm';
+            clone.style.height = '279.4mm';
+            clone.style.minHeight = '279.4mm';
+            clone.style.maxHeight = '279.4mm';
+            clone.style.backgroundColor = '#ffffff';
+
+            // Garantizar que html2canvas renderice exactamente los bordes negros de 1px de cada tabla y celda
+            clone.querySelectorAll('table').forEach(tbl => {
+                tbl.style.borderCollapse = 'collapse';
+                tbl.style.borderSpacing = '0';
+                tbl.style.border = '1px solid #000000';
+                tbl.style.width = '100%';
+            });
+            clone.querySelectorAll('th, td').forEach(cell => {
+                cell.style.borderTop = '1px solid #000000';
+                cell.style.borderRight = '1px solid #000000';
+                cell.style.borderBottom = '1px solid #000000';
+                cell.style.borderLeft = '1px solid #000000';
+                cell.style.boxSizing = 'border-box';
+            });
+            return clone;
         }
 
         async function saveAndDownloadConstanciaPDF() {
             const paper = document.getElementById('constanciaPaper');
             if (!paper) return showToast('No se encontró la hoja de la constancia.');
+            if (document.activeElement && (document.activeElement === paper || paper.contains(document.activeElement))) {
+                document.activeElement.blur();
+            }
+            updateDocument();
             autoFitConstanciaToSingleLetterPage();
             recordHistoryEntry();
-            showToast('Generando PDF oficial idéntico a la vista previa...');
+            showToast('Generando PDF oficial exactamente igual a la vista previa...');
             try {
                 if (window.html2canvas && window.jspdf) {
-                    const clone = paper.cloneNode(true);
+                    const clone = buildExactVisualSheetClone(paper);
                     clone.id = 'constanciaPaperExportClone';
                     clone.style.position = 'fixed';
-                    clone.style.left = '-99999px';
+                    clone.style.left = '0';
                     clone.style.top = '0';
-                    clone.style.margin = '0';
-                    clone.style.boxShadow = 'none';
-                    clone.style.width = '215.9mm';
-                    clone.style.height = '279.4mm';
-                    clone.style.minHeight = '279.4mm';
-                    clone.style.maxHeight = '279.4mm';
+                    clone.style.zIndex = '-1';
+                    clone.style.pointerEvents = 'none';
                     document.body.appendChild(clone);
+
+                    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
                     const canvas = await window.html2canvas(clone, {
                         scale: 3,
@@ -3631,8 +3728,8 @@
                         logging: false,
                         width: clone.offsetWidth,
                         height: clone.offsetHeight,
-                        windowWidth: clone.offsetWidth,
-                        windowHeight: clone.offsetHeight
+                        windowWidth: document.documentElement.clientWidth,
+                        windowHeight: document.documentElement.clientHeight
                     });
                     clone.remove();
 
@@ -3643,7 +3740,7 @@
                     const rawFolio = (document.getElementById('inpFolio')?.value || 'Constancia').replace(/[^a-zA-Z0-9_-]+/g, '_');
                     const rawName = (document.getElementById('inpNombre')?.value || 'Alumno').trim().replace(/\s+/g, '_');
                     pdf.save(`${rawFolio}_${rawName}.pdf`);
-                    showToast('PDF oficial idéntico a la vista previa descargado.');
+                    showToast('PDF oficial idéntico a la vista previa y tabla descargado.');
                     return;
                 }
             } catch (e) {}
@@ -3656,7 +3753,6 @@
             if (sel && sel.removeAllRanges) sel.removeAllRanges();
             autoFitConstanciaToSingleLetterPage();
             const paper = document.getElementById('constanciaPaper');
-            const inner = document.getElementById('constanciaPaperInner');
 
             if (paper) {
                 try {
@@ -3672,24 +3768,7 @@
                     iframe.style.border = '0';
                     document.body.appendChild(iframe);
 
-                    const csPaper = window.getComputedStyle(paper);
-                    const csInner = inner ? window.getComputedStyle(inner) : null;
-                    const clonedSheet = paper.cloneNode(true);
-                    clonedSheet.style.cssText = csPaper.cssText;
-                    clonedSheet.style.position = 'relative';
-                    clonedSheet.style.left = '0';
-                    clonedSheet.style.top = '0';
-                    clonedSheet.style.margin = '0';
-                    clonedSheet.style.boxShadow = 'none';
-                    clonedSheet.style.width = '215.9mm';
-                    clonedSheet.style.height = '279.4mm';
-                    clonedSheet.style.minHeight = '279.4mm';
-                    clonedSheet.style.maxHeight = '279.4mm';
-
-                    const clonedInner = clonedSheet.querySelector('#constanciaPaperInner');
-                    if (clonedInner && csInner) {
-                        clonedInner.style.cssText = csInner.cssText;
-                    }
+                    const clonedSheet = buildExactVisualSheetClone(paper);
 
                     const doc = iframe.contentWindow.document;
                     doc.open();
@@ -3697,9 +3776,6 @@
                         @page { size: letter portrait; margin: 0; }
                         * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                         html, body { margin: 0 !important; padding: 0 !important; background: #ffffff !important; width: 215.9mm !important; height: 279.4mm !important; overflow: hidden !important; font-family: Arial, Helvetica, sans-serif; }
-                        .constancia-sheet p { margin-bottom: ${paper.querySelector('p')?.style.marginBottom || '10px'}; text-align: justify; }
-                        .constancia-sheet table { width: 100% !important; max-width: 100% !important; table-layout: fixed !important; border-collapse: collapse !important; }
-                        .constancia-sheet th, .constancia-sheet td { word-wrap: break-word !important; overflow-wrap: break-word !important; white-space: normal !important; text-align: center; vertical-align: middle !important; line-height: 1.25 !important; }
                     </style></head><body>${clonedSheet.outerHTML}</body></html>`);
                     doc.close();
                     setTimeout(() => {
