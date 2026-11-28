@@ -3666,6 +3666,42 @@
                 });
                 targetEl.style.cssText = inlineCss;
                 targetEl.removeAttribute('contenteditable');
+
+                // Fijar dimensiones exactas en píxeles de cada fila y celda de tabla tal como se ve en la constancia
+                const tag = origEl.tagName;
+                if (tag === 'TABLE') {
+                    const rect = origEl.getBoundingClientRect();
+                    if (rect.width > 0) {
+                        targetEl.style.width = `${rect.width}px`;
+                        targetEl.style.minWidth = `${rect.width}px`;
+                        targetEl.style.maxWidth = `${rect.width}px`;
+                    }
+                    targetEl.style.tableLayout = 'fixed';
+                    targetEl.style.borderCollapse = 'collapse';
+                    targetEl.style.borderSpacing = '0';
+                } else if (tag === 'TR') {
+                    const rect = origEl.getBoundingClientRect();
+                    if (rect.height > 0) {
+                        targetEl.style.height = `${rect.height}px`;
+                    }
+                } else if (tag === 'TH' || tag === 'TD') {
+                    const rect = origEl.getBoundingClientRect();
+                    if (rect.width > 0) {
+                        targetEl.style.width = `${rect.width}px`;
+                        targetEl.style.minWidth = `${rect.width}px`;
+                        targetEl.style.maxWidth = `${rect.width}px`;
+                    }
+                    if (rect.height > 0) {
+                        targetEl.style.height = `${rect.height}px`;
+                    }
+                    targetEl.style.textAlign = cs.textAlign;
+                    targetEl.style.verticalAlign = 'middle';
+                    targetEl.style.paddingTop = cs.paddingTop;
+                    targetEl.style.paddingBottom = cs.paddingBottom;
+                    targetEl.style.paddingLeft = cs.paddingLeft;
+                    targetEl.style.paddingRight = cs.paddingRight;
+                    targetEl.style.lineHeight = cs.lineHeight;
+                }
             });
 
             // Evitar que las reglas globales .constancia-sheet th/td con !important alteren la alineación de celdas en el PDF/impresión
@@ -3686,7 +3722,6 @@
                 tbl.style.borderCollapse = 'collapse';
                 tbl.style.borderSpacing = '0';
                 tbl.style.border = '1px solid #000000';
-                tbl.style.width = '100%';
             });
             clone.querySelectorAll('th, td').forEach(cell => {
                 cell.style.borderTop = '1px solid #000000';
